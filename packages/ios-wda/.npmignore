@@ -1,0 +1,10 @@
+# Build artifacts
+dist/
+
+# Development files
+*.tsbuildinfo
+node_modules/
+
+# Temporary files
+.DS_Store
+*.log
