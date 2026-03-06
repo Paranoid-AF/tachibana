@@ -17,8 +17,8 @@ import type { ViteDevServer } from 'vite'
 const isDev = process.env.NODE_ENV === 'development'
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 
-const webDevPath = path.resolve(__dirname, '../../../web')
-const webDistPath = path.resolve(__dirname, '../../../web/dist')
+const webDevPath = path.resolve(__dirname, '../../web')
+const webDistPath = path.resolve(__dirname, '../../web/dist')
 
 export const app = new Elysia()
 export type App = typeof app
