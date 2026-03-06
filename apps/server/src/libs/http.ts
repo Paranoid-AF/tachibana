@@ -2,7 +2,10 @@ import { Elysia } from 'elysia'
 import http from 'node:http'
 import path from 'node:path'
 
-export const buildRequest = async (url: string, req: http.IncomingMessage) => {
+export const buildHttpRequest = async (
+  url: string,
+  req: http.IncomingMessage
+) => {
   const { method } = req
 
   const headers = new Headers()
