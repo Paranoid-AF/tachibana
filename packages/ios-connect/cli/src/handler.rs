@@ -7,7 +7,7 @@ use crate::session::SessionState;
 use crate::types::{
     IpcRequest, LoginParams, Submit2faParams, TeamIdParams, RevokeCertParams, CreateAppIdParams,
     RegisterDeviceParams, SignAppParams, InstallAppParams, ScreenshotParams,
-    ListPhotosParams, DownloadPhotoParams, PairDeviceParams, ValidatePairingParams,
+    ListPhotosParams, DownloadPhotoParams, GetPhotoInfoParams, PairDeviceParams, ValidatePairingParams,
 };
 
 pub async fn dispatch(state: Arc<Mutex<SessionState>>, request: IpcRequest) {
@@ -112,6 +112,11 @@ pub async fn dispatch(state: Arc<Mutex<SessionState>>, request: IpcRequest) {
 
         "listPhotos" => match serde_json::from_value::<ListPhotosParams>(request.params) {
             Ok(params) => commands::photos::list_photos(&id, params).await,
+            Err(e) => ipc::send_error(&id, "INVALID_PARAMS", &format!("Invalid params: {e}")),
+        },
+
+        "getPhotoInfo" => match serde_json::from_value::<GetPhotoInfoParams>(request.params) {
+            Ok(params) => commands::photos::get_photo_info(&id, params).await,
             Err(e) => ipc::send_error(&id, "INVALID_PARAMS", &format!("Invalid params: {e}")),
         },
 

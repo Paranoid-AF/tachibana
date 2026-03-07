@@ -144,6 +144,14 @@ pub struct ScreenshotParams {
 #[derive(Debug, Deserialize)]
 pub struct ListPhotosParams {
     pub udid: String,
+    pub limit: Option<usize>,
+    pub cursor: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GetPhotoInfoParams {
+    pub udid: String,
+    pub path: String,
 }
 
 #[derive(Debug, Deserialize)]
