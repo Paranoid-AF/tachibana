@@ -8,6 +8,10 @@ export const getConfig = async (isDev?: boolean) => {
       port: DEFAULT_PROD_PORT,
       hostname: DEFAULT_EXPOSE_TO_NETWORK ? '0.0.0.0' : 'localhost',
     },
+    credentials: {
+      appleAccount: process.env.APPLE_ACCOUNT ?? '',
+      password: process.env.APPLE_PASSWORD ?? '',
+    },
   }
 
   if (isDev) {

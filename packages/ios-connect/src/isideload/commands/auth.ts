@@ -73,7 +73,7 @@ export async function ensureSession(
 
       daemon
         .request('login', {
-          email: options.credentials!.appleId,
+          email: options.credentials!.appleAccount,
           password: options.credentials!.password,
         })
         .then(() => resolve())

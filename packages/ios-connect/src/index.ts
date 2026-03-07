@@ -36,6 +36,7 @@ export type {
   TwoFactorCallback,
   SideloaderOptions,
   SideloaderResult,
+  SideloaderErrorData,
   DeveloperTeam,
   DevelopmentCert,
   AppIdInfo,

@@ -1,4 +1,4 @@
-import { Elysia } from 'elysia'
+import type { AnyElysia } from 'elysia'
 import http from 'node:http'
 import path from 'node:path'
 
@@ -57,7 +57,7 @@ export const handleElysiaResponse =
     }
   }
 
-export const handleElysiaStaticRoute = (app: Elysia, webDistPath: string) => {
+export const handleElysiaStaticRoute = (app: AnyElysia, webDistPath: string) => {
   app.get('/*', async ({ request, set }) => {
     const url = new URL(request.url)
     const pathname = url.pathname

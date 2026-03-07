@@ -1,14 +1,14 @@
 // ── Credentials & Auth Types ──
 
 export interface AppleCredentials {
-  appleId: string
+  appleAccount: string
   password: string
 }
 
 export interface AccountInfo {
   firstName: string
   lastName: string
-  appleId: string
+  appleAccount: string
 }
 
 /** 2FA method info */

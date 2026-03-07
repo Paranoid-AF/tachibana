@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 
-export const health = new Elysia({ prefix: '/api/health' }).get(
+export const health = new Elysia({ prefix: '/health' }).get(
   '/',
   () => ({ status: 'ok' }),
   {

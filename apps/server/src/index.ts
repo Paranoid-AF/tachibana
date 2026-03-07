@@ -20,7 +20,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const webDevPath = path.resolve(__dirname, '../../web')
 const webDistPath = path.resolve(__dirname, '../../web/dist')
 
-export const app = new Elysia()
+export const app = new Elysia({ prefix: '/api' })
 export type App = typeof app
 
 // Register routes from barrel file

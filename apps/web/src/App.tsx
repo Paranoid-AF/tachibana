@@ -1,3 +1,15 @@
+import { useQuery } from '@tanstack/react-query'
+import { api } from './libs/api'
+
 export default function App() {
-  return <h1>Tachibana</h1>
+  const { data } = useQuery({
+    queryKey: ['health'],
+    queryFn: async () => {
+      const { data, error } = await api.health.get()
+      if (error) throw error
+      return data
+    },
+  })
+
+  return <h1>Tachibana — {data?.status ?? '...'}</h1>
 }
