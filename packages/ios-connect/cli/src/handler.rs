@@ -7,7 +7,7 @@ use crate::session::SessionState;
 use crate::types::{
     IpcRequest, LoginParams, Submit2faParams, TeamIdParams, RevokeCertParams, CreateAppIdParams,
     RegisterDeviceParams, SignAppParams, InstallAppParams, ScreenshotParams,
-    ListPhotosParams, DownloadPhotoParams,
+    ListPhotosParams, DownloadPhotoParams, PairDeviceParams, ValidatePairingParams,
 };
 
 pub async fn dispatch(state: Arc<Mutex<SessionState>>, request: IpcRequest) {
@@ -117,6 +117,16 @@ pub async fn dispatch(state: Arc<Mutex<SessionState>>, request: IpcRequest) {
 
         "downloadPhoto" => match serde_json::from_value::<DownloadPhotoParams>(request.params) {
             Ok(params) => commands::photos::download_photo(&id, params).await,
+            Err(e) => ipc::send_error(&id, "INVALID_PARAMS", &format!("Invalid params: {e}")),
+        },
+
+        "pairDevice" => match serde_json::from_value::<PairDeviceParams>(request.params) {
+            Ok(params) => commands::pairing::pair_device(&id, params).await,
+            Err(e) => ipc::send_error(&id, "INVALID_PARAMS", &format!("Invalid params: {e}")),
+        },
+
+        "validatePairing" => match serde_json::from_value::<ValidatePairingParams>(request.params) {
+            Ok(params) => commands::pairing::validate_pairing(&id, params).await,
             Err(e) => ipc::send_error(&id, "INVALID_PARAMS", &format!("Invalid params: {e}")),
         },
 

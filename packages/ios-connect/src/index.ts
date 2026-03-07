@@ -1,4 +1,4 @@
-// Isideload daemon commands (replaces apple-api + go-ios + sideloader)
+// Isideload daemon commands (replaces apple-api + sideloader)
 export * as sideloader from './isideload/commands/install.ts'
 export * as cert from './isideload/commands/cert.ts'
 export * as team from './isideload/commands/team.ts'

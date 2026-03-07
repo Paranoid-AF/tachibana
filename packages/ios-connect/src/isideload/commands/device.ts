@@ -90,3 +90,53 @@ export async function listDetailed(): Promise<
 > {
   return listConnected()
 }
+
+/**
+ * Pair this host with a USB-connected device.
+ * Triggers the "Trust This Computer?" dialog on the device.
+ * Blocks until the user accepts or rejects.
+ */
+export async function pairDevice(
+  udid: string
+): Promise<SideloaderResult<{ paired: boolean }>> {
+  try {
+    const daemon = await getDaemon()
+    const result = await daemon.request<{ paired: boolean }>('pairDevice', {
+      udid,
+    })
+    return { success: true, data: result }
+  } catch (err) {
+    return {
+      success: false,
+      error: {
+        code: 'COMMAND_FAILED',
+        message: err instanceof Error ? err.message : String(err),
+      },
+    }
+  }
+}
+
+/**
+ * Check whether a USB-connected device has a pairing record stored in usbmuxd.
+ * Returns { paired: true } if a pairing record exists, { paired: false } otherwise.
+ */
+export async function validatePairing(
+  udid: string
+): Promise<SideloaderResult<{ paired: boolean }>> {
+  try {
+    const daemon = await getDaemon()
+    const result = await daemon.request<{ paired: boolean }>(
+      'validatePairing',
+      { udid }
+    )
+    return { success: true, data: result }
+  } catch (err) {
+    return {
+      success: false,
+      error: {
+        code: 'COMMAND_FAILED',
+        message: err instanceof Error ? err.message : String(err),
+      },
+    }
+  }
+}

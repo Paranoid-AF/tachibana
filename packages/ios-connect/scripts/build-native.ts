@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 /**
  * Builds the kani-isideload Rust CLI daemon.
- * This single binary replaces go-ios, zsign, and anisette-v3-server.
+ * This single binary replaces zsign and anisette-v3-server.
  *
  * Requires: cargo (Rust toolchain)
  * Cached: skips if binary already exists at expected path.

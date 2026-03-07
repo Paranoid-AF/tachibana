@@ -4,7 +4,7 @@
 
 Unified package providing:
 
-- **iOS device management** (via go-ios wrapper) - device listing, app installation, tunneling, screenshots
+- **iOS device management** (via kani-isideload daemon) - device listing, app installation, tunneling, screenshots
 - **App signing & installation** (via Sideloader CLI) - Apple auth, code signing, cert management, device installation
 - **Renewal system** - automatic re-signing before certificates expire
 
@@ -14,28 +14,21 @@ Replaces the previous `@kaniapp/ios-signer` package. Uses [Sideloader](https://g
 
 ```
 src/
-├── go-ios/              # go-ios wrapper (from previous ios-signer)
+├── isideload/           # kani-isideload daemon wrapper
 │   ├── commands/
-│   │   ├── device.ts    # list(), listDetailed(), info(), pair(), listen()
-│   │   ├── app.ts       # install(), launch(), kill(), listApps()
-│   │   ├── tunnel.ts    # startTunnel(), listTunnels()
-│   │   └── screenshot.ts # screenshot()
-│   ├── executor.ts      # exec(), execStream(), resolveBinary()
-│   ├── types.ts
-│   ├── errors.ts
-│   └── index.ts
-├── sideloader/          # Sideloader CLI wrapper
-│   ├── binary.ts        # Binary resolution
-│   ├── executor.ts      # Interactive executor (stdin piping for 2FA)
-│   └── commands/
-│       ├── install.ts   # Full pipeline: auth + sign + install
-│       ├── cert.ts      # Certificate management
-│       ├── device.ts    # Device registration with Apple
-│       ├── appId.ts     # App ID management
-│       └── team.ts      # Team listing
+│   │   ├── device.ts    # Connected device listing
+│   │   ├── install.ts   # Full pipeline: auth + sign + install
+│   │   ├── cert.ts      # Certificate management
+│   │   ├── team.ts      # Team listing
+│   │   ├── app-id.ts    # App ID management
+│   │   ├── tunnel.ts    # Tunneling
+│   │   ├── screenshot.ts # Screenshots
+│   │   └── photos.ts    # Photo library access
+│   └── daemon.ts        # Daemon lifecycle (getDaemon, stopDaemon, etc.)
+├── wda/                 # WebDriverAgent client
 ├── renewal/             # Certificate renewal system
 │   ├── store.ts         # Signing records persistence
-│   ├── manager.ts       # Renewal logic (uses sideloader install)
+│   ├── manager.ts       # Renewal logic
 │   └── scheduler.ts     # Periodic renewal timer
 ├── utils/
 │   ├── ipa.ts           # IPA metadata extraction
@@ -48,13 +41,13 @@ src/
 
 ## Dependencies
 
-- `go-ios` (npm) - Pre-built Go CLI binary for iOS device communication
 - `plist` - Apple plist parsing and generation
+- kani-isideload - Built from Rust source via `scripts/build-native.ts`
 - Sideloader CLI - Downloaded via `scripts/download.ts` using `gh` CLI
 
 ## Binary Resolution
 
-Both go-ios and sideloader follow the same resolution pattern:
+kani-isideload and sideloader follow the same resolution pattern:
 
 1. Explicit env var override
 2. Bundled binary in package `bin/` directory

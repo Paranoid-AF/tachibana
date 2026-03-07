@@ -154,3 +154,13 @@ pub struct DownloadPhotoParams {
     #[serde(rename = "localDest")]
     pub local_dest: String,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct PairDeviceParams {
+    pub udid: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ValidatePairingParams {
+    pub udid: String,
+}
