@@ -5,6 +5,7 @@ export * as team from './isideload/commands/team.ts'
 export * as sideloaderDevice from './isideload/commands/device.ts'
 export * as appId from './isideload/commands/app-id.ts'
 export * as screenshot from './isideload/commands/screenshot.ts'
+export * as photos from './isideload/commands/photos.ts'
 export * as tunnel from './isideload/commands/tunnel.ts'
 export * as device from './isideload/commands/device.ts'
 
@@ -54,6 +55,7 @@ export type {
 // Isideload device types
 export type { ConnectedDevice } from './isideload/commands/device.ts'
 export type { TunnelResult } from './isideload/commands/tunnel.ts'
+export type { PhotoEntry } from './isideload/commands/photos.ts'
 
 // WDA types
 export type {

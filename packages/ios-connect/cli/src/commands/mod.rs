@@ -5,3 +5,4 @@ pub mod app_ids;
 pub mod devices;
 pub mod sideload;
 pub mod screenshots;
+pub mod photos;

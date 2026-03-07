@@ -140,3 +140,17 @@ pub struct ScreenshotParams {
     #[serde(rename = "outputPath")]
     pub output_path: String,
 }
+
+#[derive(Debug, Deserialize)]
+pub struct ListPhotosParams {
+    pub udid: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DownloadPhotoParams {
+    pub udid: String,
+    #[serde(rename = "remotePath")]
+    pub remote_path: String,
+    #[serde(rename = "localDest")]
+    pub local_dest: String,
+}

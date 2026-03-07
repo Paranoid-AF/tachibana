@@ -4,7 +4,11 @@ use tokio::sync::Mutex;
 use crate::commands;
 use crate::ipc;
 use crate::session::SessionState;
-use crate::types::*;
+use crate::types::{
+    IpcRequest, LoginParams, Submit2faParams, TeamIdParams, RevokeCertParams, CreateAppIdParams,
+    RegisterDeviceParams, SignAppParams, InstallAppParams, ScreenshotParams,
+    ListPhotosParams, DownloadPhotoParams,
+};
 
 pub async fn dispatch(state: Arc<Mutex<SessionState>>, request: IpcRequest) {
     let id = request.id.clone();
@@ -103,6 +107,16 @@ pub async fn dispatch(state: Arc<Mutex<SessionState>>, request: IpcRequest) {
 
         "screenshot" => match serde_json::from_value::<ScreenshotParams>(request.params) {
             Ok(params) => commands::screenshots::screenshot(&id, params).await,
+            Err(e) => ipc::send_error(&id, "INVALID_PARAMS", &format!("Invalid params: {e}")),
+        },
+
+        "listPhotos" => match serde_json::from_value::<ListPhotosParams>(request.params) {
+            Ok(params) => commands::photos::list_photos(&id, params).await,
+            Err(e) => ipc::send_error(&id, "INVALID_PARAMS", &format!("Invalid params: {e}")),
+        },
+
+        "downloadPhoto" => match serde_json::from_value::<DownloadPhotoParams>(request.params) {
+            Ok(params) => commands::photos::download_photo(&id, params).await,
             Err(e) => ipc::send_error(&id, "INVALID_PARAMS", &format!("Invalid params: {e}")),
         },
 
