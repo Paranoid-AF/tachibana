@@ -13,13 +13,13 @@ export const buildHttpRequest = async (
     if (value) headers.set(key, Array.isArray(value) ? value.join(', ') : value)
   }
 
-  const hasBody = req.method !== 'GET' && req.method !== 'HEAD'
   const chunks: Buffer[] = []
-  if (hasBody) {
-    req.on('data', (chunk: Buffer) => chunks.push(chunk))
-    await new Promise<void>(resolve => req.on('end', resolve))
-  }
-  const body = hasBody && chunks.length > 0 ? Buffer.concat(chunks) : undefined
+  req.on('data', (chunk: Buffer) => chunks.push(chunk))
+  await new Promise<void>((resolve, reject) => {
+    req.on('end', resolve)
+    req.on('error', reject)
+  })
+  const body = chunks.length > 0 ? Buffer.concat(chunks) : undefined
 
   return new Request(url, { method, headers, body })
 }
@@ -32,10 +32,9 @@ export const handleElysiaResponse =
       resHeaders[k] = v
     })
 
-    const contentType = response.headers.get('content-type') || ''
+    res.writeHead(response.status, resHeaders)
 
-    if (contentType.startsWith('text/event-stream') && response.body) {
-      res.writeHead(response.status, resHeaders)
+    if (response.body) {
       const reader = response.body.getReader()
       req.on('close', () => reader.cancel().catch(() => {}))
       try {
@@ -47,14 +46,10 @@ export const handleElysiaResponse =
         }
       } catch {
         // Client disconnected
-      } finally {
-        res.end()
       }
-    } else {
-      res.writeHead(response.status, resHeaders)
-      const buf = await response.arrayBuffer()
-      res.end(Buffer.from(buf))
     }
+
+    res.end()
   }
 
 export const handleElysiaStaticRoute = (app: AnyElysia, webDistPath: string) => {
