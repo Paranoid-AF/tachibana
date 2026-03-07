@@ -12,7 +12,8 @@
     "@tachibana/ios-connect": "workspace:*",
     "@tachibana/ios-wda": "workspace:*",
     "elysia": "^1.4.22",
-    "get-port": "^7.1.0"
+    "get-port": "^7.1.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "vite": "^7.0.0"
