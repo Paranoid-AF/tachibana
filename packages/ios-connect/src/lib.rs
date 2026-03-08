@@ -7,8 +7,10 @@ use tokio::sync::Mutex;
 
 mod commands;
 mod session;
+mod types;
 
 use session::SessionState;
+use types::*;
 
 /// Primary entry point. Holds all Apple auth state for one account session.
 #[napi]
@@ -38,32 +40,37 @@ impl Session {
         &self,
         email: String,
         password: String,
-        two_fa_callback: ThreadsafeFunction<serde_json::Value, ErrorStrategy::CalleeHandled>,
+        two_fa_callback: ThreadsafeFunction<TwoFaInfo, ErrorStrategy::CalleeHandled>,
     ) -> napi::Result<()> {
         commands::auth::login(self.state.clone(), email, password, two_fa_callback).await
     }
 
+    /// Requires Apple Account login. Returns current session state.
     #[napi]
-    pub async fn get_session_info(&self) -> napi::Result<serde_json::Value> {
+    pub async fn get_session_info(&self) -> napi::Result<SessionInfo> {
         let state = self.state.lock().await;
         commands::auth::get_session_info(&state)
     }
 
+    /// Requires Apple Account login. Lists all developer teams for the account.
     #[napi]
-    pub async fn list_teams(&self) -> napi::Result<Vec<serde_json::Value>> {
+    pub async fn list_teams(&self) -> napi::Result<Vec<Team>> {
         let mut state = self.state.lock().await;
         commands::teams::list(&mut state).await
     }
 
+    /// Requires Apple Account login. Lists development certificates.
+    /// Pass `team_id` to scope to a specific team, or omit for the default team.
     #[napi]
     pub async fn list_certs(
         &self,
         team_id: Option<String>,
-    ) -> napi::Result<Vec<serde_json::Value>> {
+    ) -> napi::Result<Vec<Cert>> {
         let mut state = self.state.lock().await;
         commands::certs::list(&mut state, team_id.as_deref()).await
     }
 
+    /// Requires Apple Account login. Revokes a development certificate by serial number.
     #[napi]
     pub async fn revoke_cert(
         &self,
@@ -74,35 +81,40 @@ impl Session {
         commands::certs::revoke(&mut state, &serial_number, team_id.as_deref()).await
     }
 
+    /// Requires Apple Account login. Lists App IDs registered on the Apple Developer portal.
     #[napi]
     pub async fn list_app_ids(
         &self,
         team_id: Option<String>,
-    ) -> napi::Result<Vec<serde_json::Value>> {
+    ) -> napi::Result<Vec<AppId>> {
         let mut state = self.state.lock().await;
         commands::app_ids::list(&mut state, team_id.as_deref()).await
     }
 
+    /// Requires Apple Account login. Creates a new App ID on the Apple Developer portal.
     #[napi]
     pub async fn create_app_id(
         &self,
         bundle_id: String,
         name: String,
         team_id: Option<String>,
-    ) -> napi::Result<serde_json::Value> {
+    ) -> napi::Result<AppId> {
         let mut state = self.state.lock().await;
         commands::app_ids::create(&mut state, &bundle_id, &name, team_id.as_deref()).await
     }
 
+    /// Requires Apple Account login. Lists devices registered on the Apple Developer portal.
+    /// To enumerate USB-connected devices without auth, use the module-level `listConnectedDevices()`.
     #[napi]
     pub async fn list_devices(
         &self,
         team_id: Option<String>,
-    ) -> napi::Result<Vec<serde_json::Value>> {
+    ) -> napi::Result<Vec<Device>> {
         let mut state = self.state.lock().await;
         commands::devices::list(&mut state, team_id.as_deref()).await
     }
 
+    /// Requires Apple Account login. Registers a device on the Apple Developer portal.
     #[napi]
     pub async fn register_device(
         &self,
@@ -114,6 +126,8 @@ impl Session {
         commands::devices::register(&mut state, &udid, &name, team_id.as_deref()).await
     }
 
+    /// Requires Apple Account login. Signs an `.app` bundle using a certificate from the portal.
+    /// Returns the path to the signed `.ipa`.
     #[napi]
     pub async fn sign_app(
         &self,
@@ -124,6 +138,7 @@ impl Session {
         commands::sideload::sign(&mut state, &app_path, team_id.as_deref()).await
     }
 
+    /// Requires Apple Account login. Signs and installs an app on the specified device.
     #[napi]
     pub async fn install_app(
         &self,
@@ -135,53 +150,58 @@ impl Session {
         commands::sideload::install(&mut state, &app_path, &udid, team_id.as_deref()).await
     }
 
+    /// Does not require Apple Account. Lists photos from the device photo library via AFC.
     #[napi]
     pub async fn list_photos(
         &self,
         udid: String,
         limit: Option<u32>,
         cursor: Option<String>,
-    ) -> napi::Result<serde_json::Value> {
+    ) -> napi::Result<ListPhotosPage> {
         commands::photos::list_photos(&udid, limit.map(|l| l as usize), cursor).await
     }
 
+    /// Does not require Apple Account. Returns metadata for a single photo file on the device.
     #[napi]
     pub async fn get_photo_info(
         &self,
         udid: String,
         path: String,
-    ) -> napi::Result<serde_json::Value> {
+    ) -> napi::Result<PhotoInfo> {
         commands::photos::get_photo_info(&udid, &path).await
     }
 
+    /// Does not require Apple Account. Downloads a photo from the device to a local path.
     #[napi]
     pub async fn download_photo(
         &self,
         udid: String,
         remote_path: String,
         local_dest: String,
-    ) -> napi::Result<serde_json::Value> {
+    ) -> napi::Result<DownloadPhotoResult> {
         commands::photos::download_photo(&udid, &remote_path, &local_dest).await
     }
 
+    /// Does not require Apple Account. Initiates device pairing via lockdownd.
     #[napi]
     pub async fn pair_device(&self, udid: String) -> napi::Result<bool> {
         commands::pairing::pair_device(&udid).await
     }
 
+    /// Does not require Apple Account. Validates an existing device pairing.
     #[napi]
     pub async fn validate_pairing(&self, udid: String) -> napi::Result<bool> {
         commands::pairing::validate_pairing(&udid).await
     }
 }
 
-/// List USB-connected devices via usbmuxd. Does not require Apple auth.
+/// List USB-connected devices via usbmuxd. Does not require Apple Account.
 #[napi]
-pub async fn list_connected_devices() -> napi::Result<Vec<serde_json::Value>> {
+pub async fn list_connected_devices() -> napi::Result<Vec<ConnectedDevice>> {
     commands::devices::list_connected().await
 }
 
-/// Capture a screenshot from a connected device. Does not require Apple auth.
+/// Capture a screenshot from a connected device. Does not require Apple Account.
 /// Returns the output path where the screenshot was saved.
 #[napi]
 pub async fn screenshot(udid: String, output_path: String) -> napi::Result<String> {

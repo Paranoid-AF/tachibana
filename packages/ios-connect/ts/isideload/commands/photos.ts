@@ -1,19 +1,12 @@
 import type { SideloaderResult } from '../../types.ts'
 import { getSession } from '../session.ts'
+import type { PhotoInfo, ListPhotosPage, DownloadPhotoResult } from '../native.ts'
 
-export interface PhotoInfo {
-  size: number
-  modified: number
-}
+export type { PhotoInfo, ListPhotosPage }
 
 export interface ListPhotosOptions {
   limit?: number
   cursor?: string
-}
-
-export interface ListPhotosPage {
-  photos: string[]
-  nextCursor: string | null
 }
 
 /**
@@ -66,7 +59,7 @@ export async function downloadPhoto(
   udid: string,
   remotePath: string,
   localDest: string
-): Promise<SideloaderResult<{ dest: string; bytesWritten: number }>> {
+): Promise<SideloaderResult<DownloadPhotoResult>> {
   try {
     const session = getSession()
     const result = await session.downloadPhoto(udid, remotePath, localDest)

@@ -1,14 +1,10 @@
 import type { SideloaderOptions, SideloaderResult } from '../../types.ts'
 import { getNative } from '../native.ts'
+import type { ConnectedDevice } from '../native.ts'
 import { getSession } from '../session.ts'
 import { ensureSession } from './auth.ts'
 
-export interface ConnectedDevice {
-  udid: string
-  name: string
-  productType: string
-  productVersion: string
-}
+export type { ConnectedDevice }
 
 /** Register a device with Apple Developer portal */
 export async function register(

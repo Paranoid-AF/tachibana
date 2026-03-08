@@ -1,8 +1,9 @@
 use isideload::dev::teams::TeamsApi;
 
 use crate::session::SessionState;
+use crate::types::Team;
 
-pub async fn list(state: &mut SessionState) -> napi::Result<Vec<serde_json::Value>> {
+pub async fn list(state: &mut SessionState) -> napi::Result<Vec<Team>> {
     let session = state
         .dev_session
         .as_mut()
@@ -15,13 +16,11 @@ pub async fn list(state: &mut SessionState) -> napi::Result<Vec<serde_json::Valu
 
     Ok(teams
         .iter()
-        .map(|t| {
-            serde_json::json!({
-                "teamId": t.team_id,
-                "name": t.name,
-                "type": t.r#type,
-                "status": t.status,
-            })
+        .map(|t| Team {
+            team_id: t.team_id.clone(),
+            name: t.name.clone().unwrap_or_default(),
+            r#type: t.r#type.clone().unwrap_or_default(),
+            status: t.status.clone().unwrap_or_default(),
         })
         .collect())
 }

@@ -51,6 +51,7 @@ export type {
 export type { ConnectedDevice } from './isideload/commands/device.ts'
 export type { TunnelResult } from './isideload/commands/tunnel.ts'
 export type { PhotoInfo, ListPhotosPage, ListPhotosOptions } from './isideload/commands/photos.ts'
+export type { IpaMetadata } from './utils/ipa.ts'
 
 // WDA types
 export type {

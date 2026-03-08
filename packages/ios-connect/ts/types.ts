@@ -32,6 +32,7 @@ export interface SideloaderOptions {
   on2FA?: (info: TwoFactorInfo) => Promise<string>
   udid?: string
   binaryPath?: string
+  teamId?: string
 }
 
 export type SideloaderResult<T> =
@@ -44,23 +45,7 @@ export interface SideloaderErrorData {
   exitCode?: number
 }
 
-export interface DeveloperTeam {
-  teamId: string
-  name: string
-  type: string
-}
-
-export interface DevelopmentCert {
-  serialNumber: string
-  name: string
-  expirationDate: string
-}
-
-export interface AppIdInfo {
-  appIdId: string
-  name: string
-  identifier: string
-}
+export type { Team as DeveloperTeam, Cert as DevelopmentCert, AppId as AppIdInfo } from '../dist/index'
 
 export interface InstallProgress {
   stage: string

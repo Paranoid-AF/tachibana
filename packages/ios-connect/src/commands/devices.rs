@@ -3,12 +3,13 @@ use isideload::dev::devices::DevicesApi;
 use isideload::dev::teams::TeamsApi;
 
 use crate::session::{self, SessionState};
+use crate::types::{ConnectedDevice, Device};
 
 /// List devices registered on the Apple Developer Portal.
 pub async fn list(
     state: &mut SessionState,
     team_id: Option<&str>,
-) -> napi::Result<Vec<serde_json::Value>> {
+) -> napi::Result<Vec<Device>> {
     let session = state
         .dev_session
         .as_mut()
@@ -32,12 +33,10 @@ pub async fn list(
 
     Ok(devices
         .iter()
-        .map(|d| {
-            serde_json::json!({
-                "udid": d.device_number,
-                "name": d.name,
-                "status": d.status,
-            })
+        .map(|d| Device {
+            udid: d.device_number.clone(),
+            name: d.name.clone().unwrap_or_default(),
+            status: d.status.clone().unwrap_or_default(),
         })
         .collect())
 }
@@ -76,7 +75,7 @@ pub async fn register(
 }
 
 /// List physically connected USB devices via idevice/usbmuxd.
-pub async fn list_connected() -> napi::Result<Vec<serde_json::Value>> {
+pub async fn list_connected() -> napi::Result<Vec<ConnectedDevice>> {
     let mut conn = UsbmuxdConnection::default()
         .await
         .map_err(|e| napi::Error::from_reason(format!("Failed to connect to usbmuxd: {e}")))?;
@@ -88,13 +87,11 @@ pub async fn list_connected() -> napi::Result<Vec<serde_json::Value>> {
 
     Ok(devices
         .iter()
-        .map(|d| {
-            serde_json::json!({
-                "udid": d.udid,
-                "name": d.udid,
-                "productType": "",
-                "productVersion": "",
-            })
+        .map(|d| ConnectedDevice {
+            udid: d.udid.clone(),
+            name: d.udid.clone(),
+            product_type: String::new(),
+            product_version: String::new(),
         })
         .collect())
 }

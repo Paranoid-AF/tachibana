@@ -2,11 +2,12 @@ use isideload::dev::certificates::CertificatesApi;
 use isideload::dev::teams::TeamsApi;
 
 use crate::session::{self, SessionState};
+use crate::types::Cert;
 
 pub async fn list(
     state: &mut SessionState,
     team_id: Option<&str>,
-) -> napi::Result<Vec<serde_json::Value>> {
+) -> napi::Result<Vec<Cert>> {
     let session = state
         .dev_session
         .as_mut()
@@ -30,12 +31,10 @@ pub async fn list(
 
     Ok(certs
         .iter()
-        .map(|c| {
-            serde_json::json!({
-                "serialNumber": c.serial_number,
-                "name": c.machine_name,
-                "expirationDate": c.expiration_date.as_ref().map(|d| format!("{d:?}")),
-            })
+        .map(|c| Cert {
+            serial_number: c.serial_number.clone().unwrap_or_default(),
+            name: c.machine_name.clone().unwrap_or_default(),
+            expiration_date: c.expiration_date.as_ref().map(|d| format!("{d:?}")),
         })
         .collect())
 }

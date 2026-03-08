@@ -8,6 +8,7 @@ use napi::threadsafe_function::{ErrorStrategy, ThreadsafeFunction};
 use tokio::sync::Mutex;
 
 use crate::session::SessionState;
+use crate::types::{SessionInfo, TwoFaInfo};
 
 /// Login to Apple ID. `two_fa_callback` is a JS async function that receives
 /// `{ type: "trustedDevice" }` and must return a Promise resolving to the 6-digit code.
@@ -15,7 +16,7 @@ pub async fn login(
     state: Arc<Mutex<SessionState>>,
     email: String,
     password: String,
-    two_fa_callback: ThreadsafeFunction<serde_json::Value, ErrorStrategy::CalleeHandled>,
+    two_fa_callback: ThreadsafeFunction<TwoFaInfo, ErrorStrategy::CalleeHandled>,
 ) -> napi::Result<()> {
     let anisette_url = {
         let st = state.lock().await;
@@ -36,7 +37,7 @@ pub async fn login(
     // isideload calls this sync closure when 2FA is needed.
     // We call the JS ThreadsafeFunction and block until its Promise<string> resolves.
     let two_fa_fn = move || -> Option<String> {
-        let info = serde_json::json!({ "type": "trustedDevice" });
+        let info = TwoFaInfo { r#type: "trustedDevice".to_string() };
         tokio::runtime::Handle::current().block_on(async {
             two_fa_callback
                 .call_async::<Promise<String>>(Ok(info))
@@ -67,14 +68,14 @@ pub async fn login(
     Ok(())
 }
 
-pub fn get_session_info(state: &SessionState) -> napi::Result<serde_json::Value> {
+pub fn get_session_info(state: &SessionState) -> napi::Result<SessionInfo> {
     let email = state
         .account
         .as_ref()
         .map(|a: &AppleAccount| a.email.clone());
 
-    Ok(serde_json::json!({
-        "loggedIn": state.is_logged_in(),
-        "email": email,
-    }))
+    Ok(SessionInfo {
+        logged_in: state.is_logged_in(),
+        email,
+    })
 }

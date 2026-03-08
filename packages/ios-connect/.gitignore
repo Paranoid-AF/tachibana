@@ -3,7 +3,3 @@ target/
 
 # Old binary downloads (legacy)
 bin/
-
-# napi-rs build outputs (generated, platform-specific)
-dist/
-*.node

@@ -11,6 +11,7 @@ import { join, dirname } from 'node:path'
 import { $ } from 'bun'
 
 const PKG_ROOT = dirname(import.meta.dirname!)
+const DIST_DIR = join(PKG_ROOT, 'dist')
 
 function getNodeFilename(): string {
   const platform = process.platform
@@ -38,25 +39,25 @@ async function buildNapiAddon() {
     return
   }
 
-  const distDir = join(PKG_ROOT, 'dist')
-  const nodeFile = join(distDir, getNodeFilename())
+  const nodeFile = join(DIST_DIR, getNodeFilename())
   if (existsSync(nodeFile)) {
-    console.log(`napi addon already built: dist/${getNodeFilename()}`)
+    console.log(`napi addon already built: ${getNodeFilename()}`)
     return
   }
 
   console.log('Building kani-isideload napi addon from source...')
 
   // Use bunx to run @napi-rs/cli without requiring a global install.
-  // --output-dir puts .node, index.js, and index.d.ts in dist/ (gitignored).
-  await $`bunx @napi-rs/cli build --platform --release --manifest-path ${join(PKG_ROOT, 'Cargo.toml')} --output-dir ${distDir}`.cwd(PKG_ROOT)
+  // --output-dir places .node, index.js, and index.d.ts in dist/.
+  // All dist/ files are gitignored and regenerated on postinstall.
+  await $`bunx @napi-rs/cli build --platform --release --manifest-path ${join(PKG_ROOT, 'Cargo.toml')} --output-dir ${DIST_DIR}`.cwd(PKG_ROOT)
 
   if (!existsSync(nodeFile)) {
-    console.error(`napi build completed but dist/${getNodeFilename()} not found`)
+    console.error(`napi build completed but ${getNodeFilename()} not found`)
     process.exit(1)
   }
 
-  console.log(`  napi addon built: dist/${getNodeFilename()}`)
+  console.log(`  napi addon built: ${getNodeFilename()}`)
 }
 
 buildNapiAddon().catch(err => {

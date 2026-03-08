@@ -5,6 +5,8 @@ use idevice::IdeviceService;
 use idevice::afc::{AfcClient, opcode::AfcFopenMode};
 use idevice::usbmuxd::{UsbmuxdAddr, UsbmuxdConnection};
 
+use crate::types::{DownloadPhotoResult, ListPhotosPage, PhotoInfo};
+
 const DEFAULT_LIMIT: usize = 200;
 
 const PHOTO_EXTENSIONS: &[&str] = &[
@@ -111,14 +113,14 @@ pub async fn list_photos(
     udid: &str,
     limit: Option<usize>,
     cursor: Option<String>,
-) -> napi::Result<serde_json::Value> {
+) -> napi::Result<ListPhotosPage> {
     let mut client = afc_client(udid).await?;
     let limit = limit.unwrap_or(DEFAULT_LIMIT);
     let (photos, next_cursor) = paginate_photos(&mut client, limit, &cursor).await;
-    Ok(serde_json::json!({ "photos": photos, "nextCursor": next_cursor }))
+    Ok(ListPhotosPage { photos, next_cursor })
 }
 
-pub async fn get_photo_info(udid: &str, path: &str) -> napi::Result<serde_json::Value> {
+pub async fn get_photo_info(udid: &str, path: &str) -> napi::Result<PhotoInfo> {
     let mut client = afc_client(udid).await?;
     let info = client
         .get_file_info(path)
@@ -126,14 +128,17 @@ pub async fn get_photo_info(udid: &str, path: &str) -> napi::Result<serde_json::
         .map_err(|e| napi::Error::from_reason(format!("Failed to get file info: {e}")))?;
 
     let modified_ts = info.modified.and_utc().timestamp();
-    Ok(serde_json::json!({ "size": info.size, "modified": modified_ts }))
+    Ok(PhotoInfo {
+        size: info.size as i64,
+        modified: modified_ts,
+    })
 }
 
 pub async fn download_photo(
     udid: &str,
     remote_path: &str,
     local_dest: &str,
-) -> napi::Result<serde_json::Value> {
+) -> napi::Result<DownloadPhotoResult> {
     let client = afc_client(udid).await?;
 
     let mut file = client
@@ -172,5 +177,8 @@ pub async fn download_photo(
         }
     }
 
-    Ok(serde_json::json!({ "dest": local_dest, "bytesWritten": bytes_written }))
+    Ok(DownloadPhotoResult {
+        dest: local_dest.to_string(),
+        bytes_written: bytes_written as i64,
+    })
 }

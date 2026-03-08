@@ -2,11 +2,12 @@ use isideload::dev::app_ids::AppIdsApi;
 use isideload::dev::teams::TeamsApi;
 
 use crate::session::{self, SessionState};
+use crate::types::AppId;
 
 pub async fn list(
     state: &mut SessionState,
     team_id: Option<&str>,
-) -> napi::Result<Vec<serde_json::Value>> {
+) -> napi::Result<Vec<AppId>> {
     let session = state
         .dev_session
         .as_mut()
@@ -31,12 +32,10 @@ pub async fn list(
     Ok(response
         .app_ids
         .iter()
-        .map(|a| {
-            serde_json::json!({
-                "appIdId": a.app_id_id,
-                "name": a.name,
-                "identifier": a.identifier,
-            })
+        .map(|a| AppId {
+            app_id_id: a.app_id_id.clone(),
+            name: a.name.clone(),
+            identifier: a.identifier.clone(),
         })
         .collect())
 }
@@ -46,7 +45,7 @@ pub async fn create(
     bundle_id: &str,
     name: &str,
     team_id: Option<&str>,
-) -> napi::Result<serde_json::Value> {
+) -> napi::Result<AppId> {
     let session = state
         .dev_session
         .as_mut()
@@ -70,9 +69,9 @@ pub async fn create(
         .await
         .map_err(|e| napi::Error::from_reason(format!("Failed to create app ID: {e}")))?;
 
-    Ok(serde_json::json!({
-        "appIdId": app_id.app_id_id,
-        "name": app_id.name,
-        "identifier": app_id.identifier,
-    }))
+    Ok(AppId {
+        app_id_id: app_id.app_id_id.clone(),
+        name: app_id.name.clone(),
+        identifier: app_id.identifier.clone(),
+    })
 }
