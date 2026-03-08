@@ -1,4 +1,9 @@
-# Downloaded binaries
+# Rust build artifacts
+target/
+
+# Old binary downloads (legacy)
 bin/
 
-cli/target/
+# napi-rs build outputs (generated, platform-specific)
+dist/
+*.node
