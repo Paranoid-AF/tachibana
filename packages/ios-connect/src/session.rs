@@ -4,13 +4,23 @@ use isideload::auth::apple_account::AppleAccount;
 use isideload::dev::developer_session::DeveloperSession;
 use isideload::dev::teams::DeveloperTeam;
 use isideload::util::fs_storage::FsStorage;
+use tokio::sync::oneshot;
+
+use crate::types::SessionData;
 
 /// Holds all session state for the addon lifetime.
 pub struct SessionState {
     pub account: Option<AppleAccount>,
     pub dev_session: Option<DeveloperSession>,
+    /// Email carried over when session is restored from a persisted token (account is None).
+    pub persisted_email: Option<String>,
     pub data_dir: PathBuf,
     pub anisette_url: Option<String>,
+    /// Sender half of the 2FA oneshot channel. Set when 2FA is required during login;
+    /// consumed by `submit_two_fa` to deliver the verification code.
+    pub two_fa_tx: Option<oneshot::Sender<String>>,
+    /// Cached session token data, populated during login or restore for external persistence.
+    pub cached_session_data: Option<SessionData>,
 }
 
 impl SessionState {
@@ -18,8 +28,11 @@ impl SessionState {
         Self {
             account: None,
             dev_session: None,
+            persisted_email: None,
             data_dir,
             anisette_url,
+            two_fa_tx: None,
+            cached_session_data: None,
         }
     }
 

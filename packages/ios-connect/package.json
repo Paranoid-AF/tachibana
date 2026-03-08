@@ -8,6 +8,20 @@
   "exports": {
     ".": "./ts/index.ts"
   },
+  "scripts": {
+    "build": "napi build --platform --release --output-dir ./dist",
+    "build:debug": "napi build --platform --output-dir ./dist",
+    "postinstall": "bun run scripts/build-native.ts"
+  },
+  "dependencies": {
+    "plist": "^3.1.0"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.0.0",
+    "@types/folder-hash": "^4.0.4",
+    "@types/plist": "^3.0.5",
+    "folder-hash": "^4.0.4"
+  },
   "napi": {
     "binaryName": "tbana-isideload",
     "targets": [
@@ -20,17 +34,5 @@
       "x86_64-pc-windows-msvc",
       "aarch64-pc-windows-msvc"
     ]
-  },
-  "scripts": {
-    "build": "napi build --platform --release --output-dir ./dist",
-    "build:debug": "napi build --platform --output-dir ./dist",
-    "postinstall": "bun run scripts/build-native.ts"
-  },
-  "dependencies": {
-    "plist": "^3.1.0"
-  },
-  "devDependencies": {
-    "@napi-rs/cli": "^3.0.0",
-    "@types/plist": "^3.0.5"
   }
 }

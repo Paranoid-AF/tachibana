@@ -51,11 +51,35 @@ pub async fn pair_device(udid: &str) -> napi::Result<bool> {
     Ok(true)
 }
 
-/// Check whether the device has a pairing record stored in usbmuxd.
+/// Check whether the device currently trusts this host by attempting a live SSL session.
+/// For disconnected devices, falls back to checking if a pairing record exists locally.
 pub async fn validate_pairing(udid: &str) -> napi::Result<bool> {
     let mut conn = UsbmuxdConnection::default()
         .await
         .map_err(|e| napi::Error::from_reason(format!("Failed to connect to usbmuxd: {e}")))?;
 
-    Ok(conn.get_pair_record(udid).await.is_ok())
+    // No local record → definitely not paired
+    let pair_record = match conn.get_pair_record(udid).await {
+        Ok(r) => r,
+        Err(_) => return Ok(false),
+    };
+
+    // Device not connected → can't do live check, assume paired (record exists)
+    let device = match conn.get_device(udid).await {
+        Ok(d) => d,
+        Err(_) => return Ok(true),
+    };
+
+    let idevice_conn = match conn
+        .connect_to_device(device.device_id, LockdownClient::LOCKDOWND_PORT, "tbana-isideload")
+        .await
+    {
+        Ok(c) => c,
+        Err(_) => return Ok(true),
+    };
+
+    let mut lockdown = LockdownClient::new(idevice_conn);
+
+    // SSL handshake fails if device revoked trust
+    Ok(lockdown.start_session(&pair_record).await.is_ok())
 }

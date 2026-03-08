@@ -65,3 +65,13 @@ pub struct DownloadPhotoResult {
 pub struct TwoFaInfo {
     pub r#type: String,
 }
+
+#[napi(object)]
+#[derive(Clone)]
+pub struct SessionData {
+    pub email: String,
+    pub token: String,
+    pub duration: u32,
+    pub expiry: u32,
+    pub adsid: String,
+}

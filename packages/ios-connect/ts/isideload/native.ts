@@ -29,11 +29,23 @@ import type {
   DownloadPhotoResult,
 } from '../../dist/index'
 
+export interface StoredSession {
+  email: string
+  token: string
+  duration: number
+  expiry: number
+  adsid: string
+}
+
 export interface NativeSession {
+  getSessionData(): Promise<StoredSession | null>
+  restoreSession(data: StoredSession): Promise<boolean>
+  logout(): Promise<void>
+  submitTwoFa(code: string): Promise<void>
   login(
     email: string,
     password: string,
-    twoFaCallback: (info: { type: string }) => Promise<string>
+    twoFaCallback: (info: { type: string }) => void
   ): Promise<void>
   getSessionInfo(): Promise<SessionInfo>
   listTeams(): Promise<Team[]>

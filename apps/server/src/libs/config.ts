@@ -1,7 +1,9 @@
 import { homedir } from 'os'
 import { join, dirname } from 'path'
-import { mkdir } from 'fs/promises'
+import { mkdir, unlink } from 'fs/promises'
 import { z } from 'zod'
+
+import type { StoredSession } from '@tachibana/ios-connect'
 
 const DEFAULT_DEV_PORT = 5173
 const DEFAULT_PROD_PORT = 13370
@@ -10,10 +12,6 @@ const ConfigSchema = z.object({
   server: z.object({
     port: z.number().int().min(1).max(65535),
     hostname: z.string(),
-  }),
-  appleAccount: z.object({
-    handle: z.string().nullable(),
-    password: z.string().nullable(),
   }),
 })
 
@@ -31,18 +29,22 @@ const DEFAULTS: Config = {
     port: DEFAULT_PROD_PORT,
     hostname: 'localhost',
   },
-  appleAccount: {
-    handle: null,
-    password: null,
-  },
+}
+
+export function getConfigDir(): string {
+  if (process.platform === 'win32') {
+    const appData = process.env.APPDATA ?? homedir()
+    return join(appData, 'tachibana')
+  }
+  return join(homedir(), '.local', 'state', 'tachibana')
 }
 
 function getConfigFilePath(): string {
-  if (process.platform === 'win32') {
-    const appData = process.env.APPDATA ?? homedir()
-    return join(appData, 'tachibana', 'config.json')
-  }
-  return join(homedir(), '.local', 'state', 'tachibana', 'config.json')
+  return join(getConfigDir(), 'config.json')
+}
+
+function getSessionFilePath(): string {
+  return join(getConfigDir(), 'session.json')
 }
 
 async function readPersistedConfig(): Promise<PersistedConfig> {
@@ -85,9 +87,6 @@ export const getConfig = async (isDev?: boolean): Promise<Config> => {
     config.server.hostname = 'localhost'
   }
 
-  if (process.env.APPLE_ACCOUNT) config.appleAccount.handle = process.env.APPLE_ACCOUNT
-  if (process.env.APPLE_PASSWORD) config.appleAccount.password = process.env.APPLE_PASSWORD
-
   return config
 }
 
@@ -108,4 +107,43 @@ export const setConfig = async (partial: PersistedConfig): Promise<void> => {
   const dir = dirname(path)
   await mkdir(dir, { recursive: true })
   await Bun.write(path, JSON.stringify(cleaned, null, 2))
+}
+
+// ---------------------------------------------------------------------------
+// session.json — stores sensitive Apple session credentials separately
+// ---------------------------------------------------------------------------
+
+const SessionSchema = z.object({
+  email: z.string(),
+  token: z.string(),
+  duration: z.number(),
+  expiry: z.number(),
+  adsid: z.string(),
+})
+
+/** Read and validate the persisted session. Returns undefined if absent, invalid, or expired. */
+export async function getSessionData(): Promise<StoredSession | undefined> {
+  try {
+    const text = await Bun.file(getSessionFilePath()).text()
+    const data = SessionSchema.parse(JSON.parse(text))
+    return data
+  } catch {
+    return undefined
+  }
+}
+
+/** Persist session credentials to session.json. */
+export async function saveSessionData(data: StoredSession): Promise<void> {
+  const dir = getConfigDir()
+  await mkdir(dir, { recursive: true })
+  await Bun.write(getSessionFilePath(), JSON.stringify(data, null, 2))
+}
+
+/** Remove session.json. */
+export async function clearSessionData(): Promise<void> {
+  try {
+    await unlink(getSessionFilePath())
+  } catch {
+    // already gone
+  }
 }

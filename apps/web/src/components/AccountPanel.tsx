@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { LuEllipsis } from 'react-icons/lu'
 
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +27,7 @@ export function AccountPanel() {
   const [, navigate] = useLocation()
   const queryClient = useQueryClient()
 
-  const { data: sessionInfo } = useQuery({
+  const { data: sessionInfo, isLoading } = useQuery({
     queryKey: ['auth/session'],
     queryFn: fetchSessionInfo,
     refetchInterval: 5000,
@@ -39,6 +40,14 @@ export function AccountPanel() {
       queryClient.invalidateQueries({ queryKey: ['devices'] })
     },
   })
+
+  if (isLoading) {
+    return (
+      <div className="rounded-xl border border-border p-3 flex justify-center py-4">
+        <Spinner className="w-4 h-4 text-muted-foreground" />
+      </div>
+    )
+  }
 
   if (!sessionInfo?.loggedIn) {
     return (

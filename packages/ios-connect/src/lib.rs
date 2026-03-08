@@ -40,9 +40,36 @@ impl Session {
         &self,
         email: String,
         password: String,
-        two_fa_callback: ThreadsafeFunction<TwoFaInfo, ErrorStrategy::CalleeHandled>,
+        two_fa_callback: ThreadsafeFunction<TwoFaInfo, ErrorStrategy::Fatal>,
     ) -> napi::Result<()> {
         commands::auth::login(self.state.clone(), email, password, two_fa_callback).await
+    }
+
+    /// Returns the current session token data for external persistence.
+    /// Call immediately after login. Returns null if not logged in via login().
+    #[napi]
+    pub async fn get_session_data(&self) -> napi::Result<Option<SessionData>> {
+        commands::auth::get_session_data(self.state.clone()).await
+    }
+
+    /// Restores a developer session from externally persisted token data.
+    /// Returns true if the session was successfully restored.
+    #[napi]
+    pub async fn restore_session(&self, data: SessionData) -> napi::Result<bool> {
+        commands::auth::restore_session(self.state.clone(), data).await
+    }
+
+    /// Clears the in-memory session state. Call after invalidating persisted credentials.
+    #[napi]
+    pub async fn logout(&self) -> napi::Result<()> {
+        commands::auth::logout(self.state.clone()).await
+    }
+
+    /// Delivers the 2FA verification code to the blocked `login` call.
+    /// Call this after receiving a `twoFaCallback` notification from `login`.
+    #[napi]
+    pub async fn submit_two_fa(&self, code: String) -> napi::Result<()> {
+        commands::auth::submit_two_fa(self.state.clone(), code).await
     }
 
     /// Requires Apple Account login. Returns current session state.

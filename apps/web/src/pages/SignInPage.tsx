@@ -43,7 +43,8 @@ export function SignInPage() {
   const [twoFaCode, setTwoFaCode] = useState('')
   const [showTwoFa, setShowTwoFa] = useState(false)
   const [twoFaType, setTwoFaType] = useState('')
-  const [error, setError] = useState('')
+  const [signinError, setSigninError] = useState('')
+  const [twoFaError, setTwoFaError] = useState('')
 
   const signinMutation = useMutation({
     mutationFn: () => startSignIn(email, password),
@@ -58,7 +59,7 @@ export function SignInPage() {
       }
     },
     onError: (err: Error) => {
-      setError(err.message)
+      setSigninError(err.message)
     },
   })
 
@@ -71,19 +72,20 @@ export function SignInPage() {
       navigate('/')
     },
     onError: (err: Error) => {
-      setError(err.message)
+      setTwoFaError(err.message)
+      setTwoFaCode('')
     },
   })
 
   function handleSignIn(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
+    setSigninError('')
     signinMutation.mutate()
   }
 
   function handleTwoFa(e: React.FormEvent) {
     e.preventDefault()
-    setError('')
+    setTwoFaError('')
     twoFaMutation.mutate()
   }
 
@@ -134,7 +136,7 @@ export function SignInPage() {
                 </Button>
               </div>
 
-              {error && <p className="text-sm text-destructive mt-3">{error}</p>}
+              {signinError && <p className="text-sm text-destructive mt-3">{signinError}</p>}
             </form>
 
             <p className="text-xs text-muted-foreground mt-4">
@@ -158,7 +160,7 @@ export function SignInPage() {
             </div>
 
             {/* 2FA dialog — overlays sign-in card with blur */}
-            <Dialog open={showTwoFa} onOpenChange={(open) => !twoFaMutation.isPending && setShowTwoFa(open)}>
+            <Dialog open={showTwoFa} onOpenChange={(open) => { if (!twoFaMutation.isPending) { setShowTwoFa(open); if (!open) setTwoFaError('') } }}>
               <DialogContent className="sm:max-w-sm">
                 <DialogHeader>
                   <DialogTitle>Two-factor authentication</DialogTitle>
@@ -182,7 +184,7 @@ export function SignInPage() {
                     autoFocus
                     required
                   />
-                  {error && <p className="text-sm text-destructive">{error}</p>}
+                  {twoFaError && <p className="text-sm text-destructive">{twoFaError}</p>}
                   <Button type="submit" disabled={twoFaMutation.isPending || twoFaCode.length < 6}>
                     {twoFaMutation.isPending ? 'Verifying...' : 'Verify'}
                   </Button>

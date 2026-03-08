@@ -11,7 +11,7 @@ export * as device from './isideload/commands/device.ts'
 
 // Session lifecycle
 export { configureSession, getSession } from './isideload/session.ts'
-export type { NativeSession } from './isideload/native.ts'
+export type { NativeSession, StoredSession } from './isideload/native.ts'
 
 // WDA client
 export * as wdaClient from './wda/index.ts'
@@ -51,7 +51,11 @@ export type {
 // Isideload device types
 export type { ConnectedDevice } from './isideload/commands/device.ts'
 export type { TunnelResult } from './isideload/commands/tunnel.ts'
-export type { PhotoInfo, ListPhotosPage, ListPhotosOptions } from './isideload/commands/photos.ts'
+export type {
+  PhotoInfo,
+  ListPhotosPage,
+  ListPhotosOptions,
+} from './isideload/commands/photos.ts'
 export type { IpaMetadata } from './utils/ipa.ts'
 
 // WDA types
@@ -72,3 +76,15 @@ export {
   BinaryNotFoundError,
   RenewalError,
 } from './errors.ts'
+
+// Native types
+export type {
+  Team,
+  Cert,
+  AppId,
+  Device,
+  SessionInfo,
+  DownloadPhotoResult,
+  TwoFaInfo,
+  SessionData,
+} from '../dist/index'

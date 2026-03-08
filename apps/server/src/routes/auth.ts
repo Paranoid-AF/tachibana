@@ -1,21 +1,16 @@
 import { Elysia, t } from 'elysia'
 
-import { getSession } from '../libs/session.ts'
-import { setConfig } from '../libs/config.ts'
-
-type PendingTwoFa = {
-  resolve: (code: string) => void
-  reject: (err: Error) => void
-  type: string
-}
+import { getSession, saveSession, clearSession } from '../libs/session.ts'
+import type { SessionInfo } from '@tachibana/ios-connect'
 
 let loginPromise: Promise<void> | null = null
-let pendingTwoFa: PendingTwoFa | null = null
+let pendingEmail: string | null = null
+let pendingPassword: string | null = null
 
 export const authRoutes = new Elysia({ prefix: '/auth' })
-  .get('/session', async () => {
+  .get('/session', async (): Promise<SessionInfo> => {
     const session = await getSession()
-    return session.getSessionInfo()
+    return await session.getSessionInfo()
   })
 
   .post(
@@ -23,28 +18,24 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     async ({ body, set }) => {
       const { email, password } = body
       const session = await getSession()
-
-      // Cancel any prior in-flight login
-      if (pendingTwoFa) {
-        pendingTwoFa.reject(new Error('New sign-in attempt started'))
-        pendingTwoFa = null
-      }
+      pendingEmail = email
+      pendingPassword = password
 
       let httpResolved = false
 
       const result = await new Promise<
         { loggedIn: true } | { requiresTwoFa: true; type: string }
       >((resolveHttp, rejectHttp) => {
-        loginPromise = session
-          .login(email, password, (twoFaInfo) => {
-            if (!httpResolved) {
-              httpResolved = true
-              resolveHttp({ requiresTwoFa: true, type: twoFaInfo.type })
-            }
-            return new Promise<string>((resolveCode, rejectCode) => {
-              pendingTwoFa = { resolve: resolveCode, reject: rejectCode, type: twoFaInfo.type }
-            })
-          })
+        // Store the raw login promise so /2fa can await it and catch errors
+        // (chaining .then/.catch onto it would swallow rejections once httpResolved is true)
+        loginPromise = session.login(email, password, twoFaInfo => {
+          if (!httpResolved) {
+            httpResolved = true
+            resolveHttp({ requiresTwoFa: true, type: twoFaInfo.type })
+          }
+        })
+
+        loginPromise
           .then(() => {
             if (!httpResolved) {
               httpResolved = true
@@ -63,7 +54,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       })
 
       if (result && 'loggedIn' in result && result.loggedIn) {
-        await setConfig({ appleAccount: { handle: email, password } })
+        await saveSession(session)
       }
 
       return result
@@ -74,36 +65,52 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
   .post(
     '/2fa',
     async ({ body, set }) => {
-      if (!pendingTwoFa || !loginPromise) {
+      if (!loginPromise) {
         set.status = 400
         return { message: 'No pending 2FA' }
       }
 
       const { code } = body
-      const resolve = pendingTwoFa.resolve
-      pendingTwoFa = null
+      const session = await getSession()
 
-      resolve(code)
+      try {
+        await session.submitTwoFa(code)
+      } catch (err: unknown) {
+        set.status = 400
+        return { message: err instanceof Error ? err.message : String(err) }
+      }
 
       const err = await loginPromise.then(() => null).catch((e: Error) => e)
-      loginPromise = null
 
       if (err) {
+        // Wrong code — restart login so the user can try again without re-entering credentials
+        if (pendingEmail && pendingPassword) {
+          const email = pendingEmail
+          const password = pendingPassword
+          await new Promise<void>(resolve => {
+            loginPromise = session.login(email, password, () => resolve())
+            loginPromise.catch(() => {}) // suppress unhandled rejection until next /2fa
+          })
+        } else {
+          loginPromise = null
+        }
         set.status = 400
         return { message: err.message }
       }
 
+      loginPromise = null
+      pendingEmail = null
+      pendingPassword = null
+      await saveSession(await getSession())
       return { loggedIn: true }
     },
     { body: t.Object({ code: t.String() }) }
   )
 
   .post('/signout', async () => {
-    if (pendingTwoFa) {
-      pendingTwoFa.reject(new Error('Signed out'))
-      pendingTwoFa = null
-    }
     loginPromise = null
-    await setConfig({ appleAccount: { handle: null, password: null } })
+    pendingEmail = null
+    pendingPassword = null
+    await clearSession()
     return { ok: true }
   })

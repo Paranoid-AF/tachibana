@@ -21,6 +21,14 @@ const webDevPath = path.resolve(__dirname, '../../web')
 const webDistPath = path.resolve(__dirname, '../../web/dist')
 
 const _app = new Elysia({ prefix: '/api' })
+  .onError(({ error, set, code }) => {
+    set.headers['content-type'] = 'application/json'
+    if (code === 'NOT_FOUND') set.status = 404
+    else if (code === 'VALIDATION') set.status = 400
+    else set.status = 500
+    const message = error instanceof Error ? error.message : String(error)
+    return { message }
+  })
   .use(routes.health)
   .use(routes.authRoutes)
   .use(routes.deviceRoutes)

@@ -3953,6 +3953,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
+ "rootcause",
  "serde",
  "serde_json",
  "tokio",

@@ -3,8 +3,8 @@ import { useLocation } from 'wouter'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { LuCheck } from 'react-icons/lu'
 
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import {
   Dialog,
   DialogContent,
@@ -19,9 +19,9 @@ interface MergedDevice {
   name: string
   productType?: string
   productVersion?: string
-  status?: string
   connected: boolean
-  linked: boolean
+  paired: boolean
+  registered: boolean
 }
 
 async function fetchDevices(): Promise<MergedDevice[]> {
@@ -30,7 +30,10 @@ async function fetchDevices(): Promise<MergedDevice[]> {
   return res.json()
 }
 
-async function fetchSessionInfo(): Promise<{ loggedIn: boolean; email?: string }> {
+async function fetchSessionInfo(): Promise<{
+  loggedIn: boolean
+  email?: string
+}> {
   const res = await fetch('/api/auth/session')
   if (!res.ok) throw new Error('Failed to fetch session')
   return res.json()
@@ -53,9 +56,11 @@ export function DeviceList() {
   const [, navigate] = useLocation()
   const [showAuthDialog, setShowAuthDialog] = useState(false)
   const [linkError, setLinkError] = useState<string | null>(null)
+  const [showTrustModal, setShowTrustModal] = useState(false)
+  const [linkingDevice, setLinkingDevice] = useState<MergedDevice | null>(null)
   const queryClient = useQueryClient()
 
-  const { data: devices = [] } = useQuery<MergedDevice[]>({
+  const { data: devices = [], isLoading: devicesLoading } = useQuery<MergedDevice[]>({
     queryKey: ['devices'],
     queryFn: fetchDevices,
     refetchInterval: 3000,
@@ -68,21 +73,29 @@ export function DeviceList() {
   })
 
   const linkMutation = useMutation({
-    mutationFn: ({ udid, name }: { udid: string; name: string }) => linkDevice(udid, name),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['devices'] }),
-    onError: (err: Error) => setLinkError(err.message),
+    mutationFn: ({ udid, name }: { udid: string; name: string }) =>
+      linkDevice(udid, name),
+    onSuccess: () => {
+      setShowTrustModal(false)
+      queryClient.invalidateQueries({ queryKey: ['devices'] })
+    },
+    onError: (err: Error) => {
+      setShowTrustModal(false)
+      setLinkError(err.message)
+    },
   })
 
-  const linked = devices.filter((d) => d.linked)
-  const unlinked = devices.filter((d) => !d.linked)
-  const showSubtitles = linked.length > 0 && unlinked.length > 0
-  const showUnlinkedSubtitle = unlinked.length > 0
+  const linked = devices.filter(d => d.paired && d.registered)
+  const notLinked = devices.filter(d => !d.paired || !d.registered)
+  const showSubtitles = linked.length > 0 && notLinked.length > 0
 
   function handleLink(device: MergedDevice) {
     if (!sessionInfo?.loggedIn) {
       setShowAuthDialog(true)
       return
     }
+    setLinkingDevice(device)
+    setShowTrustModal(true)
     linkMutation.mutate({ udid: device.udid, name: device.name })
   }
 
@@ -93,37 +106,53 @@ export function DeviceList() {
           Devices
         </div>
 
-        {devices.length === 0 && (
-          <p className="text-xs text-muted-foreground px-1 py-2">No devices found.</p>
-        )}
-
-        {showSubtitles && linked.length > 0 && (
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-1 mt-1">
-            Linked
+        {devicesLoading ? (
+          <div className="flex justify-center py-3">
+            <Spinner className="w-4 h-4 text-muted-foreground" />
           </div>
+        ) : (
+          <>
+            {devices.length === 0 && (
+              <p className="text-xs text-muted-foreground px-1 py-2">
+                No devices found.
+              </p>
+            )}
+
+            {showSubtitles && (
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-1 mt-1">
+                Linked
+              </div>
+            )}
+
+            {linked.map(device => (
+              <DeviceRow key={device.udid} device={device} />
+            ))}
+
+            {showSubtitles && (
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-1 mt-1">
+                Not linked
+              </div>
+            )}
+
+            {notLinked.map(device => (
+              <DeviceRow
+                key={device.udid}
+                device={device}
+                onLink={device.connected ? () => handleLink(device) : undefined}
+                isLinking={
+                  linkMutation.isPending &&
+                  linkMutation.variables?.udid === device.udid
+                }
+              />
+            ))}
+          </>
         )}
-
-        {linked.map((device) => (
-          <DeviceRow key={device.udid} device={device} />
-        ))}
-
-        {showUnlinkedSubtitle && (
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-1 mt-1">
-            Not linked
-          </div>
-        )}
-
-        {unlinked.map((device) => (
-          <DeviceRow
-            key={device.udid}
-            device={device}
-            onLink={() => handleLink(device)}
-            isLinking={linkMutation.isPending && linkMutation.variables?.udid === device.udid}
-          />
-        ))}
       </div>
 
-      <Dialog open={linkError !== null} onOpenChange={(open) => !open && setLinkError(null)}>
+      <Dialog
+        open={linkError !== null}
+        onOpenChange={open => !open && setLinkError(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Failed to link device</DialogTitle>
@@ -135,12 +164,37 @@ export function DeviceList() {
         </DialogContent>
       </Dialog>
 
+      <Dialog
+        open={showTrustModal}
+        onOpenChange={open => !open && setShowTrustModal(false)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Trust this computer</DialogTitle>
+            <DialogDescription>
+              Unlock <strong>{linkingDevice?.name}</strong> and tap{' '}
+              <strong>Trust</strong> when prompted on the device.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+            <Spinner className="w-4 h-4 flex-shrink-0" />
+            Waiting for trust confirmation…
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTrustModal(false)}>
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Apple Account required</DialogTitle>
             <DialogDescription>
-              You need to sign in with an Apple Account to link a device to the developer portal.
+              You need to sign in with an Apple Account to link a device to the
+              developer portal.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -172,12 +226,18 @@ function DeviceRow({ device, onLink, isLinking }: DeviceRowProps) {
   return (
     <div className="flex items-center gap-2 px-1 py-1.5 rounded-md hover:bg-muted/50 transition-colors">
       <div className="w-4 flex-shrink-0">
-        {device.linked && <LuCheck className="w-3.5 h-3.5 text-foreground" />}
+        {device.paired && device.registered && (
+          <LuCheck className="w-3.5 h-3.5 text-foreground" />
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium truncate leading-tight">{device.name}</div>
-        <div className="text-[11px] text-muted-foreground font-mono truncate">{device.udid}</div>
+        <div className="text-sm font-medium truncate leading-tight">
+          {device.name}
+        </div>
+        <div className="text-[11px] text-muted-foreground font-mono truncate">
+          {device.connected ? 'Connected' : 'Disconnected'}
+        </div>
       </div>
 
       {onLink ? (
@@ -188,18 +248,9 @@ function DeviceRow({ device, onLink, isLinking }: DeviceRowProps) {
           onClick={onLink}
           disabled={isLinking}
         >
-          {isLinking ? '...' : 'Link'}
+          {isLinking ? 'Linking' : 'Link'}
         </Button>
-      ) : (
-        device.status && (
-          <Badge
-            variant={device.status === 'ENABLED' ? 'default' : 'secondary'}
-            className="text-[10px] uppercase tracking-wide"
-          >
-            {device.status === 'ENABLED' ? 'Idle' : device.status}
-          </Badge>
-        )
-      )}
+      ) : null}
     </div>
   )
 }
