@@ -1,11 +1,11 @@
-# @kaniapp/ios-wda
+# @tbana/ios-wda
 
 WebDriverAgent IPA builder and bundler for iOS device automation.
 
 ## Features
 
 - **Automatic build on install** - Downloads and builds WebDriverAgent IPA during package installation
-- **Unsigned IPA generation** - Builds unsigned IPA for real iOS devices, ready for signing with `@kaniapp/ios-connect`
+- **Unsigned IPA generation** - Builds unsigned IPA for real iOS devices, ready for signing with `@tbana/ios-connect`
 - **Path resolution API** - Exports IPA path via environment variable or bundled asset
 - **Graceful fallback** - Skips build if Xcode is unavailable without blocking installation
 - **Version control** - Configurable WDA version via environment variable
@@ -25,7 +25,7 @@ This package automates the process of building an unsigned WDA IPA that can be s
 ## Installation
 
 ```bash
-bun add @kaniapp/ios-wda
+bun add @tbana/ios-wda
 ```
 
 ### Build Requirements
@@ -51,7 +51,7 @@ Subsequent installs are instant (cached IPA).
 ### Get WebDriverAgent IPA Path
 
 ```typescript
-import { getWdaIpaPath } from '@kaniapp/ios-wda'
+import { getWdaIpaPath } from '@tbana/ios-wda'
 
 // Get IPA path (throws if not found)
 const ipaPath = getWdaIpaPath()
@@ -59,11 +59,11 @@ console.log('WDA IPA:', ipaPath)
 // → /path/to/packages/ios-wda/ipa-build/WebDriverAgentRunner.ipa
 ```
 
-### Sign and Install with @kaniapp/ios-connect
+### Sign and Install with @tbana/ios-connect
 
 ```typescript
-import { wda } from '@kaniapp/ios-wda'
-import { sideloader } from '@kaniapp/ios-connect'
+import { wda } from '@tbana/ios-wda'
+import { sideloader } from '@tbana/ios-connect'
 
 // Get unsigned WDA IPA
 const unsignedWda = wda.getWdaIpaPath()
@@ -78,7 +78,7 @@ await sideloader.install({
 ### Path Resolution with Metadata
 
 ```typescript
-import { resolveWdaIpa } from '@kaniapp/ios-wda'
+import { resolveWdaIpa } from '@tbana/ios-wda'
 
 const resolution = resolveWdaIpa()
 console.log(resolution)
@@ -399,13 +399,13 @@ Should show no code signature or identity.
 
 ## Integration
 
-This package is designed to work seamlessly with the Kani ecosystem:
+This package is designed to work seamlessly with the Tbana ecosystem:
 
 ### Server Integration
 
 ```typescript
 // apps/server/src/ios.ts
-import * as wda from '@kaniapp/ios-wda'
+import * as wda from '@tbana/ios-wda'
 
 export const ios = {
   // ... other modules
@@ -450,7 +450,7 @@ app.get('/wda/info', () => {
 
 This package downloads and builds WebDriverAgent from the official Appium project. WebDriverAgent is used for iOS device automation and requires a valid Apple Developer account for signing and installation on real devices.
 
-The unsigned IPA produced by this package cannot be installed directly on devices and must be signed with valid Apple Developer credentials using tools like `@kaniapp/ios-connect` (Sideloader CLI).
+The unsigned IPA produced by this package cannot be installed directly on devices and must be signed with valid Apple Developer credentials using tools like `@tbana/ios-connect` (Sideloader CLI).
 
 **Apple Developer Account Limitations:**
 
@@ -460,13 +460,13 @@ Free developer accounts have Apple-enforced constraints:
 - 7-day certificate expiry
 - Limited app IDs
 
-Use the `@kaniapp/ios-connect` package's renewal system to handle these limitations automatically.
+Use the `@tbana/ios-connect` package's renewal system to handle these limitations automatically.
 
 ## Related Packages
 
-- `@kaniapp/ios-connect` - iOS device management, Sideloader-based signing, and certificate renewal
-- `@kaniapp/server` - Elysia server exposing iOS management APIs
-- `@kaniapp/shared` - Shared types and utilities
+- `@tbana/ios-connect` - iOS device management, Sideloader-based signing, and certificate renewal
+- `@tbana/server` - Elysia server exposing iOS management APIs
+- `@tbana/shared` - Shared types and utilities
 
 ## License
 

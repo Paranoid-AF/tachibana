@@ -24,7 +24,7 @@ pub async fn pair_device(udid: &str) -> napi::Result<bool> {
 
     // connect_to_device consumes conn, so this must be last use of conn
     let idevice_conn = conn
-        .connect_to_device(device.device_id, LockdownClient::LOCKDOWND_PORT, "kani-isideload")
+        .connect_to_device(device.device_id, LockdownClient::LOCKDOWND_PORT, "tbana-isideload")
         .await
         .map_err(|e| napi::Error::from_reason(format!("Failed to connect to lockdown: {e}")))?;
 

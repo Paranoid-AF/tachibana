@@ -49,7 +49,7 @@ pub async fn start_tunnel(udid: &str, remote_port: u16) -> napi::Result<u16> {
                 };
 
                 let Ok(device_conn) = uconn
-                    .connect_to_device(device_id, remote_port, "kani-isideload")
+                    .connect_to_device(device_id, remote_port, "tbana-isideload")
                     .await
                 else {
                     return;

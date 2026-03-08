@@ -102,7 +102,7 @@ async fn afc_client(udid: &str) -> napi::Result<AfcClient> {
         .await
         .map_err(|e| napi::Error::from_reason(format!("Device not found: {e}")))?;
 
-    let provider = device.to_provider(UsbmuxdAddr::default(), "kani-isideload");
+    let provider = device.to_provider(UsbmuxdAddr::default(), "tbana-isideload");
 
     AfcClient::connect(&provider)
         .await

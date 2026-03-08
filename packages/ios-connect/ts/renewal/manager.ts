@@ -1,6 +1,6 @@
 /**
  * Renewal logic: check expiry, re-sign, re-install.
- * Uses the kani-isideload daemon pipeline (auth + sign + install).
+ * Uses the tbana-isideload daemon pipeline (auth + sign + install).
  */
 import { install } from '../isideload/commands/install.ts'
 import { findExpiring, addRecord } from './store.ts'

@@ -1,5 +1,5 @@
 /**
- * Persists signing state to ~/.kani/signing-state.json.
+ * Persists signing state to ~/.tbana/signing-state.json.
  * Tracks which apps were signed, with which certs, for renewal.
  */
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
@@ -7,7 +7,7 @@ import { join } from 'node:path'
 import { homedir } from 'node:os'
 import type { SigningRecord, SigningState } from '../types.ts'
 
-const STATE_DIR = join(homedir(), '.kani')
+const STATE_DIR = join(homedir(), '.tbana')
 const STATE_FILE = join(STATE_DIR, 'signing-state.json')
 
 async function ensureDir(): Promise<void> {

@@ -1,10 +1,10 @@
 [package]
-name = "kani-isideload"
+name = "tbana-isideload"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "kani_isideload"
+name = "tbana_isideload"
 crate-type = ["cdylib"]
 
 [dependencies]

@@ -152,7 +152,7 @@ export async function rewriteIpaBundleId(
   const newZip = buildZip(entries)
   const outputPath = join(
     tmpdir(),
-    `kani-wda-${randomBytes(4).toString('hex')}.ipa`
+    `tbana-wda-${randomBytes(4).toString('hex')}.ipa`
   )
   await writeFile(outputPath, newZip)
   return outputPath

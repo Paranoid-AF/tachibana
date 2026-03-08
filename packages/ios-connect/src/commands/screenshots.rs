@@ -14,7 +14,7 @@ pub async fn screenshot(udid: &str, output_path: &str) -> napi::Result<String> {
         .await
         .map_err(|e| napi::Error::from_reason(format!("Device not found: {e}")))?;
 
-    let provider = device.to_provider(UsbmuxdAddr::default(), "kani-isideload");
+    let provider = device.to_provider(UsbmuxdAddr::default(), "tbana-isideload");
 
     let mut client = ScreenshotService::connect(&provider)
         .await

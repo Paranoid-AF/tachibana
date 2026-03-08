@@ -19,8 +19,8 @@ export function resolveWdaIpa(): WdaResolution {
     return { path: envPath, source: 'env' }
   }
 
-  // 2. Tauri bundle: resources are in a separate directory passed via env
-  const resourceDir = process.env.KANI_RESOURCE_DIR
+  // 2. Tbana bundle: resources are in a separate directory passed via env
+  const resourceDir = process.env.TBANA_RESOURCE_DIR
   if (resourceDir) {
     const bundledPath = join(resourceDir, 'assets', 'WebDriverAgentRunner.ipa')
     if (existsSync(bundledPath)) {

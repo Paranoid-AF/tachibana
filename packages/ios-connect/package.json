@@ -9,7 +9,7 @@
     ".": "./ts/index.ts"
   },
   "napi": {
-    "binaryName": "kani-isideload",
+    "binaryName": "tbana-isideload",
     "targets": [
       "aarch64-apple-darwin",
       "x86_64-apple-darwin",

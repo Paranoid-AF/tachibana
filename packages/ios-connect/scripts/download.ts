@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Downloads native binaries required by @kaniapp/ios-connect:
+ * Downloads native binaries required by @tbana/ios-connect:
  * - Sideloader CLI from GitHub Actions artifacts (Dadoum/Sideloader)
  *
  * Uses `gh` CLI for downloads.
@@ -18,7 +18,7 @@ import { $ } from 'bun'
 const SIDELOADER_REPO = 'Dadoum/Sideloader'
 const SIDELOADER_RUN_ID = 21932643526
 
-/** Map Kani platform convention to Sideloader artifact names */
+/** Map Tbana platform convention to Sideloader artifact names */
 const SIDELOADER_ARTIFACT_MAP: Record<string, string> = {
   mac_arm64: 'sideloader-cli-arm64-apple-macos',
   mac_x64: 'sideloader-cli-x86_64-apple-darwin',
@@ -27,7 +27,7 @@ const SIDELOADER_ARTIFACT_MAP: Record<string, string> = {
   win_x64: 'sideloader-cli-x86_64-windows-msvc',
 }
 
-/** Map Kani platform to the actual binary filename inside the Sideloader artifact */
+/** Map Tbana platform to the actual binary filename inside the Sideloader artifact */
 const SIDELOADER_BINARY_NAME: Record<string, string> = {
   mac_arm64: 'sideloader-cli-arm64-apple-macos',
   mac_x64: 'sideloader-cli-x86_64-apple-darwin',
@@ -40,53 +40,53 @@ const SIDELOADER_BINARY_NAME: Record<string, string> = {
 
 const PKG_ROOT = dirname(import.meta.dirname!)
 
-function getKaniPlatform(): string {
+function getTbanaPlatform(): string {
   const platform = process.platform === 'darwin' ? 'mac' : process.platform
   const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
   return `${platform}_${arch}`
 }
 
 /** Returns '.exe' for Windows platforms, '' otherwise */
-function exeExt(kaniPlatform: string): string {
-  return kaniPlatform.startsWith('win') ? '.exe' : ''
+function exeExt(tbanaPlatform: string): string {
+  return tbanaPlatform.startsWith('win') ? '.exe' : ''
 }
 
 function getTargetPlatforms(platformMap: Record<string, string>): string[] {
   if (process.env.DOWNLOAD_ALL_PLATFORMS === '1') {
     return Object.keys(platformMap)
   }
-  return [getKaniPlatform()]
+  return [getTbanaPlatform()]
 }
 
 // ── Sideloader download ─────────────────────────────────────
 
-async function downloadSideloaderForPlatform(kaniPlatform: string) {
-  const artifactName = SIDELOADER_ARTIFACT_MAP[kaniPlatform]
+async function downloadSideloaderForPlatform(tbanaPlatform: string) {
+  const artifactName = SIDELOADER_ARTIFACT_MAP[tbanaPlatform]
   if (!artifactName) {
     console.log(
-      `No Sideloader artifact for platform: ${kaniPlatform}, skipping`
+      `No Sideloader artifact for platform: ${tbanaPlatform}, skipping`
     )
     return
   }
 
-  const ext = exeExt(kaniPlatform)
-  const binDir = join(PKG_ROOT, 'bin', kaniPlatform)
+  const ext = exeExt(tbanaPlatform)
+  const binDir = join(PKG_ROOT, 'bin', tbanaPlatform)
   const binaryPath = join(binDir, `sideloader${ext}`)
 
   if (existsSync(binaryPath)) {
-    console.log(`Sideloader for ${kaniPlatform} already exists`)
+    console.log(`Sideloader for ${tbanaPlatform} already exists`)
     return
   }
 
-  console.log(`Downloading Sideloader for ${kaniPlatform}...`)
+  console.log(`Downloading Sideloader for ${tbanaPlatform}...`)
 
-  const tmpDir = join(PKG_ROOT, `.tmp-download-sideloader-${kaniPlatform}`)
+  const tmpDir = join(PKG_ROOT, `.tmp-download-sideloader-${tbanaPlatform}`)
   mkdirSync(tmpDir, { recursive: true })
 
   try {
     await $`gh run download ${SIDELOADER_RUN_ID} -R ${SIDELOADER_REPO} -n ${artifactName} -D ${tmpDir}`
 
-    const binaryName = SIDELOADER_BINARY_NAME[kaniPlatform]!
+    const binaryName = SIDELOADER_BINARY_NAME[tbanaPlatform]!
     const sourcePath = join(tmpDir, binaryName)
 
     if (!existsSync(sourcePath)) {

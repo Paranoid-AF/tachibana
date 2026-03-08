@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Builds the kani-isideload native addon via napi-rs.
+ * Builds the tbana-isideload native addon via napi-rs.
  *
  * Requires: cargo (Rust toolchain) + @napi-rs/cli (installed as devDependency)
  * Cached: skips if the platform .node file already exists.
@@ -30,7 +30,7 @@ function getNodeFilename(): string {
   const p = platformMap[platform] ?? platform
   const a = archMap[arch] ?? arch
   const ext = platform === 'win32' ? '.dll' : '.node'
-  return `kani-isideload.${p}-${a}${ext}`
+  return `tbana-isideload.${p}-${a}${ext}`
 }
 
 async function buildNapiAddon() {
@@ -45,7 +45,7 @@ async function buildNapiAddon() {
     return
   }
 
-  console.log('Building kani-isideload napi addon from source...')
+  console.log('Building tbana-isideload napi addon from source...')
 
   // Use bunx to run @napi-rs/cli without requiring a global install.
   // --output-dir places .node, index.js, and index.d.ts in dist/.
