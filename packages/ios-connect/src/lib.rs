@@ -207,3 +207,18 @@ pub async fn list_connected_devices() -> napi::Result<Vec<ConnectedDevice>> {
 pub async fn screenshot(udid: String, output_path: String) -> napi::Result<String> {
     commands::screenshots::screenshot(&udid, &output_path).await
 }
+
+/// Start a USB tunnel from a local TCP port to `remote_port` on the device.
+/// Returns the local port number. Does not require Apple Account.
+/// Call `stop_tunnel` with the returned port to tear it down.
+#[napi]
+pub async fn start_tunnel(udid: String, remote_port: u32) -> napi::Result<u32> {
+    let local = commands::tunnel::start_tunnel(&udid, remote_port as u16).await?;
+    Ok(local as u32)
+}
+
+/// Stop a tunnel previously started with `start_tunnel`.
+#[napi]
+pub async fn stop_tunnel(local_port: u32) -> napi::Result<()> {
+    commands::tunnel::stop_tunnel(local_port as u16).await
+}

@@ -81,6 +81,8 @@ export interface NativeAddon {
   Session: NativeSessionConstructor
   listConnectedDevices(): Promise<ConnectedDevice[]>
   screenshot(udid: string, outputPath: string): Promise<string>
+  startTunnel(udid: string, remotePort: number): Promise<number>
+  stopTunnel(localPort: number): Promise<void>
 }
 
 let _native: NativeAddon | null = null

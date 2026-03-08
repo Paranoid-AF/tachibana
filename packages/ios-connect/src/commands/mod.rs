@@ -7,3 +7,4 @@ pub mod sideload;
 pub mod screenshots;
 pub mod photos;
 pub mod pairing;
+pub mod tunnel;

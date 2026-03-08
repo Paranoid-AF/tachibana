@@ -58,5 +58,8 @@
   "search.exclude": {
     ".claude/skills/**": true
   },
-  "rust-analyzer.linkedProjects": ["packages/ios-connect/core/Cargo.toml"]
+  "rust-analyzer.linkedProjects": ["packages/ios-connect/Cargo.toml"],
+  "rust-analyzer.procMacro.ignored": {
+    "napi-derive": ["napi"]
+  }
 }
