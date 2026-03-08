@@ -10,7 +10,8 @@ export * as tunnel from './isideload/commands/tunnel.ts'
 export * as device from './isideload/commands/device.ts'
 
 // Session lifecycle
-export { configureSession } from './isideload/session.ts'
+export { configureSession, getSession } from './isideload/session.ts'
+export type { NativeSession } from './isideload/native.ts'
 
 // WDA client
 export * as wdaClient from './wda/index.ts'

@@ -20,14 +20,13 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const webDevPath = path.resolve(__dirname, '../../web')
 const webDistPath = path.resolve(__dirname, '../../web/dist')
 
-export const app = new Elysia({ prefix: '/api' })
-export type App = typeof app
+const _app = new Elysia({ prefix: '/api' })
+  .use(routes.health)
+  .use(routes.authRoutes)
+  .use(routes.deviceRoutes)
 
-// Register routes from barrel file
-Object.values(routes).reduce(
-  (app: App, route: Parameters<typeof app.use>[0]) => app.use(route),
-  app
-)
+export const app = _app
+export type App = typeof _app
 
 const main = async () => {
   const config = await getConfig(isDev)

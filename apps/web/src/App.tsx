@@ -1,15 +1,13 @@
-import { useQuery } from '@tanstack/react-query'
-import { api } from './libs/api'
+import { Switch, Route } from 'wouter'
+
+import { HomePage } from './pages/HomePage'
+import { SignInPage } from './pages/SignInPage'
 
 export default function App() {
-  const { data } = useQuery({
-    queryKey: ['health'],
-    queryFn: async () => {
-      const { data, error } = await api.health.get()
-      if (error) throw error
-      return data
-    },
-  })
-
-  return <h1>Tachibana — {data?.status ?? '...'}</h1>
+  return (
+    <Switch>
+      <Route path="/" component={HomePage} />
+      <Route path="/signin" component={SignInPage} />
+    </Switch>
+  )
 }
