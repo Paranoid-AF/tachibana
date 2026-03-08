@@ -1,5 +1,5 @@
 {
-  "name": "@tachibana/cli",
+  "name": "@tbana/cli",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "build": "bun build src/index.ts --compile --outfile dist/tachibana"
   },
   "dependencies": {
-    "@tachibana/ios-connect": "workspace:*",
-    "@tachibana/ios-wda": "workspace:*"
+    "@tbana/ios-connect": "workspace:*",
+    "@tbana/ios-wda": "workspace:*"
   }
 }

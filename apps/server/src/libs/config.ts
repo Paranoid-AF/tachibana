@@ -3,7 +3,7 @@ import { join, dirname } from 'path'
 import { mkdir, unlink } from 'fs/promises'
 import { z } from 'zod'
 
-import type { StoredSession } from '@tachibana/ios-connect'
+import type { StoredSession } from '@tbana/ios-connect'
 
 const DEFAULT_DEV_PORT = 5173
 const DEFAULT_PROD_PORT = 13370
@@ -17,9 +17,18 @@ const ConfigSchema = z.object({
 
 const PersistedConfigSchema = z.object(
   Object.fromEntries(
-    (Object.entries(ConfigSchema.shape) as [string, z.ZodObject<z.ZodRawShape>][]).map(([k, v]) => [k, v.partial().optional()])
+    (
+      Object.entries(ConfigSchema.shape) as [
+        string,
+        z.ZodObject<z.ZodRawShape>,
+      ][]
+    ).map(([k, v]) => [k, v.partial().optional()])
   )
-) as z.ZodObject<{ [K in keyof typeof ConfigSchema.shape]: z.ZodOptional<ReturnType<(typeof ConfigSchema.shape)[K]['partial']>> }>
+) as z.ZodObject<{
+  [K in keyof typeof ConfigSchema.shape]: z.ZodOptional<
+    ReturnType<(typeof ConfigSchema.shape)[K]['partial']>
+  >
+}>
 
 export type Config = z.infer<typeof ConfigSchema>
 export type PersistedConfig = z.infer<typeof PersistedConfigSchema>
@@ -60,14 +69,18 @@ async function readPersistedConfig(): Promise<PersistedConfig> {
 function deepMerge(defaults: Config, overrides: PersistedConfig): Config {
   const result = { ...defaults }
   for (const key of Object.keys(defaults) as (keyof Config)[]) {
-    if (overrides[key]) result[key] = { ...defaults[key], ...overrides[key] } as never
+    if (overrides[key])
+      result[key] = { ...defaults[key], ...overrides[key] } as never
   }
   return result
 }
 
 function stripDefaults(overrides: PersistedConfig): PersistedConfig {
   const result: PersistedConfig = {}
-  for (const [section, values] of Object.entries(overrides) as [keyof Config, Record<string, unknown>][]) {
+  for (const [section, values] of Object.entries(overrides) as [
+    keyof Config,
+    Record<string, unknown>,
+  ][]) {
     if (!values) continue
     const sectionDefaults = DEFAULTS[section] as Record<string, unknown>
     const stripped = Object.fromEntries(

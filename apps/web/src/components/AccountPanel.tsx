@@ -1,7 +1,8 @@
 import { useLocation } from 'wouter'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { LuEllipsis } from 'react-icons/lu'
 
+import { useSession } from '@/hooks/useSession'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import {
@@ -10,12 +11,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-
-async function fetchSessionInfo(): Promise<{ loggedIn: boolean; email?: string }> {
-  const res = await fetch('/api/auth/session')
-  if (!res.ok) throw new Error('Failed to fetch session')
-  return res.json()
-}
 
 async function signOut() {
   const res = await fetch('/api/auth/signout', { method: 'POST' })
@@ -27,11 +22,7 @@ export function AccountPanel() {
   const [, navigate] = useLocation()
   const queryClient = useQueryClient()
 
-  const { data: sessionInfo, isLoading } = useQuery({
-    queryKey: ['auth/session'],
-    queryFn: fetchSessionInfo,
-    refetchInterval: 5000,
-  })
+  const { data: sessionInfo, isLoading } = useSession()
 
   const signOutMutation = useMutation({
     mutationFn: signOut,

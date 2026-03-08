@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocation } from 'wouter'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { LuArrowRight, LuLock } from 'react-icons/lu'
+
+import { useSession } from '@/hooks/useSession'
 
 import { AppLayout } from '@/components/AppLayout'
 import { Button } from '@/components/ui/button'
@@ -38,6 +40,14 @@ async function submitTwoFa(code: string) {
 export function SignInPage() {
   const [, navigate] = useLocation()
   const queryClient = useQueryClient()
+
+  const { data: sessionInfo, isLoading } = useSession()
+
+  useEffect(() => {
+    if (!isLoading && sessionInfo?.loggedIn) {
+      navigate('/', { replace: true })
+    }
+  }, [isLoading, sessionInfo, navigate])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [twoFaCode, setTwoFaCode] = useState('')

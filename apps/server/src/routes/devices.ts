@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia'
 
-import { device } from '@tachibana/ios-connect'
-import type { ConnectedDevice, Device } from '@tachibana/ios-connect'
+import { device } from '@tbana/ios-connect'
+import type { ConnectedDevice, Device } from '@tbana/ios-connect'
 
 import { getSession } from '../libs/session.ts'
 import { getDeviceMeta, saveDeviceMeta } from '../libs/deviceStore.ts'
@@ -43,7 +43,11 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
     for (const d of connected) {
       const reg = registeredMap.get(d.udid)
       const paired = await session.validatePairing(d.udid)
-      await saveDeviceMeta(d.udid, { name: d.name, productType: d.productType, productVersion: d.productVersion })
+      await saveDeviceMeta(d.udid, {
+        name: d.name,
+        productType: d.productType,
+        productVersion: d.productVersion,
+      })
       result.set(d.udid, {
         udid: d.udid,
         name: d.name,
@@ -65,7 +69,12 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
         result.set(udid, {
           udid,
           name: meta?.name ?? reg.name,
-          ...(meta ? { productType: meta.productType, productVersion: meta.productVersion } : {}),
+          ...(meta
+            ? {
+                productType: meta.productType,
+                productVersion: meta.productVersion,
+              }
+            : {}),
           registered: true,
           connected: false,
           paired,
@@ -102,7 +111,11 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
       if (connectedResult.success) {
         const info = connectedResult.data.find(d => d.udid === udid)
         if (info) {
-          await saveDeviceMeta(udid, { name: info.name, productType: info.productType, productVersion: info.productVersion })
+          await saveDeviceMeta(udid, {
+            name: info.name,
+            productType: info.productType,
+            productVersion: info.productVersion,
+          })
         }
       }
 

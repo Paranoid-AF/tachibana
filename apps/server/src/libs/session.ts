@@ -1,9 +1,17 @@
 import { mkdir } from 'fs/promises'
 
-import { configureSession, getSession as getNativeSession } from '@tachibana/ios-connect'
-import type { NativeSession } from '@tachibana/ios-connect'
+import {
+  configureSession,
+  getSession as getNativeSession,
+} from '@tbana/ios-connect'
+import type { NativeSession } from '@tbana/ios-connect'
 
-import { getConfigDir, getSessionData, saveSessionData, clearSessionData } from './config.ts'
+import {
+  getConfigDir,
+  getSessionData,
+  saveSessionData,
+  clearSessionData,
+} from './config.ts'
 
 let _initPromise: Promise<void> | null = null
 
@@ -21,7 +29,9 @@ function ensureInitialized(): Promise<void> {
       const session = await getNativeSession()
       const data = await session.getSessionData()
       if (!data) {
-        console.warn('[ios-connect] Session restore failed, clearing saved session')
+        console.warn(
+          '[ios-connect] Session restore failed, clearing saved session'
+        )
         await clearSessionData()
       }
     }
@@ -40,7 +50,9 @@ export async function saveSession(session: NativeSession): Promise<void> {
     if (data) {
       await saveSessionData(data)
     } else {
-      console.warn('[session] getSessionData() returned null, session will not be persisted')
+      console.warn(
+        '[session] getSessionData() returned null, session will not be persisted'
+      )
     }
   } catch (err) {
     console.error('[session] saveSession failed:', err)

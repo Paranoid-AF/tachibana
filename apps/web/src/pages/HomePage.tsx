@@ -1,24 +1,52 @@
+import { useEffect, useRef } from 'react'
+import { useLocation } from 'wouter'
+
+import { useSession } from '@/hooks/useSession'
+import { useDevices } from '@/hooks/useDevices'
 import { AppLayout } from '@/components/AppLayout'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import { LinkDeviceGuide } from '@/components/LinkDeviceGuide'
 
 export function HomePage() {
+  const [, navigate] = useLocation()
+  const hasCheckedRef = useRef(false)
+
+  const { data: sessionInfo, isLoading: sessionLoading } = useSession()
+  const { data: devices = [], isLoading: devicesLoading } = useDevices({
+    enabled: sessionInfo?.loggedIn === true,
+  })
+
+  const isLoading =
+    sessionLoading || (sessionInfo?.loggedIn === true && devicesLoading)
+
+  const linkedConnected = devices.filter(
+    d => d.paired && d.registered && d.connected,
+  )
+
+  useEffect(() => {
+    if (isLoading) return
+
+    if (!sessionInfo?.loggedIn) {
+      navigate('/signin', { replace: true })
+      return
+    }
+
+    if (!hasCheckedRef.current) {
+      hasCheckedRef.current = true
+      if (linkedConnected.length > 0) {
+        navigate(`/device/${linkedConnected[0].udid}`, { replace: true })
+      }
+    }
+  }, [isLoading, sessionInfo, linkedConnected, navigate])
+
+  if (isLoading || !sessionInfo?.loggedIn) return null
+
+  // Prevent one-frame flash before useEffect redirect fires
+  if (!hasCheckedRef.current && linkedConnected.length > 0) return null
+
   return (
     <AppLayout>
-      {/* Middle panel */}
-      <div className="flex-1 p-4 overflow-hidden">
-        <div className="h-full rounded-xl border border-border" />
-      </div>
-
-      {/* Right panel: Sessions */}
-      <div className="w-72 flex-shrink-0 border-l border-border flex flex-col">
-        <div className="px-4 py-3 border-b border-border">
-          <span className="text-xs font-medium uppercase tracking-wide">
-            Sessions for this device
-          </span>
-        </div>
-        <ScrollArea className="flex-1">
-          <div className="p-4" />
-        </ScrollArea>
+      <div className="flex-1 overflow-hidden">
+        <LinkDeviceGuide />
       </div>
     </AppLayout>
   )

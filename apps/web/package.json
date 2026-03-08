@@ -1,5 +1,5 @@
 {
-  "name": "@tachibana/web",
+  "name": "@tbana/web",
   "version": "0.0.1",
   "private": true,
   "type": "module",
@@ -26,8 +26,8 @@
     "wouter": "^3.9.0"
   },
   "devDependencies": {
-    "@tachibana/server": "workspace:*",
     "@tailwindcss/vite": "^4.2.1",
+    "@tbana/server": "workspace:*",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.0",

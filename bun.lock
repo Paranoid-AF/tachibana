@@ -13,19 +13,19 @@
       },
     },
     "apps/cli": {
-      "name": "@tachibana/cli",
+      "name": "@tbana/cli",
       "version": "0.0.1",
       "dependencies": {
-        "@tachibana/ios-connect": "workspace:*",
-        "@tachibana/ios-wda": "workspace:*",
+        "@tbana/ios-connect": "workspace:*",
+        "@tbana/ios-wda": "workspace:*",
       },
     },
     "apps/server": {
-      "name": "@tachibana/server",
+      "name": "@tbana/server",
       "version": "0.0.1",
       "dependencies": {
-        "@tachibana/ios-connect": "workspace:*",
-        "@tachibana/ios-wda": "workspace:*",
+        "@tbana/ios-connect": "workspace:*",
+        "@tbana/ios-wda": "workspace:*",
         "elysia": "^1.4.22",
         "get-port": "^7.1.0",
         "zod": "^3.24.0",
@@ -35,7 +35,7 @@
       },
     },
     "apps/web": {
-      "name": "@tachibana/web",
+      "name": "@tbana/web",
       "version": "0.0.1",
       "dependencies": {
         "@elysiajs/eden": "^1.4.2",
@@ -55,8 +55,8 @@
         "wouter": "^3.9.0",
       },
       "devDependencies": {
-        "@tachibana/server": "workspace:*",
         "@tailwindcss/vite": "^4.2.1",
+        "@tbana/server": "workspace:*",
         "@types/react": "^18.3.0",
         "@types/react-dom": "^18.3.0",
         "@vitejs/plugin-react": "^4.3.0",
@@ -65,7 +65,7 @@
       },
     },
     "packages/ios-connect": {
-      "name": "@tachibana/ios-connect",
+      "name": "@tbana/ios-connect",
       "version": "0.0.1",
       "dependencies": {
         "plist": "^3.1.0",
@@ -78,7 +78,7 @@
       },
     },
     "packages/ios-wda": {
-      "name": "@tachibana/ios-wda",
+      "name": "@tbana/ios-wda",
       "version": "0.0.1",
       "dependencies": {
         "appium-webdriveragent": "11.1.4",
@@ -582,16 +582,6 @@
 
     "@sinclair/typebox": ["@sinclair/typebox@0.34.48", "", {}, "sha512-kKJTNuK3AQOrgjjotVxMrCn1sUJwM76wMszfq1kdU4uYVJjvEWuFQ6HgvLt4Xz3fSmZlTOxJ/Ie13KnIcWQXFA=="],
 
-    "@tachibana/cli": ["@tachibana/cli@workspace:apps/cli"],
-
-    "@tachibana/ios-connect": ["@tachibana/ios-connect@workspace:packages/ios-connect"],
-
-    "@tachibana/ios-wda": ["@tachibana/ios-wda@workspace:packages/ios-wda"],
-
-    "@tachibana/server": ["@tachibana/server@workspace:apps/server"],
-
-    "@tachibana/web": ["@tachibana/web@workspace:apps/web"],
-
     "@tailwindcss/node": ["@tailwindcss/node@4.2.1", "", { "dependencies": { "@jridgewell/remapping": "^2.3.5", "enhanced-resolve": "^5.19.0", "jiti": "^2.6.1", "lightningcss": "1.31.1", "magic-string": "^0.30.21", "source-map-js": "^1.2.1", "tailwindcss": "4.2.1" } }, "sha512-jlx6sLk4EOwO6hHe1oCGm1Q4AN/s0rSrTTPBGPM0/RQ6Uylwq17FuU8IeJJKEjtc6K6O07zsvP+gDO6MMWo7pg=="],
 
     "@tailwindcss/oxide": ["@tailwindcss/oxide@4.2.1", "", { "optionalDependencies": { "@tailwindcss/oxide-android-arm64": "4.2.1", "@tailwindcss/oxide-darwin-arm64": "4.2.1", "@tailwindcss/oxide-darwin-x64": "4.2.1", "@tailwindcss/oxide-freebsd-x64": "4.2.1", "@tailwindcss/oxide-linux-arm-gnueabihf": "4.2.1", "@tailwindcss/oxide-linux-arm64-gnu": "4.2.1", "@tailwindcss/oxide-linux-arm64-musl": "4.2.1", "@tailwindcss/oxide-linux-x64-gnu": "4.2.1", "@tailwindcss/oxide-linux-x64-musl": "4.2.1", "@tailwindcss/oxide-wasm32-wasi": "4.2.1", "@tailwindcss/oxide-win32-arm64-msvc": "4.2.1", "@tailwindcss/oxide-win32-x64-msvc": "4.2.1" } }, "sha512-yv9jeEFWnjKCI6/T3Oq50yQEOqmpmpfzG1hcZsAOaXFQPfzWprWrlHSdGPEF3WQTi8zu8ohC9Mh9J470nT5pUw=="],
@@ -625,6 +615,16 @@
     "@tanstack/query-core": ["@tanstack/query-core@5.90.20", "", {}, "sha512-OMD2HLpNouXEfZJWcKeVKUgQ5n+n3A2JFmBaScpNDUqSrQSjiveC7dKMe53uJUg1nDG16ttFPz2xfilz6i2uVg=="],
 
     "@tanstack/react-query": ["@tanstack/react-query@5.90.21", "", { "dependencies": { "@tanstack/query-core": "5.90.20" }, "peerDependencies": { "react": "^18 || ^19" } }, "sha512-0Lu6y5t+tvlTJMTO7oh5NSpJfpg/5D41LlThfepTixPYkJ0sE2Jj0m0f6yYqujBwIXlId87e234+MxG3D3g7kg=="],
+
+    "@tbana/cli": ["@tbana/cli@workspace:apps/cli"],
+
+    "@tbana/ios-connect": ["@tbana/ios-connect@workspace:packages/ios-connect"],
+
+    "@tbana/ios-wda": ["@tbana/ios-wda@workspace:packages/ios-wda"],
+
+    "@tbana/server": ["@tbana/server@workspace:apps/server"],
+
+    "@tbana/web": ["@tbana/web@workspace:apps/web"],
 
     "@tokenizer/inflate": ["@tokenizer/inflate@0.4.1", "", { "dependencies": { "debug": "^4.4.3", "token-types": "^6.1.1" } }, "sha512-2mAv+8pkG6GIZiF1kNg1jAjh27IDxEPKwdGul3snfztFerfPGI1LjDezZp3i7BElXompqEtPmoPx6c2wgtWsOA=="],
 

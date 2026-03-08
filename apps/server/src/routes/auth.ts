@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia'
 
 import { getSession, saveSession, clearSession } from '../libs/session.ts'
-import type { SessionInfo } from '@tachibana/ios-connect'
+import type { SessionInfo } from '@tbana/ios-connect'
 
 let loginPromise: Promise<void> | null = null
 let pendingEmail: string | null = null
