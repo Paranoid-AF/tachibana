@@ -64,7 +64,7 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
         ])
         result.set(udid, {
           udid,
-          name: reg.name,
+          name: meta?.name ?? reg.name,
           ...(meta ? { productType: meta.productType, productVersion: meta.productVersion } : {}),
           registered: true,
           connected: false,

@@ -60,7 +60,9 @@ export function DeviceList() {
   const [linkingDevice, setLinkingDevice] = useState<MergedDevice | null>(null)
   const queryClient = useQueryClient()
 
-  const { data: devices = [], isLoading: devicesLoading } = useQuery<MergedDevice[]>({
+  const { data: devices = [], isLoading: devicesLoading } = useQuery<
+    MergedDevice[]
+  >({
     queryKey: ['devices'],
     queryFn: fetchDevices,
     refetchInterval: 3000,
