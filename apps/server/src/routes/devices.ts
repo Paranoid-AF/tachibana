@@ -5,6 +5,7 @@ import type { ConnectedDevice, Device } from '@tbana/ios-connect'
 
 import { getSession } from '../libs/session.ts'
 import { getDeviceMeta, saveDeviceMeta } from '../libs/device-store.ts'
+import { wdaManager } from '../libs/wda-manager.ts'
 
 export interface MergedDeviceInfo extends Omit<
   Partial<ConnectedDevice> & Device,
@@ -137,3 +138,22 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
     },
     { body: t.Object({ name: t.String() }) }
   )
+
+  .get('/:udid/screen', async ({ params, set }) => {
+    const { udid } = params
+
+    wdaManager.prepare(udid)
+
+    let mjpegPort: number
+    try {
+      mjpegPort = await wdaManager.waitUntilReady(udid)
+    } catch (err) {
+      set.status = 503
+      return { message: err instanceof Error ? err.message : 'WDA failed to start' }
+    }
+
+    const upstream = await fetch(`http://localhost:${mjpegPort}`)
+    set.headers['Content-Type'] = upstream.headers.get('Content-Type') ?? 'multipart/x-mixed-replace'
+    set.headers['Cache-Control'] = 'no-cache'
+    return upstream.body
+  })

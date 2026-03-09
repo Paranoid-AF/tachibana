@@ -8,7 +8,7 @@ import {
   LinkErrorDialog,
   AuthRequiredDialog,
 } from '@/components/biz/link-dialogs'
-import { Loader2 } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 import { DeviceRow } from './device-row'
 
 export function DeviceList() {
@@ -42,7 +42,7 @@ export function DeviceList() {
 
         {devicesLoading ? (
           <div className="flex justify-center py-3">
-            <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+            <Spinner className="text-muted-foreground" />
           </div>
         ) : (
           <>

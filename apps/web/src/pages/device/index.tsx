@@ -11,6 +11,7 @@ import { AppLayout } from '@/components/biz/app-layout'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { DeviceNotice } from './components/device-notice'
+import { DeviceScreen } from './components/device-screen'
 
 export function DevicePage() {
   const [, navigate] = useLocation()
@@ -71,11 +72,7 @@ export function DevicePage() {
       </DeviceNotice>
     )
   } else {
-    screenContent = (
-      <div className="flex-1 p-4 overflow-hidden">
-        <div className="h-full rounded-xl border border-border" />
-      </div>
-    )
+    screenContent = <DeviceScreen udid={udid} email={sessionInfo.email} />
   }
 
   return (

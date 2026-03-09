@@ -6,7 +6,18 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { randomBytes } from 'node:crypto'
+import bplistParser from 'bplist-parser'
 import { parsePlist, buildPlist } from './plist.ts'
+
+const BPLIST_MAGIC = Buffer.from('bplist00')
+
+function parsePlistBytes(data: Uint8Array): Record<string, unknown> {
+  const buf = Buffer.from(data)
+  if (buf.subarray(0, 8).equals(BPLIST_MAGIC)) {
+    return bplistParser.parseBuffer<Record<string, unknown>>(buf)[0]
+  }
+  return parsePlist<Record<string, unknown>>(buf.toString('utf-8'))
+}
 
 /** Minimal IPA metadata extracted from Info.plist */
 export interface IpaMetadata {
@@ -102,11 +113,15 @@ interface ZipEntry {
   uncompressedSize: number
 }
 
-const INFO_PLIST_RE = /^Payload\/[^/]+\.app\/Info\.plist$/
+const MAIN_INFO_PLIST_RE = /^Payload\/[^/]+\.app\/Info\.plist$/
+const PLUGIN_INFO_PLIST_RE =
+  /^Payload\/[^/]+\.app\/PlugIns\/([^/]+)\.xctest\/Info\.plist$/
 
 /**
- * Rewrite the CFBundleIdentifier inside an IPA's Info.plist.
- * Pure JS — parses ZIP via central directory, modifies plist, rebuilds ZIP.
+ * Rewrite CFBundleIdentifier in an IPA's main app and all PlugIns/*.xctest
+ * bundles so they share a consistent prefix.
+ * Main app gets `newBundleId`; each plugin gets `${newBundleId}.${pluginName}`.
+ * Pure JS — parses ZIP via central directory, modifies plists, rebuilds ZIP.
  * Returns the path to the new IPA (caller must clean up).
  */
 export async function rewriteIpaBundleId(
@@ -116,11 +131,16 @@ export async function rewriteIpaBundleId(
   const zipData = await readFile(ipaPath)
   const entries = parseZipEntries(zipData)
 
-  // Find and modify Info.plist
   let found = false
   for (const entry of entries) {
-    if (!INFO_PLIST_RE.test(entry.name)) continue
+    const pluginMatch = entry.name.match(PLUGIN_INFO_PLIST_RE)
+    const isMain = MAIN_INFO_PLIST_RE.test(entry.name)
+    if (!isMain && !pluginMatch) continue
+
     found = true
+    const targetBundleId = isMain
+      ? newBundleId
+      : `${newBundleId}.${pluginMatch![1]!.toLowerCase()}`
 
     // Decompress
     const raw =
@@ -128,11 +148,9 @@ export async function rewriteIpaBundleId(
         ? Bun.inflateSync(entry.compressedData as Uint8Array<ArrayBuffer>)
         : entry.compressedData
 
-    // Modify plist
-    const plistObj = parsePlist<Record<string, unknown>>(
-      Buffer.from(raw).toString('utf-8')
-    )
-    plistObj.CFBundleIdentifier = newBundleId
+    // Modify plist (handles both XML and binary bplist00 format)
+    const plistObj = parsePlistBytes(raw)
+    plistObj.CFBundleIdentifier = targetBundleId
     const newPlist = new Uint8Array(Buffer.from(buildPlist(plistObj), 'utf-8'))
 
     // Recompress with deflate
@@ -141,7 +159,6 @@ export async function rewriteIpaBundleId(
     entry.uncompressedSize = newPlist.length
     entry.compressionMethod = 8
     entry.crc32 = crc32(newPlist)
-    break
   }
 
   if (!found) {

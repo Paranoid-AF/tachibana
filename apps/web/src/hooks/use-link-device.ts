@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { linkDevice } from '@/libs/device-api'
+import { linkDevice } from '@/lib/device-api'
 import type { DeviceListResponseItem } from '@/types'
 
 export function useLinkDevice() {

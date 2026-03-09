@@ -1,6 +1,8 @@
 import { useLocation } from 'wouter'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Ellipsis, Loader2 } from 'lucide-react'
+import { Ellipsis } from 'lucide-react'
+
+import { Spinner } from '@/components/ui/spinner'
 
 import { useSession } from '@/hooks/use-session'
 import { Button } from '@/components/ui/button'
@@ -34,7 +36,7 @@ export function AccountPanel() {
   if (isLoading) {
     return (
       <div className="rounded-xl border border-border p-3 flex justify-center py-4">
-        <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+        <Spinner className="text-muted-foreground" />
       </div>
     )
   }

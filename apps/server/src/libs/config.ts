@@ -13,6 +13,9 @@ const ConfigSchema = z.object({
     port: z.number().int().min(1).max(65535),
     hostname: z.string(),
   }),
+  wda: z.object({
+    bundleId: z.string(),
+  }),
 })
 
 const PersistedConfigSchema = z.object(
@@ -38,6 +41,9 @@ const DEFAULTS: Config = {
     port: DEFAULT_PROD_PORT,
     hostname: 'localhost',
   },
+  wda: {
+    bundleId: '',
+  },
 }
 
 export function getConfigDir(): string {
@@ -56,7 +62,7 @@ function getSessionFilePath(): string {
   return join(getConfigDir(), 'session.json')
 }
 
-async function readPersistedConfig(): Promise<PersistedConfig> {
+export async function readPersistedConfig(): Promise<PersistedConfig> {
   const path = getConfigFilePath()
   try {
     const text = await Bun.file(path).text()
@@ -113,7 +119,6 @@ export const setConfig = async (partial: PersistedConfig): Promise<void> => {
       merged[key] = { ...existing[key], ...validated[key] } as never
     }
   }
-
   const cleaned = stripDefaults(merged)
 
   const path = getConfigFilePath()
@@ -160,3 +165,4 @@ export async function clearSessionData(): Promise<void> {
     // already gone
   }
 }
+

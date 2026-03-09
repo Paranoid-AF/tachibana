@@ -1,4 +1,4 @@
-import { cn } from '@/libs/utils'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import type { DeviceListResponseItem } from '@/types'
 
@@ -21,7 +21,9 @@ export function DeviceRow({
     <div
       className={cn(
         'flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors',
-        isSelected ? 'bg-primary text-primary-foreground' : onClick && 'hover:bg-muted/50',
+        isSelected
+          ? 'bg-primary text-primary-foreground'
+          : onClick && 'hover:bg-muted/50',
         onClick && !isSelected && 'cursor-pointer'
       )}
       onClick={onClick}

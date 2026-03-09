@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { fetchSessionInfo } from '@/libs/device-api'
+import { fetchSessionInfo } from '@/lib/device-api'
 import type { SessionInfo } from '@/types'
 
 export function useSession() {

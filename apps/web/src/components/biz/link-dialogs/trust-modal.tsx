@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { Loader2 } from 'lucide-react'
+import { Spinner } from '@/components/ui/spinner'
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,7 @@ export function TrustModal({ open, deviceName, onClose }: TrustModalProps) {
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
-          <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+          <Spinner className="shrink-0" />
           Waiting for trust confirmation…
         </div>
         <DialogFooter>
