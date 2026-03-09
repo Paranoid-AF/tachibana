@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from 'wouter'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { LuArrowRight, LuLock } from 'react-icons/lu'
+import { ArrowRight, Lock } from 'lucide-react'
 
-import { useSession } from '@/hooks/useSession'
+import { useSession } from '@/hooks/use-session'
 
-import { AppLayout } from '@/components/AppLayout'
+import { AppLayout } from '@/components/biz/app-layout'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,28 +14,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-
-async function startSignIn(email: string, password: string) {
-  const res = await fetch('/api/auth/signin', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  })
-  const body = await res.json()
-  if (!res.ok) throw new Error(body?.message ?? 'Sign in failed')
-  return body as { loggedIn: true } | { requiresTwoFa: true; type: string }
-}
-
-async function submitTwoFa(code: string) {
-  const res = await fetch('/api/auth/2fa', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code }),
-  })
-  const body = await res.json()
-  if (!res.ok) throw new Error(body?.message ?? '2FA failed')
-  return body as { loggedIn: true }
-}
+import { Input } from '@/components/ui/input'
+import { startSignIn, submitTwoFa } from './libs/auth-api'
 
 export function SignInPage() {
   const [, navigate] = useLocation()
@@ -58,7 +38,7 @@ export function SignInPage() {
 
   const signinMutation = useMutation({
     mutationFn: () => startSignIn(email, password),
-    onSuccess: (result) => {
+    onSuccess: result => {
       if ('requiresTwoFa' in result) {
         setTwoFaType(result.type)
         setShowTwoFa(true)
@@ -105,72 +85,81 @@ export function SignInPage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-lg">
           <div className="rounded-2xl border border-border p-10 relative">
-            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-8">
-              Apple Account
-            </div>
-
-            <h1 className="text-3xl font-bold mb-3">Sign in with Apple Account</h1>
+            <h1 className="text-3xl font-bold mb-3">Sign in Apple Account</h1>
             <p className="text-sm text-muted-foreground mb-8">
-              An Apple Account is required to manipulate this device.
+              Required to manipulate devices.
             </p>
 
             <form onSubmit={handleSignIn}>
               <div className="flex gap-2 items-stretch">
                 <div className="flex-1 rounded-xl border border-input overflow-hidden divide-y divide-border">
-                  <input
+                  <Input
                     type="email"
                     placeholder="Email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 text-sm bg-background outline-none placeholder:text-muted-foreground"
+                    onChange={e => setEmail(e.target.value)}
+                    className="rounded-none border-0 shadow-none focus-visible:ring-0 px-4 py-3 h-auto"
                     required
                     autoComplete="username"
                   />
-                  <input
+                  <Input
                     type="password"
                     placeholder="Password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 text-sm bg-background outline-none placeholder:text-muted-foreground"
+                    onChange={e => setPassword(e.target.value)}
+                    className="rounded-none border-0 shadow-none focus-visible:ring-0 px-4 py-3 h-auto"
                     required
                     autoComplete="current-password"
                   />
                 </div>
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="h-auto w-14 rounded-xl flex-shrink-0"
-                  disabled={signinMutation.isPending}
-                >
-                  <LuArrowRight className="w-5 h-5" />
-                </Button>
               </div>
 
-              {signinError && <p className="text-sm text-destructive mt-3">{signinError}</p>}
+              {signinError && (
+                <p className="text-sm text-destructive mt-3">{signinError}</p>
+              )}
+
+              <div className="flex align-center justify-center mt-3">
+                <Button
+                  type="submit"
+                  className="rounded-xl shrink-0"
+                  disabled={signinMutation.isPending}
+                >
+                  {signinMutation.isPending ? 'Signing in...' : 'Sign in'}
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+              </div>
             </form>
 
-            <p className="text-xs text-muted-foreground mt-4">
-              Any account would work, it is not affiliated with iCloud or Find My.{' '}
-              <a
-                href="https://appleid.apple.com/account"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary underline-offset-4 hover:underline"
-              >
-                Create a new one &raquo;
-              </a>
+            <p className="text-xs text-muted-foreground mt-12">
+              Any account would work, it is not affiliated with iCloud.
             </p>
+            <a
+              href="https://account.apple.com/account"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline-offset-4 hover:underline text-xs"
+            >
+              Create a new one &raquo;
+            </a>
 
             <div className="flex items-start gap-2 mt-8 pt-8 border-t border-border">
-              <LuLock className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+              <Lock className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
               <p className="text-xs text-muted-foreground">
-                Credentials are only shared with Apple and stored on your host device. You can sign
-                out at any time to clear any stored information, including credentials.
+                Credentials are only shared with Apple and stored on your host
+                device. You can sign out at any time to clear them.
               </p>
             </div>
 
             {/* 2FA dialog — overlays sign-in card with blur */}
-            <Dialog open={showTwoFa} onOpenChange={(open) => { if (!twoFaMutation.isPending) { setShowTwoFa(open); if (!open) setTwoFaError('') } }}>
+            <Dialog
+              open={showTwoFa}
+              onOpenChange={open => {
+                if (!twoFaMutation.isPending) {
+                  setShowTwoFa(open)
+                  if (!open) setTwoFaError('')
+                }
+              }}
+            >
               <DialogContent className="sm:max-w-sm">
                 <DialogHeader>
                   <DialogTitle>Two-factor authentication</DialogTitle>
@@ -181,21 +170,31 @@ export function SignInPage() {
                   </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleTwoFa} className="flex flex-col gap-4 mt-2">
-                  <input
+                <form
+                  onSubmit={handleTwoFa}
+                  className="flex flex-col gap-4 mt-2"
+                >
+                  <Input
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]{6}"
                     maxLength={6}
                     placeholder="000000"
                     value={twoFaCode}
-                    onChange={(e) => setTwoFaCode(e.target.value.replace(/\D/g, ''))}
-                    className="w-full rounded-lg border border-input px-4 py-3 text-center text-2xl tracking-[0.5em] font-mono bg-background outline-none focus:ring-2 focus:ring-ring"
+                    onChange={e =>
+                      setTwoFaCode(e.target.value.replace(/\D/g, ''))
+                    }
+                    className="text-center text-2xl tracking-[0.5em] font-mono h-auto py-3"
                     autoFocus
                     required
                   />
-                  {twoFaError && <p className="text-sm text-destructive">{twoFaError}</p>}
-                  <Button type="submit" disabled={twoFaMutation.isPending || twoFaCode.length < 6}>
+                  {twoFaError && (
+                    <p className="text-sm text-destructive">{twoFaError}</p>
+                  )}
+                  <Button
+                    type="submit"
+                    disabled={twoFaMutation.isPending || twoFaCode.length < 6}
+                  >
                     {twoFaMutation.isPending ? 'Verifying...' : 'Verify'}
                   </Button>
                 </form>

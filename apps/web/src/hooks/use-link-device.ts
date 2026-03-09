@@ -1,15 +1,14 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { linkDevice } from '@/libs/deviceApi'
-import type { MergedDeviceInfo } from '@/types'
+import { linkDevice } from '@/libs/device-api'
+import type { DeviceListResponseItem } from '@/types'
 
 export function useLinkDevice() {
   const queryClient = useQueryClient()
   const [showTrustModal, setShowTrustModal] = useState(false)
-  const [linkingDevice, setLinkingDevice] = useState<MergedDeviceInfo | null>(
-    null
-  )
+  const [linkingDevice, setLinkingDevice] =
+    useState<DeviceListResponseItem | null>(null)
   const [linkError, setLinkError] = useState<string | null>(null)
   const [showAuthDialog, setShowAuthDialog] = useState(false)
 
@@ -26,7 +25,7 @@ export function useLinkDevice() {
     },
   })
 
-  function handleLink(device: MergedDeviceInfo, isLoggedIn: boolean) {
+  function handleLink(device: DeviceListResponseItem, isLoggedIn: boolean) {
     if (!isLoggedIn) {
       setShowAuthDialog(true)
       return

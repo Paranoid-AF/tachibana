@@ -85,4 +85,4 @@ const main = async () => {
 
 main().catch(console.error)
 
-export type { MergedDeviceInfo } from './routes/devices.ts'
+export type { DeviceListResponseItem } from './routes/devices.ts'

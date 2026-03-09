@@ -1,10 +1,9 @@
 import { useLocation } from 'wouter'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { LuEllipsis } from 'react-icons/lu'
+import { Ellipsis, Loader2 } from 'lucide-react'
 
-import { useSession } from '@/hooks/useSession'
+import { useSession } from '@/hooks/use-session'
 import { Button } from '@/components/ui/button'
-import { Spinner } from '@/components/ui/spinner'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +34,7 @@ export function AccountPanel() {
   if (isLoading) {
     return (
       <div className="rounded-xl border border-border p-3 flex justify-center py-4">
-        <Spinner className="w-4 h-4 text-muted-foreground" />
+        <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
       </div>
     )
   }
@@ -67,7 +66,7 @@ export function AccountPanel() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-5 w-5">
-              <LuEllipsis className="w-3.5 h-3.5" />
+              <Ellipsis className="w-3.5 h-3.5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

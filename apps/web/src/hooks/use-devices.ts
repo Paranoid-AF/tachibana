@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { fetchDevices } from '@/libs/deviceApi'
-import type { MergedDeviceInfo } from '@/types'
+import { fetchDevices } from '@/libs/device-api'
+import type { DeviceListResponseItem } from '@/types'
 
 export function useDevices(options?: { enabled?: boolean }) {
-  return useQuery<MergedDeviceInfo[]>({
+  return useQuery<DeviceListResponseItem[]>({
     queryKey: ['devices'],
     queryFn: fetchDevices,
     refetchInterval: 3000,

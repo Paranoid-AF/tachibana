@@ -4,7 +4,7 @@ import { device } from '@tbana/ios-connect'
 import type { ConnectedDevice, Device } from '@tbana/ios-connect'
 
 import { getSession } from '../libs/session.ts'
-import { getDeviceMeta, saveDeviceMeta } from '../libs/deviceStore.ts'
+import { getDeviceMeta, saveDeviceMeta } from '../libs/device-store.ts'
 
 export interface MergedDeviceInfo extends Omit<
   Partial<ConnectedDevice> & Device,
@@ -13,6 +13,13 @@ export interface MergedDeviceInfo extends Omit<
   paired: boolean
   connected: boolean
   registered: boolean
+}
+
+export interface DeviceListResponseItem extends Omit<
+  MergedDeviceInfo,
+  'paired' | 'registered'
+> {
+  linked: boolean
 }
 
 export const deviceRoutes = new Elysia({ prefix: '/devices' })
@@ -82,7 +89,14 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
       }
     }
 
-    return Array.from(result.values())
+    const response: DeviceListResponseItem[] = []
+    for (const { paired, registered, ...rest } of result.values()) {
+      response.push({
+        ...rest,
+        linked: paired && registered,
+      })
+    }
+    return response
   })
 
   .post(

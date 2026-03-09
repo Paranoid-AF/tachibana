@@ -1,10 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useLocation } from 'wouter'
 
-import { useSession } from '@/hooks/useSession'
-import { useDevices } from '@/hooks/useDevices'
-import { AppLayout } from '@/components/AppLayout'
-import { LinkDeviceGuide } from '@/components/LinkDeviceGuide'
+import { useSession } from '@/hooks/use-session'
+import { useDevices } from '@/hooks/use-devices'
 
 export function HomePage() {
   const [, navigate] = useLocation()
@@ -18,9 +16,7 @@ export function HomePage() {
   const isLoading =
     sessionLoading || (sessionInfo?.loggedIn === true && devicesLoading)
 
-  const linkedConnected = devices.filter(
-    d => d.paired && d.registered && d.connected,
-  )
+  const linkedConnected = devices.filter(d => d.linked && d.connected)
 
   useEffect(() => {
     if (isLoading) return
@@ -34,20 +30,11 @@ export function HomePage() {
       hasCheckedRef.current = true
       if (linkedConnected.length > 0) {
         navigate(`/device/${linkedConnected[0].udid}`, { replace: true })
+      } else {
+        navigate('/link', { replace: true })
       }
     }
   }, [isLoading, sessionInfo, linkedConnected, navigate])
 
-  if (isLoading || !sessionInfo?.loggedIn) return null
-
-  // Prevent one-frame flash before useEffect redirect fires
-  if (!hasCheckedRef.current && linkedConnected.length > 0) return null
-
-  return (
-    <AppLayout>
-      <div className="flex-1 overflow-hidden">
-        <LinkDeviceGuide />
-      </div>
-    </AppLayout>
-  )
+  return null
 }

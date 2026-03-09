@@ -1,4 +1,4 @@
-export type { MergedDeviceInfo } from '@tbana/server'
+export type { DeviceListResponseItem } from '@tbana/server'
 
 export interface SessionInfo {
   loggedIn: boolean

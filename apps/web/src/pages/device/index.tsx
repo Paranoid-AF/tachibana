@@ -1,39 +1,16 @@
 import { useEffect } from 'react'
 import { useLocation, useParams } from 'wouter'
-import { LuPlugZap, LuLink, LuCircleAlert } from 'react-icons/lu'
+import { PlugZap, Link2, CircleAlert } from 'lucide-react'
+import { Group, Panel, Separator } from 'react-resizable-panels'
 
-import { useSession } from '@/hooks/useSession'
-import { useDevices } from '@/hooks/useDevices'
-import { useLinkDevice } from '@/hooks/useLinkDevice'
-import { TrustModal, LinkErrorDialog } from '@/components/LinkDialogs'
-import { AppLayout } from '@/components/AppLayout'
+import { useSession } from '@/hooks/use-session'
+import { useDevices } from '@/hooks/use-devices'
+import { useLinkDevice } from '@/hooks/use-link-device'
+import { TrustModal, LinkErrorDialog } from '@/components/biz/link-dialogs'
+import { AppLayout } from '@/components/biz/app-layout'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-
-function DeviceNotice({
-  icon: Icon,
-  title,
-  description,
-  children,
-}: {
-  icon: React.ComponentType<{ className?: string }>
-  title: string
-  description: string
-  children?: React.ReactNode
-}) {
-  return (
-    <div className="flex-1 flex items-center justify-center p-8">
-      <div className="flex flex-col items-center gap-3 text-center max-w-xs">
-        <Icon className="w-8 h-8 text-muted-foreground" />
-        <div>
-          <p className="text-sm font-medium">{title}</p>
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
-        </div>
-        {children}
-      </div>
-    </div>
-  )
-}
+import { DeviceNotice } from './components/device-notice'
 
 export function DevicePage() {
   const [, navigate] = useLocation()
@@ -43,7 +20,8 @@ export function DevicePage() {
   const { data: devices = [], isLoading: devicesLoading } = useDevices({
     enabled: sessionInfo?.loggedIn === true,
   })
-  const { handleLink, isPending, trustModalProps, linkErrorProps } = useLinkDevice()
+  const { handleLink, isPending, trustModalProps, linkErrorProps } =
+    useLinkDevice()
 
   const isLoading =
     sessionLoading || (sessionInfo?.loggedIn === true && devicesLoading)
@@ -58,28 +36,28 @@ export function DevicePage() {
 
   const device = devices.find(d => d.udid === udid)
 
-  let mainContent: React.ReactNode
+  let screenContent: React.ReactNode
 
   if (!device) {
-    mainContent = (
+    screenContent = (
       <DeviceNotice
-        icon={LuCircleAlert}
+        icon={CircleAlert}
         title="Device not found"
         description="This device is not registered. Make sure it's connected and linked."
       />
     )
   } else if (!device.connected) {
-    mainContent = (
+    screenContent = (
       <DeviceNotice
-        icon={LuPlugZap}
+        icon={PlugZap}
         title="Device disconnected"
         description={`Connect ${device.name} via USB to continue.`}
       />
     )
-  } else if (!device.paired || !device.registered) {
-    mainContent = (
+  } else if (!device.linked) {
+    screenContent = (
       <DeviceNotice
-        icon={LuLink}
+        icon={Link2}
         title="Device not linked"
         description={`${device.name} needs to be linked before use.`}
       >
@@ -93,31 +71,31 @@ export function DevicePage() {
       </DeviceNotice>
     )
   } else {
-    mainContent = (
+    screenContent = (
       <div className="flex-1 p-4 overflow-hidden">
         <div className="h-full rounded-xl border border-border" />
       </div>
     )
   }
 
-  const deviceName = device?.name ?? udid
-
   return (
     <>
       <AppLayout>
-        {mainContent}
+        <Group orientation="horizontal" className="flex-1 overflow-hidden">
+          {/* Device screen */}
+          <Panel defaultSize={40} minSize={20} className="flex flex-col">
+            {screenContent}
+          </Panel>
 
-        {/* Right panel: Sessions */}
-        <div className="w-72 flex-shrink-0 border-l border-border flex flex-col">
-          <div className="px-4 py-3 border-b border-border">
-            <span className="text-xs font-medium uppercase tracking-wide">
-              Sessions for {deviceName}
-            </span>
-          </div>
-          <ScrollArea className="flex-1">
-            <div className="p-4" />
-          </ScrollArea>
-        </div>
+          <Separator className="w-px bg-border" />
+
+          {/* Main panel */}
+          <Panel defaultSize={60} minSize={20}>
+            <ScrollArea className="h-full">
+              <div className="p-4" />
+            </ScrollArea>
+          </Panel>
+        </Group>
       </AppLayout>
 
       <TrustModal {...trustModalProps} />

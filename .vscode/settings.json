@@ -61,5 +61,9 @@
   "rust-analyzer.linkedProjects": ["packages/ios-connect/Cargo.toml"],
   "rust-analyzer.procMacro.ignored": {
     "napi-derive": ["napi"]
-  }
+  },
+  "tailwindCSS.files.exclude": [
+    "**/node_modules/**",
+    "apps/web/src/components/ui/**"
+  ]
 }
