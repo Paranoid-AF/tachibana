@@ -108,6 +108,16 @@ export interface NativeAddon {
     env?: Record<string, string>
   ): Promise<number>
   stopXcuitest(sessionId: number): Promise<void>
+  listInstalledApps(
+    udid: string,
+    appType?: string | null
+  ): Promise<InstalledAppInfo[]>
+}
+
+export interface InstalledAppInfo {
+  bundleId: string
+  bundleName: string | null
+  bundleExecutable: string | null
 }
 
 let _native: NativeAddon | null = null

@@ -296,3 +296,14 @@ pub async fn start_xcuitest(
 pub async fn stop_xcuitest(session_id: u32) -> napi::Result<()> {
     commands::xctest::stop_xcuitest(session_id).await
 }
+
+/// List installed apps on a connected device via installation_proxy.
+/// `app_type` can be "User", "System", or "Any" (default).
+/// Does not require Apple Account.
+#[napi]
+pub async fn list_installed_apps(
+    udid: String,
+    app_type: Option<String>,
+) -> napi::Result<Vec<commands::apps::InstalledAppInfo>> {
+    commands::apps::list_installed_apps(&udid, app_type.as_deref()).await
+}

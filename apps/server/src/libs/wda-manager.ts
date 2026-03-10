@@ -1,4 +1,4 @@
-import { spawn, execFile, type ChildProcess } from 'node:child_process'
+import { spawn, type ChildProcess } from 'node:child_process'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir, platform } from 'node:os'
@@ -7,6 +7,7 @@ import {
   xctest,
   wdaClient,
   ipa,
+  apps,
   generateBundleId,
 } from '@tbana/ios-connect'
 import { resolveWdaIpa } from '@tbana/ios-wda'
@@ -356,44 +357,26 @@ class WdaManager {
   }
 
   /**
-   * Find WDA on device — returns bundle ID and app path.
-   * Uses pymobiledevice3 app listing via lockdown (no developer tunnel needed).
+   * Find WDA on device — returns bundle ID.
+   * Uses native installation_proxy via lockdown (no external binaries needed).
    */
   private async findWdaAppInfo(
     udid: string,
     log: (msg: string) => void
   ): Promise<WdaAppInfo | null> {
     try {
-      return new Promise(resolve => {
-        execFile(
-          'pymobiledevice3',
-          ['apps', 'list', '--udid', udid],
-          { timeout: 15_000, maxBuffer: 10 * 1024 * 1024 },
-          (error, stdout) => {
-            if (error) {
-              log(`Error listing apps: ${error.message}`)
-              resolve(null)
-              return
-            }
-            try {
-              const apps = JSON.parse(stdout) as Record<
-                string,
-                Record<string, unknown>
-              >
-              for (const [bid, info] of Object.entries(apps)) {
-                if (info.CFBundleExecutable === 'WebDriverAgentRunner-Runner') {
-                  log(`Found WDA on device: ${bid}`)
-                  resolve({ bundleId: bid })
-                  return
-                }
-              }
-            } catch (e) {
-              log(`Error parsing app list: ${e}`)
-            }
-            resolve(null)
-          }
-        )
-      })
+      const result = await apps.listInstalledApps(udid, 'User')
+      if (!result.success) {
+        log(`Error listing apps: ${result.error.message}`)
+        return null
+      }
+      for (const app of result.data) {
+        if (app.bundleExecutable === 'WebDriverAgentRunner-Runner') {
+          log(`Found WDA on device: ${app.bundleId}`)
+          return { bundleId: app.bundleId }
+        }
+      }
+      return null
     } catch (e) {
       log(`Failed to check for WDA: ${e}`)
       return null

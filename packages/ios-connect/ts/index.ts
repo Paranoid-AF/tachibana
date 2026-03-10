@@ -1,4 +1,5 @@
 // Isideload native addon commands
+export * as apps from './isideload/commands/apps.ts'
 export * as sideloader from './isideload/commands/install.ts'
 export * as cert from './isideload/commands/cert.ts'
 export * as team from './isideload/commands/team.ts'
@@ -59,6 +60,7 @@ export type {
   ListPhotosOptions,
 } from './isideload/commands/photos.ts'
 export type { IpaMetadata } from './utils/ipa.ts'
+export type { InstalledAppInfo } from './isideload/commands/apps.ts'
 
 // WDA types
 export type {
