@@ -31,8 +31,20 @@ function getNodeFilename(): string {
 
   const p = platformMap[platform] ?? platform
   const a = archMap[arch] ?? arch
-  const ext = platform === 'win32' ? '.dll' : '.node'
-  return `tbana-isideload.${p}-${a}${ext}`
+
+  // NAPI-RS appends an ABI suffix on certain platforms
+  let abi = ''
+  if (platform === 'win32') {
+    abi = '-msvc'
+  } else if (platform === 'linux') {
+    // Detect musl vs gnu by checking the bun/node binary or ldd
+    const isMusl =
+      existsSync('/lib/ld-musl-x86_64.so.1') ||
+      existsSync('/lib/ld-musl-aarch64.so.1')
+    abi = isMusl ? '-musl' : '-gnu'
+  }
+
+  return `tbana-isideload.${p}-${a}${abi}.node`
 }
 
 async function computeRustHash(): Promise<string> {
