@@ -1,8 +1,14 @@
 import { spawn, execFile, type ChildProcess } from 'node:child_process'
 import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { tmpdir } from 'node:os'
-import { tunnel, wdaClient, ipa, generateBundleId } from '@tbana/ios-connect'
+import { tmpdir, platform } from 'node:os'
+import {
+  tunnel,
+  xctest,
+  wdaClient,
+  ipa,
+  generateBundleId,
+} from '@tbana/ios-connect'
 import { resolveWdaIpa } from '@tbana/ios-wda'
 import { getSession } from './session.ts'
 import { getConfig, setConfig } from './config.ts'
@@ -25,6 +31,7 @@ interface WdaEntry {
   mjpegPort?: number
   wdaSession?: InstanceType<typeof WdaSession>
   xcodebuildProc?: ChildProcess
+  xctestSessionId?: number
   waiters: Array<(entry: WdaEntry) => void>
 }
 
@@ -155,6 +162,10 @@ class WdaManager {
       if (!result.healthy) {
         entry.xcodebuildProc?.kill()
         entry.xcodebuildProc = undefined
+        if (entry.xctestSessionId !== undefined) {
+          await xctest.stopXCUITest(entry.xctestSessionId)
+          entry.xctestSessionId = undefined
+        }
         await tunnel.stopTunnel(result.mainPort)
         await tunnel.stopTunnel(result.mjpegPort)
         throw new Error(
@@ -180,6 +191,10 @@ class WdaManager {
         entry.xcodebuildProc.kill()
         entry.xcodebuildProc = undefined
       }
+      if (entry.xctestSessionId !== undefined) {
+        await xctest.stopXCUITest(entry.xctestSessionId)
+        entry.xctestSessionId = undefined
+      }
       if (entry.mainPort !== undefined) await tunnel.stopTunnel(entry.mainPort)
       if (entry.mjpegPort !== undefined)
         await tunnel.stopTunnel(entry.mjpegPort)
@@ -191,7 +206,9 @@ class WdaManager {
     }
   }
 
-  /** Launch WDA via xcodebuild, set up tunnels, and poll health. */
+  /** Launch WDA, set up tunnels, and poll health.
+   *  macOS: uses xcodebuild test-without-building (proven, handles testmanagerd internally)
+   *  Non-macOS: uses native Rust xctest via idevice CDTunnel (no sudo, cross-platform) */
   private async launchAndCheck(
     udid: string,
     appInfo: WdaAppInfo,
@@ -200,8 +217,52 @@ class WdaManager {
   ) {
     const { bundleId } = appInfo
 
-    // Launch WDA via xcodebuild test-without-building
-    // xcodebuild handles testmanagerd coordination natively
+    if (platform() === 'darwin') {
+      await this.launchViaXcodebuild(udid, bundleId, entry, log)
+    } else {
+      await this.launchViaNativeXCTest(udid, bundleId, entry, log)
+    }
+
+    // Tunnel device ports to localhost
+    const mainResult = await tunnel.startTunnel(udid, WDA_HTTP_PORT)
+    if (!mainResult.success) throw new Error(mainResult.error.message)
+    const mainPort = mainResult.data.localPort
+    log(`Main tunnel: device:${WDA_HTTP_PORT} → localhost:${mainPort}`)
+
+    const mjpegResult = await tunnel.startTunnel(udid, WDA_MJPEG_PORT)
+    if (!mjpegResult.success) throw new Error(mjpegResult.error.message)
+    const mjpegPort = mjpegResult.data.localPort
+    log(`MJPEG tunnel: device:${WDA_MJPEG_PORT} → localhost:${mjpegPort}`)
+
+    // Health check — poll until WDA server responds via tunnel
+    const client = new WdaClient(`http://localhost:${mainPort}`)
+    const wdaSession = new WdaSession(client)
+
+    const POLL_INTERVAL_MS = 2_000
+    const MAX_WAIT_MS = 30_000
+    const deadline = Date.now() + MAX_WAIT_MS
+    let attempt = 0
+
+    log('Polling WDA health...')
+    while (Date.now() < deadline) {
+      attempt++
+      const healthy = await wdaSession.isHealthy()
+      log(`Health check #${attempt}: ${healthy ? 'healthy' : 'not ready'}`)
+      if (healthy)
+        return { mainPort, mjpegPort, wdaSession, healthy: true as const }
+      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
+    }
+
+    return { mainPort, mjpegPort, wdaSession, healthy: false as const }
+  }
+
+  /** macOS path: launch WDA via xcodebuild test-without-building. */
+  private async launchViaXcodebuild(
+    udid: string,
+    bundleId: string,
+    entry: WdaEntry,
+    log: (msg: string) => void
+  ) {
     log('Launching WDA via xcodebuild...')
     const xctestrunPath = join(tmpdir(), `wda-${udid.slice(-8)}.xctestrun`)
     await writeFile(
@@ -224,7 +285,6 @@ class WdaManager {
     )
     entry.xcodebuildProc = proc
 
-    // Wait for WDA to announce its HTTP server URL
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         proc.kill()
@@ -271,38 +331,28 @@ class WdaManager {
       })
     })
     log('WDA HTTP server started')
+  }
 
-    // Tunnel device ports to localhost
-    const mainResult = await tunnel.startTunnel(udid, WDA_HTTP_PORT)
-    if (!mainResult.success) throw new Error(mainResult.error.message)
-    const mainPort = mainResult.data.localPort
-    log(`Main tunnel: device:${WDA_HTTP_PORT} → localhost:${mainPort}`)
+  /** Non-macOS path: launch WDA via native Rust xctest (idevice CDTunnel). */
+  private async launchViaNativeXCTest(
+    udid: string,
+    bundleId: string,
+    entry: WdaEntry,
+    log: (msg: string) => void
+  ) {
+    log('Launching WDA via native XCTest (cross-platform)...')
 
-    const mjpegResult = await tunnel.startTunnel(udid, WDA_MJPEG_PORT)
-    if (!mjpegResult.success) throw new Error(mjpegResult.error.message)
-    const mjpegPort = mjpegResult.data.localPort
-    log(`MJPEG tunnel: device:${WDA_MJPEG_PORT} → localhost:${mjpegPort}`)
+    const result = await xctest.startXCUITest(udid, bundleId, bundleId, {
+      USE_PORT: String(WDA_HTTP_PORT),
+      MJPEG_SERVER_PORT: String(WDA_MJPEG_PORT),
+    })
 
-    // Health check — poll until WDA server responds via tunnel
-    const client = new WdaClient(`http://localhost:${mainPort}`)
-    const wdaSession = new WdaSession(client)
-
-    const POLL_INTERVAL_MS = 2_000
-    const MAX_WAIT_MS = 30_000
-    const deadline = Date.now() + MAX_WAIT_MS
-    let attempt = 0
-
-    log('Polling WDA health...')
-    while (Date.now() < deadline) {
-      attempt++
-      const healthy = await wdaSession.isHealthy()
-      log(`Health check #${attempt}: ${healthy ? 'healthy' : 'not ready'}`)
-      if (healthy)
-        return { mainPort, mjpegPort, wdaSession, healthy: true as const }
-      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
+    if (!result.success) {
+      throw new Error(`Native XCTest launch failed: ${result.error.message}`)
     }
 
-    return { mainPort, mjpegPort, wdaSession, healthy: false as const }
+    entry.xctestSessionId = result.data.sessionId
+    log(`Native XCTest session started (id: ${result.data.sessionId})`)
   }
 
   /**
@@ -394,6 +444,10 @@ class WdaManager {
     if (entry.xcodebuildProc) {
       entry.xcodebuildProc.kill()
       entry.xcodebuildProc = undefined
+    }
+    if (entry.xctestSessionId !== undefined) {
+      await xctest.stopXCUITest(entry.xctestSessionId)
+      entry.xctestSessionId = undefined
     }
     if (entry.mainPort !== undefined) await tunnel.stopTunnel(entry.mainPort)
     if (entry.mjpegPort !== undefined) await tunnel.stopTunnel(entry.mjpegPort)

@@ -101,6 +101,13 @@ export interface NativeAddon {
   ): Promise<number>
   startTunnel(udid: string, remotePort: number): Promise<number>
   stopTunnel(localPort: number): Promise<void>
+  startXcuitest(
+    udid: string,
+    bundleId: string,
+    testRunnerBundleId: string,
+    env?: Record<string, string>
+  ): Promise<number>
+  stopXcuitest(sessionId: number): Promise<void>
 }
 
 let _native: NativeAddon | null = null

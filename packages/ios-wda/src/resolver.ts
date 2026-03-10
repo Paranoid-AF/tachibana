@@ -52,9 +52,11 @@ export function resolveWdaIpa(): WdaResolution {
   }
 
   // 5. No IPA found
-  throw new WdaIpaNotFoundError(
-    'WebDriverAgent IPA not found. Run: cd packages/ios-wda && bun install'
-  )
+  const hint =
+    process.platform === 'darwin'
+      ? 'Run: cd packages/ios-wda && bun install'
+      : 'Copy a pre-built IPA and set WDA_IPA_PATH=/path/to/WebDriverAgentRunner.ipa'
+  throw new WdaIpaNotFoundError(`WebDriverAgent IPA not found. ${hint}`)
 }
 
 /**

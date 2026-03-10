@@ -26,6 +26,17 @@ function shouldSkipBuild(): boolean {
     return true
   }
 
+  // WDA IPA can only be built on macOS (requires Xcode + xcodebuild)
+  if (process.platform !== 'darwin') {
+    console.log(
+      '[ios-wda] Not on macOS, skipping WDA IPA build (requires Xcode)'
+    )
+    console.log(
+      '[ios-wda] To use WDA on this platform, set WDA_IPA_PATH to a pre-built IPA'
+    )
+    return true
+  }
+
   // Check if IPA already exists
   if (existsSync(IPA_PATH)) {
     console.log('[ios-wda] WebDriverAgent IPA already exists, skipping build')
