@@ -7,7 +7,7 @@ Tachibana supports cross-platform iOS device interaction, including Windows. Sin
 - **iTunes or Apple Mobile Device Support** — required for USB communication with iOS devices (provides `usbmuxd`). Install [iTunes from the Microsoft Store](https://apps.microsoft.com/detail/9PB2MZ1ZMB1S) or from [apple.com](https://www.apple.com/itunes/).
 - **Bun** — install from [bun.sh](https://bun.sh)
 - **Rust toolchain** — install from [rustup.rs](https://rustup.rs) (target: `x86_64-pc-windows-msvc` or `aarch64-pc-windows-msvc`)
-- **Visual Studio Build Tools** — required for compiling native Rust code (C/C++ workload)
+- **Visual Studio Build Tools** — required for compiling native Rust code. Install with the **"Desktop development with C++"** workload, which includes the MSVC compiler and **Windows SDK** (provides `kernel32.lib` and other system libraries)
 
 ## Setup
 
@@ -90,8 +90,14 @@ Ensure iTunes (or Apple Mobile Device Support) is installed and the device is tr
 Ensure you have:
 
 - Rust toolchain installed (`rustup show` to verify)
-- Visual Studio Build Tools with the "Desktop development with C++" workload
+- Visual Studio Build Tools with the **"Desktop development with C++"** workload, which must include:
+  - MSVC v143 (or later) C++ build tools
+  - **Windows 11 SDK** (or Windows 10 SDK) — required for `kernel32.lib` and other system libraries
 - The correct target: `rustup target add x86_64-pc-windows-msvc`
+
+If the build fails with `LNK1181: cannot open input file 'kernel32.lib'`, the Windows SDK is not installed. Add it via the Visual Studio Installer by modifying your Build Tools installation and checking the Windows SDK component.
+
+If the build fails with `link: extra operand`, Git for Windows's `link.exe` is shadowing MSVC's `link.exe` in your PATH.
 
 You can skip the native build temporarily with `SKIP_NAPI_BUILD=1 bun install` and use a pre-built `.node` binary if available.
 
