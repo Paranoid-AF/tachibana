@@ -1,6 +1,10 @@
 import type { SideloaderResult } from '../../types.ts'
 import { getSession } from '../session.ts'
-import type { PhotoInfo, ListPhotosPage, DownloadPhotoResult } from '../native.ts'
+import type {
+  PhotoInfo,
+  ListPhotosPage,
+  DownloadPhotoResult,
+} from '../native.ts'
 
 export type { PhotoInfo, ListPhotosPage }
 
@@ -20,8 +24,12 @@ export async function listPhotos(
   options?: ListPhotosOptions
 ): Promise<SideloaderResult<ListPhotosPage>> {
   try {
-    const session = getSession()
-    const result = await session.listPhotos(udid, options?.limit, options?.cursor)
+    const session = await getSession()
+    const result = await session.listPhotos(
+      udid,
+      options?.limit,
+      options?.cursor
+    )
     return { success: true, data: result }
   } catch (err) {
     return {
@@ -40,7 +48,7 @@ export async function getPhotoInfo(
   path: string
 ): Promise<SideloaderResult<PhotoInfo>> {
   try {
-    const session = getSession()
+    const session = await getSession()
     const result = await session.getPhotoInfo(udid, path)
     return { success: true, data: result }
   } catch (err) {
@@ -61,7 +69,7 @@ export async function downloadPhoto(
   localDest: string
 ): Promise<SideloaderResult<DownloadPhotoResult>> {
   try {
-    const session = getSession()
+    const session = await getSession()
     const result = await session.downloadPhoto(udid, remotePath, localDest)
     return { success: true, data: result }
   } catch (err) {

@@ -211,6 +211,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-stream"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b5a71a6f37880a80d1d7f19efd781e4b5de42c88f0722cc13bcb6cc2cfe8476"
+dependencies = [
+ "async-stream-impl",
+ "futures-core",
+ "pin-project-lite",
+]
+
+[[package]]
+name = "async-stream-impl"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7c24de15d275a1ecfd47a380fb4d5ec9bfe0933f309ed5e705b775596a3574d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "async-trait"
 version = "0.1.89"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -765,10 +787,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "crossbeam-queue"
+version = "0.3.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f58bbc28f91df819d0aa2a2c00cd19754769c2fad90579b3592b1c9ba7a3115"
+dependencies = [
+ "crossbeam-utils",
+]
+
+[[package]]
 name = "crossbeam-utils"
 version = "0.8.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0a5c400df2834b80a4c3327b3aad3a4c4cd4de0629063962b03235697506a28"
+
+[[package]]
+name = "crossfire"
+version = "2.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd901251b9b46c1752c85edfee0aee718c03a85a065f4126d32e5d6d419edf48"
+dependencies = [
+ "crossbeam-queue",
+ "crossbeam-utils",
+ "enum_dispatch",
+ "futures-core",
+ "parking_lot",
+]
 
 [[package]]
 name = "crypto-bigint"
@@ -1083,6 +1127,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75030f3c4f45dafd7586dd6780965a8c7e8e285a5ecb86713e63a79c5b2766f3"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "enum_dispatch"
+version = "0.3.13"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa18ce2bc66555b3218614519ac839ddb759a7d6720732f979ef8d13be147ecd"
+dependencies = [
+ "once_cell",
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1743,20 +1799,29 @@ version = "0.1.53"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "18fa17477a6eee7e2e0252302b303a7156c52355b4af7915877b56a3b426fa91"
 dependencies = [
+ "async-stream",
  "async_zip",
  "base64",
+ "byteorder",
  "chrono",
+ "crossfire",
  "futures",
+ "indexmap",
+ "json",
+ "ns-keyed-archive",
  "plist",
  "plist-macro",
+ "rand 0.9.2",
  "rsa 0.9.10",
  "rustls",
  "serde",
+ "serde_json",
  "sha2 0.10.9",
  "thiserror 2.0.18",
  "tokio",
  "tokio-rustls",
  "tracing",
+ "uuid",
  "x509-cert",
 ]
 
@@ -2127,6 +2192,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "json"
+version = "0.12.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "078e285eafdfb6c4b434e0d31e8cfcb5115b651496faca5749b88fafd4f23bfd"
+
+[[package]]
 name = "keyring"
 version = "3.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2407,6 +2478,26 @@ checksum = "d273983c5a657a70a3e8f2a01329822f3b8c8172b73826411a55751e404a0a4a"
 dependencies = [
  "memchr",
  "minimal-lexical",
+]
+
+[[package]]
+name = "ns-keyed-archive"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7bc340e0b7a5bb4b06338cafa693d0b585d597b024fff876c5dad385a00d83e7"
+dependencies = [
+ "nskeyedarchiver_converter",
+ "plist",
+]
+
+[[package]]
+name = "nskeyedarchiver_converter"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "36c53158d1bf37bbbdd165f5220fda8bb5757c89eb700107992152c64c6cad7e"
+dependencies = [
+ "plist",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -3953,6 +4044,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
+ "plist",
  "rootcause",
  "serde",
  "serde_json",
@@ -4458,6 +4550,7 @@ checksum = "b672338555252d43fd2240c714dc444b8c6fb0a5c5335e65a07bba7742735ddb"
 dependencies = [
  "getrandom 0.4.1",
  "js-sys",
+ "serde_core",
  "wasm-bindgen",
 ]
 

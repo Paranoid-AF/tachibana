@@ -139,6 +139,10 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
     { body: t.Object({ name: t.String() }) }
   )
 
+  .get('/:udid/wda-status', ({ params }) => {
+    return wdaManager.getState(params.udid)
+  })
+
   .get('/:udid/screen', async ({ params, set }) => {
     const { udid } = params
 
@@ -149,11 +153,17 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
       mjpegPort = await wdaManager.waitUntilReady(udid)
     } catch (err) {
       set.status = 503
-      return { message: err instanceof Error ? err.message : 'WDA failed to start' }
+      return {
+        message: err instanceof Error ? err.message : 'WDA failed to start',
+      }
     }
 
     const upstream = await fetch(`http://localhost:${mjpegPort}`)
-    set.headers['Content-Type'] = upstream.headers.get('Content-Type') ?? 'multipart/x-mixed-replace'
-    set.headers['Cache-Control'] = 'no-cache'
-    return upstream.body
+    return new Response(upstream.body, {
+      headers: {
+        'Content-Type':
+          upstream.headers.get('Content-Type') ?? 'multipart/x-mixed-replace',
+        'Cache-Control': 'no-cache',
+      },
+    })
   })

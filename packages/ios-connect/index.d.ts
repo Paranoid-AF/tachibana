@@ -12,20 +12,47 @@ export declare class Session {
    * Login to Apple ID. The `two_fa_callback` is called when 2FA is required;
    * it must return the 6-digit code as a Promise<string>.
    */
-  login(email: string, password: string, twoFaCallback: (err: Error | null, arg: TwoFaInfo) => any): Promise<void>
+  login(
+    email: string,
+    password: string,
+    twoFaCallback: (err: Error | null, arg: TwoFaInfo) => any
+  ): Promise<void>
   getSessionInfo(): Promise<SessionInfo>
   listTeams(): Promise<Array<Team>>
   listCerts(teamId?: string | undefined | null): Promise<Array<Cert>>
-  revokeCert(serialNumber: string, teamId?: string | undefined | null): Promise<void>
+  revokeCert(
+    serialNumber: string,
+    teamId?: string | undefined | null
+  ): Promise<void>
   listAppIds(teamId?: string | undefined | null): Promise<Array<AppId>>
-  createAppId(bundleId: string, name: string, teamId?: string | undefined | null): Promise<AppId>
+  createAppId(
+    bundleId: string,
+    name: string,
+    teamId?: string | undefined | null
+  ): Promise<AppId>
   listDevices(teamId?: string | undefined | null): Promise<Array<Device>>
-  registerDevice(udid: string, name: string, teamId?: string | undefined | null): Promise<void>
+  registerDevice(
+    udid: string,
+    name: string,
+    teamId?: string | undefined | null
+  ): Promise<void>
   signApp(appPath: string, teamId?: string | undefined | null): Promise<string>
-  installApp(appPath: string, udid: string, teamId?: string | undefined | null): Promise<void>
-  listPhotos(udid: string, limit?: number | undefined | null, cursor?: string | undefined | null): Promise<ListPhotosPage>
+  installApp(
+    appPath: string,
+    udid: string,
+    teamId?: string | undefined | null
+  ): Promise<void>
+  listPhotos(
+    udid: string,
+    limit?: number | undefined | null,
+    cursor?: string | undefined | null
+  ): Promise<ListPhotosPage>
   getPhotoInfo(udid: string, path: string): Promise<PhotoInfo>
-  downloadPhoto(udid: string, remotePath: string, localDest: string): Promise<DownloadPhotoResult>
+  downloadPhoto(
+    udid: string,
+    remotePath: string,
+    localDest: string
+  ): Promise<DownloadPhotoResult>
   pairDevice(udid: string): Promise<boolean>
   validatePairing(udid: string): Promise<boolean>
 }
@@ -61,7 +88,7 @@ export interface DownloadPhotoResult {
 }
 
 /** List USB-connected devices via usbmuxd. Does not require Apple auth. */
-export declare export declare function listConnectedDevices(): Promise<Array<ConnectedDevice>>
+export declare function listConnectedDevices(): Promise<Array<ConnectedDevice>>
 
 export interface ListPhotosPage {
   photos: Array<string>
@@ -77,7 +104,10 @@ export interface PhotoInfo {
  * Capture a screenshot from a connected device. Does not require Apple auth.
  * Returns the output path where the screenshot was saved.
  */
-export declare export declare function screenshot(udid: string, outputPath: string): Promise<string>
+export declare function screenshot(
+  udid: string,
+  outputPath: string
+): Promise<string>
 
 export interface SessionInfo {
   loggedIn: boolean

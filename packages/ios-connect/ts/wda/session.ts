@@ -17,13 +17,9 @@ export class WdaSession {
   /** Check if WDA is healthy and ready */
   async isHealthy(): Promise<boolean> {
     try {
-      const controller = new AbortController()
-      const timer = setTimeout(
-        () => controller.abort(),
+      const status: WdaStatus = await this.client.getStatus(
         HEALTH_CHECK_TIMEOUT_MS
       )
-      const status: WdaStatus = await this.client.getStatus()
-      clearTimeout(timer)
       return status.ready
     } catch {
       return false

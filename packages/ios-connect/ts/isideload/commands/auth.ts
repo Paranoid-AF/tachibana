@@ -20,7 +20,7 @@ export async function ensureSession(
       }
     }
 
-    const session = getSession()
+    const session = await getSession()
 
     const info = await session.getSessionInfo()
     if (info.loggedIn) {

@@ -30,7 +30,10 @@ export async function getDeviceMeta(udid: string): Promise<DeviceMeta | null> {
   return store[udid] ?? null
 }
 
-export async function saveDeviceMeta(udid: string, meta: DeviceMeta): Promise<void> {
+export async function saveDeviceMeta(
+  udid: string,
+  meta: DeviceMeta
+): Promise<void> {
   const store = await readStore()
   store[udid] = meta
   const path = getDeviceStorePath()

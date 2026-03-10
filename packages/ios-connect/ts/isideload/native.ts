@@ -93,6 +93,12 @@ export interface NativeAddon {
   Session: NativeSessionConstructor
   listConnectedDevices(): Promise<ConnectedDevice[]>
   screenshot(udid: string, outputPath: string): Promise<string>
+  launchApp(udid: string, bundleId: string): Promise<number>
+  launchAppWithEnv(
+    udid: string,
+    bundleId: string,
+    envVars: Record<string, string> | null
+  ): Promise<number>
   startTunnel(udid: string, remotePort: number): Promise<number>
   stopTunnel(localPort: number): Promise<void>
 }

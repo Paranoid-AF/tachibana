@@ -21,7 +21,7 @@ export async function install(
     const auth = await ensureSession(options)
     if (!auth.success) return auth
 
-    const session = getSession()
+    const session = await getSession()
     await session.installApp(ipaPath, options.udid, options.teamId)
 
     return { success: true, data: 'Installation complete' }
@@ -45,7 +45,7 @@ export async function sign(
     const auth = await ensureSession(options)
     if (!auth.success) return auth
 
-    const session = getSession()
+    const session = await getSession()
     const signedPath = await session.signApp(ipaPath, options?.teamId)
 
     return { success: true, data: signedPath }

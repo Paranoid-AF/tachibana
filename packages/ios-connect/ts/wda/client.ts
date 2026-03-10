@@ -18,8 +18,8 @@ export class WdaClient {
   // ── Health check ──
 
   /** Check if WDA is ready (no session required) */
-  async getStatus(): Promise<WdaStatus> {
-    return this.get('/status')
+  async getStatus(timeoutMs?: number): Promise<WdaStatus> {
+    return this.get('/status', timeoutMs)
   }
 
   // ── Session lifecycle ──
@@ -118,8 +118,12 @@ export class WdaClient {
 
   // ── HTTP helpers ──
 
-  private async get<T = unknown>(path: string): Promise<T> {
-    const res = await fetch(`${this.baseUrl}${path}`)
+  private async get<T = unknown>(path: string, timeoutMs?: number): Promise<T> {
+    const options: RequestInit = {}
+    if (timeoutMs !== undefined) {
+      options.signal = AbortSignal.timeout(timeoutMs)
+    }
+    const res = await fetch(`${this.baseUrl}${path}`, options)
     return this.handleResponse<T>(res)
   }
 

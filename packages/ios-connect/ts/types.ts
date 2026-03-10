@@ -45,7 +45,11 @@ export interface SideloaderErrorData {
   exitCode?: number
 }
 
-export type { Team as DeveloperTeam, Cert as DevelopmentCert, AppId as AppIdInfo } from '../dist/index'
+export type {
+  Team as DeveloperTeam,
+  Cert as DevelopmentCert,
+  AppId as AppIdInfo,
+} from '../dist/index'
 
 export interface InstallProgress {
   stage: string

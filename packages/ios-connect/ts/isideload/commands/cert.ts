@@ -14,7 +14,7 @@ export async function list(
     const auth = await ensureSession(options)
     if (!auth.success) return auth
 
-    const session = getSession()
+    const session = await getSession()
     const certs = await session.listCerts(options?.teamId)
     return { success: true, data: certs }
   } catch (err) {
@@ -37,7 +37,7 @@ export async function revoke(
     const auth = await ensureSession(options)
     if (!auth.success) return auth
 
-    const session = getSession()
+    const session = await getSession()
     await session.revokeCert(serialNumber, options?.teamId)
     return { success: true, data: 'Certificate revoked' }
   } catch (err) {

@@ -165,4 +165,3 @@ export async function clearSessionData(): Promise<void> {
     // already gone
   }
 }
-

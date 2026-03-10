@@ -118,6 +118,15 @@ const PLUGIN_INFO_PLIST_RE =
   /^Payload\/[^/]+\.app\/PlugIns\/([^/]+)\.xctest\/Info\.plist$/
 
 /**
+ * XCTest framework entries to strip from WDA IPAs.
+ * On iOS 17+, the embedded XCTest frameworks conflict with device-local ones,
+ * causing black screen and immediate exit. The device uses its own copies at runtime.
+ * Keep WebDriverAgentLib.framework (the actual WDA code).
+ */
+const STRIP_FRAMEWORK_RE =
+  /\/Frameworks\/(?:XC[^/]*\.framework\/|Testing\.framework\/|libXCTestSwiftSupport\.dylib$)/
+
+/**
  * Rewrite CFBundleIdentifier in an IPA's main app and all PlugIns/*.xctest
  * bundles so they share a consistent prefix.
  * Main app gets `newBundleId`; each plugin gets `${newBundleId}.${pluginName}`.
@@ -129,7 +138,10 @@ export async function rewriteIpaBundleId(
   newBundleId: string
 ): Promise<string> {
   const zipData = await readFile(ipaPath)
-  const entries = parseZipEntries(zipData)
+  const allEntries = parseZipEntries(zipData)
+
+  // Strip XCTest frameworks that conflict with device-local ones on iOS 17+
+  const entries = allEntries.filter(e => !STRIP_FRAMEWORK_RE.test(e.name))
 
   let found = false
   for (const entry of entries) {

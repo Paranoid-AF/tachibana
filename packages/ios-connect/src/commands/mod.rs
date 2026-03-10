@@ -3,6 +3,7 @@ pub mod teams;
 pub mod certs;
 pub mod app_ids;
 pub mod devices;
+pub mod launch;
 pub mod sideload;
 pub mod screenshots;
 pub mod photos;

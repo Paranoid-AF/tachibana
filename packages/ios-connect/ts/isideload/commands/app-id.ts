@@ -14,7 +14,7 @@ export async function list(
     const auth = await ensureSession(options)
     if (!auth.success) return auth
 
-    const session = getSession()
+    const session = await getSession()
     const appIds = await session.listAppIds(options?.teamId)
     return { success: true, data: appIds }
   } catch (err) {
@@ -38,7 +38,7 @@ export async function register(
     const auth = await ensureSession(options)
     if (!auth.success) return auth
 
-    const session = getSession()
+    const session = await getSession()
     const appId = await session.createAppId(bundleId, name, options?.teamId)
     return { success: true, data: appId.identifier }
   } catch (err) {

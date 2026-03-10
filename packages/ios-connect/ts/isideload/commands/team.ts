@@ -14,7 +14,7 @@ export async function list(
     const auth = await ensureSession(options)
     if (!auth.success) return auth
 
-    const session = getSession()
+    const session = await getSession()
     const teams = await session.listTeams()
     return { success: true, data: teams }
   } catch (err) {

@@ -6,7 +6,6 @@ export {
   WdaError,
   WdaIpaNotFoundError,
   WdaDownloadError,
-  WdaPackageNotFoundError,
   WdaBuildError,
 } from './errors.ts'
 

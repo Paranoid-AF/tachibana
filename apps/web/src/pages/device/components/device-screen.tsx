@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MonitorX } from 'lucide-react'
 
 import { Spinner } from '@/components/ui/spinner'
@@ -21,6 +21,38 @@ type ScreenState = 'preparing' | 'ready' | 'error'
 interface DeviceScreenProps {
   udid: string
   email?: string
+}
+
+function useWdaStatus(udid: string, enabled: boolean) {
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!enabled) return
+    let cancelled = false
+    const poll = async () => {
+      while (!cancelled) {
+        try {
+          const res = await fetch(`/api/devices/${udid}/wda-status`)
+          if (cancelled) return
+          const data = (await res.json()) as { state: string; error?: string }
+          if (data.state === 'error' && data.error) {
+            setError(data.error)
+            return
+          }
+          if (data.state === 'ready') return
+        } catch {
+          /* ignore */
+        }
+        await new Promise(r => setTimeout(r, 3_000))
+      }
+    }
+    poll()
+    return () => {
+      cancelled = true
+    }
+  }, [udid, enabled])
+
+  return error
 }
 
 function GuidePage({
@@ -111,6 +143,7 @@ function SetupHints({ email }: { email?: string }) {
 export function DeviceScreen({ udid, email }: DeviceScreenProps) {
   const [state, setState] = useState<ScreenState>('preparing')
   const [key, setKey] = useState(0)
+  const wdaError = useWdaStatus(udid, state !== 'ready')
 
   const src = `/api/devices/${udid}/screen?k=${key}`
 
@@ -118,6 +151,9 @@ export function DeviceScreen({ udid, email }: DeviceScreenProps) {
     setState('preparing')
     setKey(k => k + 1)
   }
+
+  const errorDescription =
+    wdaError ?? 'Could not start screen. Make sure the device is connected.'
 
   return (
     <div className="flex-1 flex overflow-hidden relative">
@@ -127,7 +163,7 @@ export function DeviceScreen({ udid, email }: DeviceScreenProps) {
           title={state === 'error' ? 'Screen unavailable' : 'Preparing device…'}
           description={
             state === 'error'
-              ? 'Could not start screen. Make sure the device is connected.'
+              ? errorDescription
               : "If it's first time using this device, you need to follow steps below to set it up."
           }
         >

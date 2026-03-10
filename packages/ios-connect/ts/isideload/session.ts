@@ -26,7 +26,10 @@ export function getSession(): Promise<NativeSession> {
         try {
           await session.restoreSession(_opts.restoredSession)
         } catch (err) {
-          console.warn('[ios-connect] Failed to restore session, starting fresh:', err)
+          console.warn(
+            '[ios-connect] Failed to restore session, starting fresh:',
+            err
+          )
         }
       }
       return session

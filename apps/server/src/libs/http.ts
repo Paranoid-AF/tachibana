@@ -52,7 +52,10 @@ export const handleElysiaResponse =
     res.end()
   }
 
-export const handleElysiaStaticRoute = (app: AnyElysia, webDistPath: string) => {
+export const handleElysiaStaticRoute = (
+  app: AnyElysia,
+  webDistPath: string
+) => {
   app.get('/*', async ({ request, set }) => {
     const url = new URL(request.url)
     const pathname = url.pathname

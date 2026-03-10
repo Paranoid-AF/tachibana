@@ -7,6 +7,7 @@ export * as appId from './isideload/commands/app-id.ts'
 export * as screenshot from './isideload/commands/screenshot.ts'
 export * as photos from './isideload/commands/photos.ts'
 export * as tunnel from './isideload/commands/tunnel.ts'
+export * as launch from './isideload/commands/launch.ts'
 export * as device from './isideload/commands/device.ts'
 
 // Session lifecycle

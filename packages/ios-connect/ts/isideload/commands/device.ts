@@ -16,7 +16,7 @@ export async function register(
     const auth = await ensureSession(options)
     if (!auth.success) return auth
 
-    const session = getSession()
+    const session = await getSession()
     await session.registerDevice(udid, name, options?.teamId)
     return { success: true, data: 'Device registered' }
   } catch (err) {
@@ -38,7 +38,7 @@ export async function list(
     const auth = await ensureSession(options)
     if (!auth.success) return auth
 
-    const session = getSession()
+    const session = await getSession()
     const devices = await session.listDevices(options?.teamId)
     return {
       success: true,
@@ -89,7 +89,7 @@ export async function pairDevice(
   udid: string
 ): Promise<SideloaderResult<{ paired: boolean }>> {
   try {
-    const session = getSession()
+    const session = await getSession()
     const paired = await session.pairDevice(udid)
     return { success: true, data: { paired } }
   } catch (err) {
@@ -110,7 +110,7 @@ export async function validatePairing(
   udid: string
 ): Promise<SideloaderResult<{ paired: boolean }>> {
   try {
-    const session = getSession()
+    const session = await getSession()
     const paired = await session.validatePairing(udid)
     return { success: true, data: { paired } }
   } catch (err) {

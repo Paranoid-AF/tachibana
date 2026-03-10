@@ -56,7 +56,9 @@ async function buildNapiAddon() {
 
   const nodeFile = join(DIST_DIR, getNodeFilename())
   const currentHash = await computeRustHash()
-  const storedHash = existsSync(HASH_FILE) ? readFileSync(HASH_FILE, 'utf8').trim() : null
+  const storedHash = existsSync(HASH_FILE)
+    ? readFileSync(HASH_FILE, 'utf8').trim()
+    : null
 
   if (existsSync(nodeFile) && storedHash === currentHash) {
     console.log(`napi addon up to date: ${getNodeFilename()}`)
@@ -72,7 +74,9 @@ async function buildNapiAddon() {
   // Use bunx to run @napi-rs/cli without requiring a global install.
   // --output-dir places .node, index.js, and index.d.ts in dist/.
   // All dist/ files are gitignored and regenerated on postinstall.
-  await $`bunx @napi-rs/cli build --platform --release --manifest-path ${join(PKG_ROOT, 'Cargo.toml')} --output-dir ${DIST_DIR}`.cwd(PKG_ROOT)
+  await $`bunx @napi-rs/cli build --platform --release --manifest-path ${join(PKG_ROOT, 'Cargo.toml')} --output-dir ${DIST_DIR}`.cwd(
+    PKG_ROOT
+  )
 
   if (!existsSync(nodeFile)) {
     console.error(`napi build completed but ${getNodeFilename()} not found`)

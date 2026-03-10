@@ -235,6 +235,27 @@ pub async fn screenshot(udid: String, output_path: String) -> napi::Result<Strin
     commands::screenshots::screenshot(&udid, &output_path).await
 }
 
+/// Launch an app on a connected device via DVT instruments protocol.
+/// Returns the PID of the launched process. Does not require Apple Account.
+#[napi]
+pub async fn launch_app(udid: String, bundle_id: String) -> napi::Result<u32> {
+    let pid = commands::launch::launch_app(&udid, &bundle_id).await?;
+    Ok(pid as u32)
+}
+
+/// Launch an app via DVT instruments with environment variable support.
+/// Used for WDA to pass USE_PORT and MJPEG_SERVER_PORT. Does not require Apple Account.
+#[napi]
+pub async fn launch_app_with_env(
+    udid: String,
+    bundle_id: String,
+    env_vars: Option<std::collections::HashMap<String, String>>,
+) -> napi::Result<u32> {
+    let pid =
+        commands::launch::launch_app_with_env(&udid, &bundle_id, env_vars).await?;
+    Ok(pid as u32)
+}
+
 /// Start a USB tunnel from a local TCP port to `remote_port` on the device.
 /// Returns the local port number. Does not require Apple Account.
 /// Call `stop_tunnel` with the returned port to tear it down.
