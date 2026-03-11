@@ -22,6 +22,8 @@ idevice = { version = "0.1.53", features = [
   "core_device",
   "core_device_proxy",
   "tunnel_tcp_stack",
+  "tcp",
+  "tunneld",
   "installation_proxy",
 ] }
 rootcause = "0.12"

@@ -281,12 +281,16 @@ pub async fn start_xcuitest(
     bundle_id: String,
     test_runner_bundle_id: String,
     env: Option<std::collections::HashMap<String, String>>,
+    tunnel_address: Option<String>,
+    tunnel_rsd_port: Option<u16>,
 ) -> napi::Result<u32> {
     commands::xctest::start_xcuitest(
         udid,
         bundle_id,
         test_runner_bundle_id,
         env.unwrap_or_default(),
+        tunnel_address,
+        tunnel_rsd_port,
     )
     .await
 }

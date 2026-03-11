@@ -4,8 +4,14 @@ node_modules/
 # Build outputs
 dist/
 build/
+
+# Downloaded binaries
+apps/server/bin/
 .output/
 *.tsbuildinfo
+
+# go-ios leftover
+selfIdentity.plist
 
 # Environment files
 .env

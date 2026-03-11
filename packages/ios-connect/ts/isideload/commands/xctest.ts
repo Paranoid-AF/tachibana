@@ -12,14 +12,18 @@ export async function startXCUITest(
   udid: string,
   bundleId: string,
   testRunnerBundleId: string,
-  env?: Record<string, string>
+  env?: Record<string, string>,
+  tunnelAddress?: string,
+  tunnelRsdPort?: number
 ): Promise<SideloaderResult<XCTestSession>> {
   try {
     const sessionId = await getNative().startXcuitest(
       udid,
       bundleId,
       testRunnerBundleId,
-      env ?? undefined
+      env ?? undefined,
+      tunnelAddress ?? undefined,
+      tunnelRsdPort ?? undefined
     )
     return { success: true, data: { sessionId } }
   } catch (err) {

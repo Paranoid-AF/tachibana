@@ -105,7 +105,9 @@ export interface NativeAddon {
     udid: string,
     bundleId: string,
     testRunnerBundleId: string,
-    env?: Record<string, string>
+    env?: Record<string, string>,
+    tunnelAddress?: string,
+    tunnelRsdPort?: number
   ): Promise<number>
   stopXcuitest(sessionId: number): Promise<void>
   listInstalledApps(

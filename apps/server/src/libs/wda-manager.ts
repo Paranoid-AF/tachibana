@@ -4,7 +4,6 @@ import { join } from 'node:path'
 import { tmpdir, platform } from 'node:os'
 import {
   tunnel,
-  xctest,
   wdaClient,
   ipa,
   apps,
@@ -13,6 +12,7 @@ import {
 import { resolveWdaIpa } from '@tbana/ios-wda'
 import { getSession } from './session.ts'
 import { getConfig, setConfig } from './config.ts'
+import { ensureTunnel, ensureDdiMounted, getIosBinary } from './go-ios.ts'
 
 const { WdaClient, WdaSession } = wdaClient
 
@@ -32,7 +32,7 @@ interface WdaEntry {
   mjpegPort?: number
   wdaSession?: InstanceType<typeof WdaSession>
   xcodebuildProc?: ChildProcess
-  xctestSessionId?: number
+  goIosProc?: ChildProcess
   waiters: Array<(entry: WdaEntry) => void>
 }
 
@@ -163,10 +163,8 @@ class WdaManager {
       if (!result.healthy) {
         entry.xcodebuildProc?.kill()
         entry.xcodebuildProc = undefined
-        if (entry.xctestSessionId !== undefined) {
-          await xctest.stopXCUITest(entry.xctestSessionId)
-          entry.xctestSessionId = undefined
-        }
+        entry.goIosProc?.kill()
+        entry.goIosProc = undefined
         await tunnel.stopTunnel(result.mainPort)
         await tunnel.stopTunnel(result.mjpegPort)
         throw new Error(
@@ -192,9 +190,9 @@ class WdaManager {
         entry.xcodebuildProc.kill()
         entry.xcodebuildProc = undefined
       }
-      if (entry.xctestSessionId !== undefined) {
-        await xctest.stopXCUITest(entry.xctestSessionId)
-        entry.xctestSessionId = undefined
+      if (entry.goIosProc) {
+        entry.goIosProc.kill()
+        entry.goIosProc = undefined
       }
       if (entry.mainPort !== undefined) await tunnel.stopTunnel(entry.mainPort)
       if (entry.mjpegPort !== undefined)
@@ -208,8 +206,8 @@ class WdaManager {
   }
 
   /** Launch WDA, set up tunnels, and poll health.
-   *  macOS: uses xcodebuild test-without-building (proven, handles testmanagerd internally)
-   *  Non-macOS: uses native Rust xctest via idevice CDTunnel (no sudo, cross-platform) */
+   *  macOS: uses xcodebuild test-without-building
+   *  Non-macOS: uses go-ios `runwda` via kernel TUN tunnel */
   private async launchAndCheck(
     udid: string,
     appInfo: WdaAppInfo,
@@ -221,7 +219,7 @@ class WdaManager {
     if (platform() === 'darwin') {
       await this.launchViaXcodebuild(udid, bundleId, entry, log)
     } else {
-      await this.launchViaNativeXCTest(udid, bundleId, entry, log)
+      await this.launchViaGoIos(udid, bundleId, entry, log)
     }
 
     // Tunnel device ports to localhost
@@ -334,26 +332,81 @@ class WdaManager {
     log('WDA HTTP server started')
   }
 
-  /** Non-macOS path: launch WDA via native Rust xctest (idevice CDTunnel). */
-  private async launchViaNativeXCTest(
+  /** Non-macOS path: launch WDA via go-ios `runwda` command.
+   *  Requires a go-ios kernel TUN tunnel (iOS 17+). */
+  private async launchViaGoIos(
     udid: string,
     bundleId: string,
     entry: WdaEntry,
     log: (msg: string) => void
   ) {
-    log('Launching WDA via native XCTest (cross-platform)...')
+    // Ensure DDI is mounted (required for testmanagerd on iOS 17+)
+    ensureDdiMounted()
 
-    const result = await xctest.startXCUITest(udid, bundleId, bundleId, {
-      USE_PORT: String(WDA_HTTP_PORT),
-      MJPEG_SERVER_PORT: String(WDA_MJPEG_PORT),
+    // Ensure tunnel is running (required for runwda)
+    await ensureTunnel()
+    log('go-ios tunnel ready')
+
+    const ios = getIosBinary()
+    log('Launching WDA via go-ios runwda...')
+
+    const proc = spawn(
+      ios,
+      [
+        'runwda',
+        `--bundleid=${bundleId}`,
+        `--testrunnerbundleid=${bundleId}`,
+        '--xctestconfig=WebDriverAgentRunner.xctest',
+        `--env=USE_PORT=${WDA_HTTP_PORT}`,
+        `--env=MJPEG_SERVER_PORT=${WDA_MJPEG_PORT}`,
+        `--udid=${udid}`,
+      ],
+      {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      }
+    )
+    entry.goIosProc = proc
+
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        // Process is still running — assume WDA is starting up.
+        // Health check polling will verify it later.
+        resolve()
+      }, 10_000)
+
+      let output = ''
+      const onData = (data: Buffer) => {
+        const chunk = data.toString()
+        output += chunk
+        for (const line of chunk.split('\n')) {
+          const trimmed = line.trim()
+          if (trimmed) log(`runwda: ${trimmed}`)
+        }
+        // go-ios prints "ServerURLHere" when WDA HTTP server is ready
+        if (output.includes('ServerURLHere')) {
+          clearTimeout(timeout)
+          resolve()
+        }
+      }
+
+      proc.stdout?.on('data', onData)
+      proc.stderr?.on('data', onData)
+
+      proc.on('error', err => {
+        clearTimeout(timeout)
+        reject(err)
+      })
+
+      proc.on('exit', code => {
+        clearTimeout(timeout)
+        if (!output.includes('ServerURLHere')) {
+          reject(
+            new Error(`go-ios runwda exited with code ${code} before WDA started`)
+          )
+        }
+      })
     })
-
-    if (!result.success) {
-      throw new Error(`Native XCTest launch failed: ${result.error.message}`)
-    }
-
-    entry.xctestSessionId = result.data.sessionId
-    log(`Native XCTest session started (id: ${result.data.sessionId})`)
+    log('WDA launched via go-ios')
   }
 
   /**
@@ -428,9 +481,9 @@ class WdaManager {
       entry.xcodebuildProc.kill()
       entry.xcodebuildProc = undefined
     }
-    if (entry.xctestSessionId !== undefined) {
-      await xctest.stopXCUITest(entry.xctestSessionId)
-      entry.xctestSessionId = undefined
+    if (entry.goIosProc) {
+      entry.goIosProc.kill()
+      entry.goIosProc = undefined
     }
     if (entry.mainPort !== undefined) await tunnel.stopTunnel(entry.mainPort)
     if (entry.mjpegPort !== undefined) await tunnel.stopTunnel(entry.mjpegPort)
