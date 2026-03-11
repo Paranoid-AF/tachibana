@@ -58,6 +58,7 @@ bun run dev --filter=@tbana/server
 ```
 
 The server will:
+
 1. Detect connected iOS devices via USB
 2. Check for a running go-ios tunnel (iOS 17+)
 3. Sideload and launch WebDriverAgent
@@ -76,6 +77,7 @@ After sideloading WDA, the developer certificate must be trusted:
 ### "No go-ios tunnel agent detected"
 
 The server could not find a running tunnel. Make sure:
+
 - `ios.exe tunnel start` is running in an admin terminal
 - `wintun.dll` is next to `ios.exe`
 - The device is connected via USB and paired

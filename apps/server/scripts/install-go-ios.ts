@@ -63,9 +63,7 @@ function extractFileFromZip(zipBuf: Buffer, entryPath: string): Buffer | null {
 const ghPlatform = GH_PLATFORM_MAP[platform()]
 
 if (!ghPlatform) {
-  console.error(
-    `[go-ios] Unsupported platform: ${platform()}, skipping.`
-  )
+  console.error(`[go-ios] Unsupported platform: ${platform()}, skipping.`)
   process.exit(0)
 }
 
@@ -130,7 +128,8 @@ if (platform() === 'win32') {
     } else {
       const zipBuf = Buffer.from(await wintunRes.arrayBuffer())
 
-      const wintunArch = arch() === 'ia32' ? 'x86' : arch() === 'x64' ? 'amd64' : arch()
+      const wintunArch =
+        arch() === 'ia32' ? 'x86' : arch() === 'x64' ? 'amd64' : arch()
       const zipEntry = `wintun/bin/${wintunArch}/wintun.dll`
 
       try {
@@ -187,7 +186,9 @@ if (existsSync(ddiManifest)) {
     // with the expected names (022-20522-020.dmg, Firmware/022-20522-020.dmg.trustcache)
     const { readFileSync: readFile } = await import('node:fs')
     const manifest = readFile(join(ddiDir, 'BuildManifest.plist'), 'utf-8')
-    const dmgMatch = manifest.match(/<string>(\d{3}-\d{5}-\d{3}\.dmg)<\/string>/)
+    const dmgMatch = manifest.match(
+      /<string>(\d{3}-\d{5}-\d{3}\.dmg)<\/string>/
+    )
     if (dmgMatch) {
       const dmgName = dmgMatch[1]
       const { copyFileSync } = await import('node:fs')

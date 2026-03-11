@@ -44,7 +44,9 @@ export interface TunnelInfo {
 /**
  * Query a go-ios tunnel agent for device tunnel info.
  */
-async function queryAgent(port: number): Promise<Omit<TunnelInfo, 'agentPort'> | null> {
+async function queryAgent(
+  port: number
+): Promise<Omit<TunnelInfo, 'agentPort'> | null> {
   try {
     const res = await fetch(`http://127.0.0.1:${port}/tunnels`, {
       signal: AbortSignal.timeout(2_000),
@@ -187,4 +189,3 @@ export async function ensureTunnel(): Promise<TunnelInfo> {
       'The tunnel must remain running while the server is active.'
   )
 }
-

@@ -401,7 +401,9 @@ class WdaManager {
         clearTimeout(timeout)
         if (!output.includes('ServerURLHere')) {
           reject(
-            new Error(`go-ios runwda exited with code ${code} before WDA started`)
+            new Error(
+              `go-ios runwda exited with code ${code} before WDA started`
+            )
           )
         }
       })
