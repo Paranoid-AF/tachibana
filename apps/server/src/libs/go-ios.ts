@@ -155,7 +155,7 @@ export async function ensureTunnel(): Promise<TunnelInfo> {
     execSync(
       `powershell -Command "Start-Process -FilePath '${escapedPath}' ` +
         `-ArgumentList 'tunnel','start','--userspace' ` +
-        `-Verb RunAs"`,
+        `-WindowStyle Hidden -Verb RunAs"`,
       { stdio: 'ignore' }
     )
 
