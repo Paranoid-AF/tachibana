@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process'
+import { execSync, spawn } from 'node:child_process'
 import { platform } from 'node:os'
 import { join, dirname } from 'node:path'
 import { existsSync } from 'node:fs'
@@ -131,8 +131,89 @@ export function ensureDdiMounted(): void {
 }
 
 /**
+ * Spawn the go-ios tunnel with elevation and poll until a device tunnel
+ * appears. Used by `ensureTunnel` for all platforms.
+ */
+async function elevateAndPoll(ios: string): Promise<TunnelInfo> {
+  const plat = platform()
+
+  // Already root — spawn directly
+  if (process.getuid?.() === 0) {
+    console.log('[go-ios] Already root, starting tunnel directly...')
+    const proc = spawn(ios, ['tunnel', 'start'], {
+      stdio: 'ignore',
+      detached: true,
+    })
+    proc.unref()
+  } else if (plat === 'win32') {
+    console.log('[go-ios] Starting tunnel with UAC elevation (userspace)...')
+    // Use userspace tunnel — avoids WinTUN driver dependency and works
+    // without a kernel TUN interface.  Still needs elevation for the
+    // underlying device pairing / RemoteXPC handshake.
+    const escapedPath = ios.replace(/'/g, "''")
+    execSync(
+      `powershell -Command "Start-Process -FilePath '${escapedPath}' ` +
+        `-ArgumentList 'tunnel','start','--userspace' ` +
+        `-WindowStyle Hidden -Verb RunAs"`,
+      { stdio: 'ignore' }
+    )
+  } else if (plat === 'darwin') {
+    console.log('[go-ios] Starting tunnel with admin privileges (macOS)...')
+    const escapedPath = ios.replace(/'/g, "'\\''")
+    // Spawn osascript as a detached process. It shows the system password
+    // dialog, then runs the tunnel as root in the foreground. The tunnel
+    // stays alive because osascript keeps running. Node doesn't wait.
+    const proc = spawn(
+      'osascript',
+      [
+        '-e',
+        `do shell script "\\"${escapedPath}\\" tunnel start" with administrator privileges`,
+      ],
+      { stdio: 'ignore', detached: true }
+    )
+    proc.unref()
+  } else if (process.env.DISPLAY || process.env.WAYLAND_DISPLAY) {
+    console.log('[go-ios] Starting tunnel with pkexec elevation (Linux)...')
+    execSync(
+      `pkexec sh -c '"${ios}" tunnel start >/dev/null 2>&1 &'`,
+      { stdio: 'ignore' }
+    )
+  } else {
+    throw new Error(
+      'No go-ios tunnel agent detected. On iOS 17+, a tunnel is required.\n' +
+        'Start one in a terminal with root privileges:\n\n' +
+        `  sudo "${ios}" tunnel start\n\n` +
+        'The tunnel must remain running while the server is active.'
+    )
+  }
+
+  // Poll until a device tunnel is fully established
+  const deadline = Date.now() + 30_000
+  while (Date.now() < deadline) {
+    const info = await findAgent()
+    if (info) {
+      console.log(
+        `[go-ios] Tunnel ready on agent port ${info.agentPort}: ` +
+          `${info.address}:${info.rsdPort} (${info.udid})`
+      )
+      return info
+    }
+    await new Promise(r => setTimeout(r, 1_000))
+  }
+
+  throw new Error(
+    'go-ios tunnel was started but no device tunnel appeared within 30s. ' +
+      'Check for errors in the elevated process.'
+  )
+}
+
+/**
  * Ensure a go-ios tunnel is running for iOS 17+ devices.
- * On Windows, starts an elevated process (UAC prompt) automatically.
+ * Automatically elevates privileges on all platforms:
+ * - Windows: UAC dialog via PowerShell
+ * - macOS: system password dialog via osascript
+ * - Linux (desktop): PolicyKit dialog via pkexec
+ * - Already root: spawns directly
  */
 export async function ensureTunnel(): Promise<TunnelInfo> {
   // Already running?
@@ -145,47 +226,5 @@ export async function ensureTunnel(): Promise<TunnelInfo> {
     return existing
   }
 
-  const ios = getIosBinary()
-
-  if (platform() === 'win32') {
-    console.log('[go-ios] Starting tunnel with UAC elevation (userspace)...')
-
-    // Use userspace tunnel — avoids WinTUN driver dependency and works
-    // without a kernel TUN interface.  Still needs elevation for the
-    // underlying device pairing / RemoteXPC handshake.
-    const escapedPath = ios.replace(/'/g, "''")
-    execSync(
-      `powershell -Command "Start-Process -FilePath '${escapedPath}' ` +
-        `-ArgumentList 'tunnel','start','--userspace' ` +
-        `-WindowStyle Hidden -Verb RunAs"`,
-      { stdio: 'ignore' }
-    )
-
-    // Poll until a device tunnel is fully established
-    const deadline = Date.now() + 30_000
-    while (Date.now() < deadline) {
-      const info = await findAgent()
-      if (info) {
-        console.log(
-          `[go-ios] Tunnel ready on agent port ${info.agentPort}: ` +
-            `${info.address}:${info.rsdPort} (${info.udid})`
-        )
-        return info
-      }
-      await new Promise(r => setTimeout(r, 1_000))
-    }
-
-    throw new Error(
-      'go-ios tunnel was started but no device tunnel appeared within 30s. ' +
-        'Check the elevated console window for errors (e.g. missing wintun.dll).'
-    )
-  }
-
-  // Non-Windows: needs sudo, user must start manually
-  throw new Error(
-    'No go-ios tunnel agent detected. On iOS 17+, a tunnel is required.\n' +
-      'Start one in a terminal with root privileges:\n\n' +
-      `  sudo "${ios}" tunnel start\n\n` +
-      'The tunnel must remain running while the server is active.'
-  )
+  return elevateAndPoll(getIosBinary())
 }

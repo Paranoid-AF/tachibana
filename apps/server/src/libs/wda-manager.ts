@@ -1,7 +1,4 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import { writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
-import { tmpdir, platform } from 'node:os'
 import {
   tunnel,
   wdaClient,
@@ -31,59 +28,8 @@ interface WdaEntry {
   mainPort?: number
   mjpegPort?: number
   wdaSession?: InstanceType<typeof WdaSession>
-  xcodebuildProc?: ChildProcess
   goIosProc?: ChildProcess
   waiters: Array<(entry: WdaEntry) => void>
-}
-
-/** Generate an xctestrun v2 plist for running pre-installed WDA via xcodebuild. */
-function generateXctestrunPlist(
-  bundleId: string,
-  httpPort: number,
-  mjpegPort: number
-): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>__xctestrun_metadata__</key>
-    <dict>
-        <key>FormatVersion</key>
-        <integer>2</integer>
-    </dict>
-    <key>TestConfigurations</key>
-    <array>
-        <dict>
-            <key>Name</key>
-            <string>Default</string>
-            <key>TestTargets</key>
-            <array>
-                <dict>
-                    <key>BlueprintName</key>
-                    <string>WebDriverAgentRunner</string>
-                    <key>UseDestinationArtifacts</key>
-                    <true/>
-                    <key>TestBundleDestinationRelativePath</key>
-                    <string>PlugIns/WebDriverAgentRunner.xctest</string>
-                    <key>TestHostBundleIdentifier</key>
-                    <string>${bundleId}</string>
-                    <key>UITargetAppBundleIdentifier</key>
-                    <string>${bundleId}</string>
-                    <key>IsUITestBundle</key>
-                    <true/>
-                    <key>EnvironmentVariables</key>
-                    <dict>
-                        <key>USE_PORT</key>
-                        <string>${httpPort}</string>
-                        <key>MJPEG_SERVER_PORT</key>
-                        <string>${mjpegPort}</string>
-                    </dict>
-                </dict>
-            </array>
-        </dict>
-    </array>
-</dict>
-</plist>`
 }
 
 class WdaManager {
@@ -157,12 +103,10 @@ class WdaManager {
 
       log(`WDA bundle ID: ${appInfo.bundleId}`)
 
-      // 2. Launch via xcodebuild + tunnel + health check
+      // 2. Launch via go-ios + tunnel + health check
       const result = await this.launchAndCheck(udid, appInfo, entry, log)
 
       if (!result.healthy) {
-        entry.xcodebuildProc?.kill()
-        entry.xcodebuildProc = undefined
         entry.goIosProc?.kill()
         entry.goIosProc = undefined
         await tunnel.stopTunnel(result.mainPort)
@@ -186,10 +130,6 @@ class WdaManager {
       this.flush(entry)
     } catch (err) {
       log(`Error: ${err instanceof Error ? err.message : String(err)}`)
-      if (entry.xcodebuildProc) {
-        entry.xcodebuildProc.kill()
-        entry.xcodebuildProc = undefined
-      }
       if (entry.goIosProc) {
         entry.goIosProc.kill()
         entry.goIosProc = undefined
@@ -205,9 +145,7 @@ class WdaManager {
     }
   }
 
-  /** Launch WDA, set up tunnels, and poll health.
-   *  macOS: uses xcodebuild test-without-building
-   *  Non-macOS: uses go-ios `runwda` via kernel TUN tunnel */
+  /** Launch WDA via go-ios `runwda` through tunnel, set up port tunnels, and poll health. */
   private async launchAndCheck(
     udid: string,
     appInfo: WdaAppInfo,
@@ -216,11 +154,7 @@ class WdaManager {
   ) {
     const { bundleId } = appInfo
 
-    if (platform() === 'darwin') {
-      await this.launchViaXcodebuild(udid, bundleId, entry, log)
-    } else {
-      await this.launchViaGoIos(udid, bundleId, entry, log)
-    }
+    await this.launchViaGoIos(udid, bundleId, entry, log)
 
     // Tunnel device ports to localhost
     const mainResult = await tunnel.startTunnel(udid, WDA_HTTP_PORT)
@@ -255,84 +189,7 @@ class WdaManager {
     return { mainPort, mjpegPort, wdaSession, healthy: false as const }
   }
 
-  /** macOS path: launch WDA via xcodebuild test-without-building. */
-  private async launchViaXcodebuild(
-    udid: string,
-    bundleId: string,
-    entry: WdaEntry,
-    log: (msg: string) => void
-  ) {
-    log('Launching WDA via xcodebuild...')
-    const xctestrunPath = join(tmpdir(), `wda-${udid.slice(-8)}.xctestrun`)
-    await writeFile(
-      xctestrunPath,
-      generateXctestrunPlist(bundleId, WDA_HTTP_PORT, WDA_MJPEG_PORT)
-    )
-
-    const proc = spawn(
-      'xcodebuild',
-      [
-        'test-without-building',
-        '-xctestrun',
-        xctestrunPath,
-        '-destination',
-        `platform=iOS,id=${udid}`,
-      ],
-      {
-        stdio: ['ignore', 'pipe', 'pipe'],
-      }
-    )
-    entry.xcodebuildProc = proc
-
-    await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        proc.kill()
-        reject(new Error('xcodebuild: WDA did not start within 90s'))
-      }, 90_000)
-
-      let output = ''
-      const onData = (data: Buffer) => {
-        const chunk = data.toString()
-        output += chunk
-        for (const line of chunk.split('\n')) {
-          const trimmed = line.trim()
-          if (
-            trimmed &&
-            (trimmed.includes('ServerURLHere') ||
-              trimmed.includes('Test Suite') ||
-              trimmed.includes('Test Case') ||
-              trimmed.includes('error:'))
-          ) {
-            log(`xcodebuild: ${trimmed}`)
-          }
-        }
-        if (output.includes('ServerURLHere')) {
-          clearTimeout(timeout)
-          resolve()
-        }
-      }
-
-      proc.stderr?.on('data', onData)
-      proc.stdout?.on('data', onData)
-
-      proc.on('error', err => {
-        clearTimeout(timeout)
-        reject(err)
-      })
-
-      proc.on('exit', code => {
-        clearTimeout(timeout)
-        if (!output.includes('ServerURLHere')) {
-          reject(
-            new Error(`xcodebuild exited with code ${code} before WDA started`)
-          )
-        }
-      })
-    })
-    log('WDA HTTP server started')
-  }
-
-  /** Non-macOS path: launch WDA via go-ios `runwda` command.
+  /** Launch WDA via go-ios `runwda` command.
    *  Requires a go-ios kernel TUN tunnel (iOS 17+). */
   private async launchViaGoIos(
     udid: string,
@@ -479,10 +336,6 @@ class WdaManager {
     if (!entry) return
 
     if (entry.wdaSession) await entry.wdaSession.destroy().catch(() => {})
-    if (entry.xcodebuildProc) {
-      entry.xcodebuildProc.kill()
-      entry.xcodebuildProc = undefined
-    }
     if (entry.goIosProc) {
       entry.goIosProc.kill()
       entry.goIosProc = undefined
