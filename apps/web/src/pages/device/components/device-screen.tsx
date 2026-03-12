@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/carousel'
 import { DeviceNotice } from './device-notice'
 import { ScreenOverlay } from './screen-overlay'
-import { getWindowSize, type WindowSize } from '@/lib/wda-api'
+import { getWindowSize, homescreen, type WindowSize } from '@/lib/wda-api'
 
 import guideTrustImg from '../../../../assets/images/device/guide-trust.png'
 import guideModeImg from '../../../../assets/images/device/guide-mode.png'
@@ -155,10 +155,11 @@ export function DeviceScreen({ udid, email }: DeviceScreenProps) {
     setKey(k => k + 1)
   }
 
-  // Fetch WDA window size once screen is ready
+  // Unlock device and fetch WDA window size once screen is ready
   useEffect(() => {
     if (state !== 'ready') return
     let cancelled = false
+    homescreen(udid).catch(() => {})
     getWindowSize(udid)
       .then(size => {
         if (!cancelled) setWindowSize(size)
