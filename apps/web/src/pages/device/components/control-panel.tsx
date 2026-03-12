@@ -57,7 +57,7 @@ export function ControlPanel({ udid }: ControlPanelProps) {
     fetch(`/api/devices/${udid}/apps`)
       .then(res => res.json())
       .then((data: AppInfo[]) => {
-        if (!cancelled) setApps(data)
+        if (!cancelled) setApps(data.sort((a, b) => a.name.localeCompare(b.name)))
       })
       .catch(() => {})
       .finally(() => {
