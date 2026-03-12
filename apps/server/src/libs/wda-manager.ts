@@ -9,6 +9,7 @@ import { resolveWdaIpa } from '@tbana/ios-wda'
 import { withSessionRetry } from './session-guard.ts'
 import { getConfig, setConfig } from './config.ts'
 import { ensureTunnel, ensureDdiMounted, getIosBinary } from './go-ios.ts'
+import { getDevicePrefs } from './device-store.ts'
 
 const { WdaClient, WdaSession } = wdaClient
 
@@ -33,6 +34,7 @@ interface WdaEntry {
 
 class WdaManager {
   private entries = new Map<string, WdaEntry>()
+  private keepAwakeTimer: ReturnType<typeof setInterval> | null = null
 
   private getOrCreate(udid: string): WdaEntry {
     if (!this.entries.has(udid)) {
@@ -41,9 +43,17 @@ class WdaManager {
     return this.entries.get(udid)!
   }
 
-  getState(udid: string): { state: WdaState; error?: string; mainPort?: number } {
+  getState(udid: string): {
+    state: WdaState
+    error?: string
+    mainPort?: number
+  } {
     const entry = this.entries.get(udid)
-    return { state: entry?.state ?? 'idle', error: entry?.error, mainPort: entry?.mainPort }
+    return {
+      state: entry?.state ?? 'idle',
+      error: entry?.error,
+      mainPort: entry?.mainPort,
+    }
   }
 
   waitUntilReady(udid: string, timeoutMs = 90_000): Promise<number> {
@@ -345,6 +355,32 @@ class WdaManager {
     log('WDA installed successfully')
 
     return baseBundleId
+  }
+
+  startKeepAwake(): void {
+    if (this.keepAwakeTimer) return
+    this.keepAwakeTimer = setInterval(() => {
+      for (const [udid, entry] of this.entries) {
+        if (entry.state !== 'ready' || !entry.mainPort) continue
+        try {
+          if (!getDevicePrefs(udid).alwaysAwake) continue
+        } catch {
+          continue
+        }
+        fetch(`http://localhost:${entry.mainPort}/wda/unlock`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        }).catch(() => {})
+      }
+    }, 5_000)
+  }
+
+  stopKeepAwake(): void {
+    if (this.keepAwakeTimer) {
+      clearInterval(this.keepAwakeTimer)
+      this.keepAwakeTimer = null
+    }
   }
 
   async stop(udid: string): Promise<void> {

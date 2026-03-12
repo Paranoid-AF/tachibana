@@ -11,6 +11,7 @@ export const devices = sqliteTable('devices', {
   name: text('name').notNull(),
   productType: text('product_type').notNull(),
   productVersion: text('product_version').notNull(),
+  prefAlwaysAwake: integer('pref_always_awake').notNull().default(1),
 })
 
 export const session = sqliteTable('session', {

@@ -9,9 +9,9 @@ import { useLinkDevice } from '@/hooks/use-link-device'
 import { TrustModal, LinkErrorDialog } from '@/components/biz/link-dialogs'
 import { AppLayout } from '@/components/biz/app-layout'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { DeviceNotice } from './components/device-notice'
 import { DeviceScreen } from './components/device-screen'
+import { ControlPanel } from './components/control-panel'
 
 export function DevicePage() {
   const [, navigate] = useLocation()
@@ -72,7 +72,12 @@ export function DevicePage() {
       </DeviceNotice>
     )
   } else {
-    screenContent = <DeviceScreen udid={udid} email={sessionInfo.email} />
+    screenContent = (
+      <DeviceScreen
+        udid={udid}
+        email={sessionInfo.email}
+      />
+    )
   }
 
   return (
@@ -86,11 +91,13 @@ export function DevicePage() {
 
           <Separator className="w-px bg-border" />
 
-          {/* Main panel */}
+          {/* Control panel */}
           <Panel defaultSize={60} minSize={20}>
-            <ScrollArea className="h-full">
+            {device?.linked && device?.connected ? (
+              <ControlPanel udid={udid} />
+            ) : (
               <div className="p-4" />
-            </ScrollArea>
+            )}
           </Panel>
         </Group>
       </AppLayout>

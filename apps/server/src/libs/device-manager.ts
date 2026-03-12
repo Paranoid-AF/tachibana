@@ -41,6 +41,7 @@ class DeviceManager {
         console.error('[DeviceManager] Poll error:', err)
       )
     }, POLL_INTERVAL_MS)
+    wdaManager.startKeepAwake()
   }
 
   async stop(): Promise<void> {
@@ -49,6 +50,7 @@ class DeviceManager {
       clearInterval(this.pollTimer)
       this.pollTimer = null
     }
+    wdaManager.stopKeepAwake()
     console.log('[DeviceManager] Stopping — cleaning up all devices')
     const stopTasks = [...this.devices.keys()].map(udid =>
       this.cleanupDevice(udid)

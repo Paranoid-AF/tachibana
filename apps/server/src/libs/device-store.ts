@@ -1,2 +1,2 @@
-export type { DeviceMeta } from '../db/index.ts'
-export { getDeviceMeta, saveDeviceMeta } from '../db/index.ts'
+export type { DeviceMeta, DevicePrefs } from '../db/index.ts'
+export { getDeviceMeta, saveDeviceMeta, getDevicePrefs, setDevicePrefs } from '../db/index.ts'

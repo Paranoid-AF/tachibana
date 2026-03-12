@@ -156,6 +156,40 @@ export function saveDeviceMeta(udid: string, meta: DeviceMeta): void {
 }
 
 // ---------------------------------------------------------------------------
+// Device preferences
+// ---------------------------------------------------------------------------
+
+export interface DevicePrefs {
+  alwaysAwake: boolean
+}
+
+const DEFAULT_PREFS: DevicePrefs = { alwaysAwake: true }
+
+export function getDevicePrefs(udid: string): DevicePrefs {
+  const d = getDb()
+  const row = d
+    .select({ prefAlwaysAwake: schema.devices.prefAlwaysAwake })
+    .from(schema.devices)
+    .where(eq(schema.devices.udid, udid))
+    .get()
+  if (!row) return { ...DEFAULT_PREFS }
+  return { alwaysAwake: row.prefAlwaysAwake === 1 }
+}
+
+export function setDevicePrefs(udid: string, prefs: Partial<DevicePrefs>): void {
+  const d = getDb()
+  const set: Record<string, unknown> = {}
+  if (prefs.alwaysAwake !== undefined) {
+    set.prefAlwaysAwake = prefs.alwaysAwake ? 1 : 0
+  }
+  if (Object.keys(set).length === 0) return
+  d.update(schema.devices)
+    .set(set)
+    .where(eq(schema.devices.udid, udid))
+    .run()
+}
+
+// ---------------------------------------------------------------------------
 // Session data
 // ---------------------------------------------------------------------------
 
