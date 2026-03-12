@@ -1,10 +1,8 @@
-import { randomBytes } from 'node:crypto'
-
 const ALPHA = 'abcdefghijklmnopqrstuvwxyz'
 const ALPHANUMERIC = 'abcdefghijklmnopqrstuvwxyz0123456789'
 
 function randomChars(charset: string, length: number): string {
-  const bytes = randomBytes(length)
+  const bytes = crypto.getRandomValues(new Uint8Array(length))
   let result = ''
   for (let i = 0; i < length; i++) {
     result += charset[bytes[i]! % charset.length]

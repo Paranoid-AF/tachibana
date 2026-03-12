@@ -1,3 +1,4 @@
+pub mod apps;
 pub mod auth;
 pub mod teams;
 pub mod certs;
@@ -9,3 +10,4 @@ pub mod screenshots;
 pub mod photos;
 pub mod pairing;
 pub mod tunnel;
+pub mod xctest;

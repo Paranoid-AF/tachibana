@@ -101,6 +101,25 @@ export interface NativeAddon {
   ): Promise<number>
   startTunnel(udid: string, remotePort: number): Promise<number>
   stopTunnel(localPort: number): Promise<void>
+  startXcuitest(
+    udid: string,
+    bundleId: string,
+    testRunnerBundleId: string,
+    env?: Record<string, string>,
+    tunnelAddress?: string,
+    tunnelRsdPort?: number
+  ): Promise<number>
+  stopXcuitest(sessionId: number): Promise<void>
+  listInstalledApps(
+    udid: string,
+    appType?: string | null
+  ): Promise<InstalledAppInfo[]>
+}
+
+export interface InstalledAppInfo {
+  bundleId: string
+  bundleName: string | null
+  bundleExecutable: string | null
 }
 
 let _native: NativeAddon | null = null

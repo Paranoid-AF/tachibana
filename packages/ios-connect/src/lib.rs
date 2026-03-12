@@ -270,3 +270,44 @@ pub async fn start_tunnel(udid: String, remote_port: u32) -> napi::Result<u32> {
 pub async fn stop_tunnel(local_port: u32) -> napi::Result<()> {
     commands::tunnel::stop_tunnel(local_port as u16).await
 }
+
+/// Start an XCUITest session on a connected device (iOS 17+, cross-platform).
+/// Handles testmanagerd protocol, launches the test runner, and starts the test plan.
+/// Returns a session ID. The session stays alive until `stop_xcuitest` is called.
+/// Does not require Apple Account.
+#[napi]
+pub async fn start_xcuitest(
+    udid: String,
+    bundle_id: String,
+    test_runner_bundle_id: String,
+    env: Option<std::collections::HashMap<String, String>>,
+    tunnel_address: Option<String>,
+    tunnel_rsd_port: Option<u16>,
+) -> napi::Result<u32> {
+    commands::xctest::start_xcuitest(
+        udid,
+        bundle_id,
+        test_runner_bundle_id,
+        env.unwrap_or_default(),
+        tunnel_address,
+        tunnel_rsd_port,
+    )
+    .await
+}
+
+/// Stop an XCUITest session previously started with `start_xcuitest`.
+#[napi]
+pub async fn stop_xcuitest(session_id: u32) -> napi::Result<()> {
+    commands::xctest::stop_xcuitest(session_id).await
+}
+
+/// List installed apps on a connected device via installation_proxy.
+/// `app_type` can be "User", "System", or "Any" (default).
+/// Does not require Apple Account.
+#[napi]
+pub async fn list_installed_apps(
+    udid: String,
+    app_type: Option<String>,
+) -> napi::Result<Vec<commands::apps::InstalledAppInfo>> {
+    commands::apps::list_installed_apps(&udid, app_type.as_deref()).await
+}

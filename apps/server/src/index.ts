@@ -1,7 +1,6 @@
 import path from 'node:path'
 import http from 'node:http'
 import getPort from 'get-port'
-import { fileURLToPath } from 'node:url'
 
 import { Elysia } from 'elysia'
 
@@ -14,8 +13,8 @@ import {
 } from './libs/http.ts'
 import type { ViteDevServer } from 'vite'
 
-const isDev = process.env.NODE_ENV === 'development'
-const __dirname = fileURLToPath(new URL('.', import.meta.url))
+const isDev = Bun.env.NODE_ENV === 'development'
+const __dirname = import.meta.dirname!
 
 const webDevPath = path.resolve(__dirname, '../../web')
 const webDistPath = path.resolve(__dirname, '../../web/dist')

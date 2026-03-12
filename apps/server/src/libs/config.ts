@@ -1,6 +1,6 @@
 import { homedir } from 'os'
 import { join, dirname } from 'path'
-import { mkdir, unlink } from 'fs/promises'
+import { mkdir } from 'fs/promises'
 import { z } from 'zod'
 
 import type { StoredSession } from '@tbana/ios-connect'
@@ -48,7 +48,7 @@ const DEFAULTS: Config = {
 
 export function getConfigDir(): string {
   if (process.platform === 'win32') {
-    const appData = process.env.APPDATA ?? homedir()
+    const appData = Bun.env.APPDATA ?? homedir()
     return join(appData, 'tachibana')
   }
   return join(homedir(), '.local', 'state', 'tachibana')
@@ -160,7 +160,7 @@ export async function saveSessionData(data: StoredSession): Promise<void> {
 /** Remove session.json. */
 export async function clearSessionData(): Promise<void> {
   try {
-    await unlink(getSessionFilePath())
+    await Bun.file(getSessionFilePath()).delete()
   } catch {
     // already gone
   }

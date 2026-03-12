@@ -1,11 +1,14 @@
-import { spawn, execFile, type ChildProcess } from 'node:child_process'
-import { writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
-import { tmpdir } from 'node:os'
-import { tunnel, wdaClient, ipa, generateBundleId } from '@tbana/ios-connect'
+import {
+  tunnel,
+  wdaClient,
+  ipa,
+  apps,
+  generateBundleId,
+} from '@tbana/ios-connect'
 import { resolveWdaIpa } from '@tbana/ios-wda'
 import { getSession } from './session.ts'
 import { getConfig, setConfig } from './config.ts'
+import { ensureTunnel, ensureDdiMounted, getIosBinary } from './go-ios.ts'
 
 const { WdaClient, WdaSession } = wdaClient
 
@@ -24,58 +27,8 @@ interface WdaEntry {
   mainPort?: number
   mjpegPort?: number
   wdaSession?: InstanceType<typeof WdaSession>
-  xcodebuildProc?: ChildProcess
+  goIosProc?: ReturnType<typeof Bun.spawn>
   waiters: Array<(entry: WdaEntry) => void>
-}
-
-/** Generate an xctestrun v2 plist for running pre-installed WDA via xcodebuild. */
-function generateXctestrunPlist(
-  bundleId: string,
-  httpPort: number,
-  mjpegPort: number
-): string {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>__xctestrun_metadata__</key>
-    <dict>
-        <key>FormatVersion</key>
-        <integer>2</integer>
-    </dict>
-    <key>TestConfigurations</key>
-    <array>
-        <dict>
-            <key>Name</key>
-            <string>Default</string>
-            <key>TestTargets</key>
-            <array>
-                <dict>
-                    <key>BlueprintName</key>
-                    <string>WebDriverAgentRunner</string>
-                    <key>UseDestinationArtifacts</key>
-                    <true/>
-                    <key>TestBundleDestinationRelativePath</key>
-                    <string>PlugIns/WebDriverAgentRunner.xctest</string>
-                    <key>TestHostBundleIdentifier</key>
-                    <string>${bundleId}</string>
-                    <key>UITargetAppBundleIdentifier</key>
-                    <string>${bundleId}</string>
-                    <key>IsUITestBundle</key>
-                    <true/>
-                    <key>EnvironmentVariables</key>
-                    <dict>
-                        <key>USE_PORT</key>
-                        <string>${httpPort}</string>
-                        <key>MJPEG_SERVER_PORT</key>
-                        <string>${mjpegPort}</string>
-                    </dict>
-                </dict>
-            </array>
-        </dict>
-    </array>
-</dict>
-</plist>`
 }
 
 class WdaManager {
@@ -149,12 +102,12 @@ class WdaManager {
 
       log(`WDA bundle ID: ${appInfo.bundleId}`)
 
-      // 2. Launch via xcodebuild + tunnel + health check
+      // 2. Launch via go-ios + tunnel + health check
       const result = await this.launchAndCheck(udid, appInfo, entry, log)
 
       if (!result.healthy) {
-        entry.xcodebuildProc?.kill()
-        entry.xcodebuildProc = undefined
+        entry.goIosProc?.kill()
+        entry.goIosProc = undefined
         await tunnel.stopTunnel(result.mainPort)
         await tunnel.stopTunnel(result.mjpegPort)
         throw new Error(
@@ -176,9 +129,9 @@ class WdaManager {
       this.flush(entry)
     } catch (err) {
       log(`Error: ${err instanceof Error ? err.message : String(err)}`)
-      if (entry.xcodebuildProc) {
-        entry.xcodebuildProc.kill()
-        entry.xcodebuildProc = undefined
+      if (entry.goIosProc) {
+        entry.goIosProc.kill()
+        entry.goIosProc = undefined
       }
       if (entry.mainPort !== undefined) await tunnel.stopTunnel(entry.mainPort)
       if (entry.mjpegPort !== undefined)
@@ -191,7 +144,7 @@ class WdaManager {
     }
   }
 
-  /** Launch WDA via xcodebuild, set up tunnels, and poll health. */
+  /** Launch WDA via go-ios `runwda` through tunnel, set up port tunnels, and poll health. */
   private async launchAndCheck(
     udid: string,
     appInfo: WdaAppInfo,
@@ -200,77 +153,7 @@ class WdaManager {
   ) {
     const { bundleId } = appInfo
 
-    // Launch WDA via xcodebuild test-without-building
-    // xcodebuild handles testmanagerd coordination natively
-    log('Launching WDA via xcodebuild...')
-    const xctestrunPath = join(tmpdir(), `wda-${udid.slice(-8)}.xctestrun`)
-    await writeFile(
-      xctestrunPath,
-      generateXctestrunPlist(bundleId, WDA_HTTP_PORT, WDA_MJPEG_PORT)
-    )
-
-    const proc = spawn(
-      'xcodebuild',
-      [
-        'test-without-building',
-        '-xctestrun',
-        xctestrunPath,
-        '-destination',
-        `platform=iOS,id=${udid}`,
-      ],
-      {
-        stdio: ['ignore', 'pipe', 'pipe'],
-      }
-    )
-    entry.xcodebuildProc = proc
-
-    // Wait for WDA to announce its HTTP server URL
-    await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        proc.kill()
-        reject(new Error('xcodebuild: WDA did not start within 90s'))
-      }, 90_000)
-
-      let output = ''
-      const onData = (data: Buffer) => {
-        const chunk = data.toString()
-        output += chunk
-        for (const line of chunk.split('\n')) {
-          const trimmed = line.trim()
-          if (
-            trimmed &&
-            (trimmed.includes('ServerURLHere') ||
-              trimmed.includes('Test Suite') ||
-              trimmed.includes('Test Case') ||
-              trimmed.includes('error:'))
-          ) {
-            log(`xcodebuild: ${trimmed}`)
-          }
-        }
-        if (output.includes('ServerURLHere')) {
-          clearTimeout(timeout)
-          resolve()
-        }
-      }
-
-      proc.stderr?.on('data', onData)
-      proc.stdout?.on('data', onData)
-
-      proc.on('error', err => {
-        clearTimeout(timeout)
-        reject(err)
-      })
-
-      proc.on('exit', code => {
-        clearTimeout(timeout)
-        if (!output.includes('ServerURLHere')) {
-          reject(
-            new Error(`xcodebuild exited with code ${code} before WDA started`)
-          )
-        }
-      })
-    })
-    log('WDA HTTP server started')
+    await this.launchViaGoIos(udid, bundleId, entry, log)
 
     // Tunnel device ports to localhost
     const mainResult = await tunnel.startTunnel(udid, WDA_HTTP_PORT)
@@ -299,51 +182,130 @@ class WdaManager {
       log(`Health check #${attempt}: ${healthy ? 'healthy' : 'not ready'}`)
       if (healthy)
         return { mainPort, mjpegPort, wdaSession, healthy: true as const }
-      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
+      await Bun.sleep(POLL_INTERVAL_MS)
     }
 
     return { mainPort, mjpegPort, wdaSession, healthy: false as const }
   }
 
+  /** Launch WDA via go-ios `runwda` command.
+   *  Requires a go-ios kernel TUN tunnel (iOS 17+). */
+  private async launchViaGoIos(
+    udid: string,
+    bundleId: string,
+    entry: WdaEntry,
+    log: (msg: string) => void
+  ) {
+    // Ensure DDI is mounted (required for testmanagerd on iOS 17+)
+    await ensureDdiMounted()
+
+    // Ensure tunnel is running (required for runwda)
+    await ensureTunnel()
+    log('go-ios tunnel ready')
+
+    const ios = await getIosBinary()
+    log('Launching WDA via go-ios runwda...')
+
+    const proc = Bun.spawn(
+      [
+        ios,
+        'runwda',
+        `--bundleid=${bundleId}`,
+        `--testrunnerbundleid=${bundleId}`,
+        '--xctestconfig=WebDriverAgentRunner.xctest',
+        `--env=USE_PORT=${WDA_HTTP_PORT}`,
+        `--env=MJPEG_SERVER_PORT=${WDA_MJPEG_PORT}`,
+        `--udid=${udid}`,
+      ],
+      {
+        stdout: 'pipe',
+        stderr: 'pipe',
+        stdin: 'ignore',
+      }
+    )
+    entry.goIosProc = proc
+
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        // Process is still running — assume WDA is starting up.
+        // Health check polling will verify it later.
+        resolve()
+      }, 10_000)
+
+      let output = ''
+      let settled = false
+
+      const settle = (fn: () => void) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timeout)
+        fn()
+      }
+
+      // Read stdout
+      const readStream = async (stream: ReadableStream<Uint8Array>) => {
+        const reader = stream.getReader()
+        const decoder = new TextDecoder()
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            const chunk = decoder.decode(value, { stream: true })
+            output += chunk
+            for (const line of chunk.split('\n')) {
+              const trimmed = line.trim()
+              if (trimmed) log(`runwda: ${trimmed}`)
+            }
+            // go-ios prints "ServerURLHere" when WDA HTTP server is ready
+            if (output.includes('ServerURLHere')) {
+              settle(() => resolve())
+            }
+          }
+        } catch {
+          // stream closed
+        }
+      }
+
+      readStream(proc.stdout)
+      readStream(proc.stderr)
+
+      // Handle process exit
+      proc.exited.then(code => {
+        if (!output.includes('ServerURLHere')) {
+          settle(() =>
+            reject(
+              new Error(
+                `go-ios runwda exited with code ${code} before WDA started`
+              )
+            )
+          )
+        }
+      })
+    })
+    log('WDA launched via go-ios')
+  }
+
   /**
-   * Find WDA on device — returns bundle ID and app path.
-   * Uses pymobiledevice3 app listing via lockdown (no developer tunnel needed).
+   * Find WDA on device — returns bundle ID.
+   * Uses native installation_proxy via lockdown (no external binaries needed).
    */
   private async findWdaAppInfo(
     udid: string,
     log: (msg: string) => void
   ): Promise<WdaAppInfo | null> {
     try {
-      return new Promise(resolve => {
-        execFile(
-          'pymobiledevice3',
-          ['apps', 'list', '--udid', udid],
-          { timeout: 15_000, maxBuffer: 10 * 1024 * 1024 },
-          (error, stdout) => {
-            if (error) {
-              log(`Error listing apps: ${error.message}`)
-              resolve(null)
-              return
-            }
-            try {
-              const apps = JSON.parse(stdout) as Record<
-                string,
-                Record<string, unknown>
-              >
-              for (const [bid, info] of Object.entries(apps)) {
-                if (info.CFBundleExecutable === 'WebDriverAgentRunner-Runner') {
-                  log(`Found WDA on device: ${bid}`)
-                  resolve({ bundleId: bid })
-                  return
-                }
-              }
-            } catch (e) {
-              log(`Error parsing app list: ${e}`)
-            }
-            resolve(null)
-          }
-        )
-      })
+      const result = await apps.listInstalledApps(udid, 'User')
+      if (!result.success) {
+        log(`Error listing apps: ${result.error.message}`)
+        return null
+      }
+      for (const app of result.data) {
+        if (app.bundleExecutable === 'WebDriverAgentRunner-Runner') {
+          log(`Found WDA on device: ${app.bundleId}`)
+          return { bundleId: app.bundleId }
+        }
+      }
+      return null
     } catch (e) {
       log(`Failed to check for WDA: ${e}`)
       return null
@@ -362,7 +324,7 @@ class WdaManager {
     log(`Using team ${teamId}`)
 
     // Resolve WDA IPA
-    const { path: ipaPath } = resolveWdaIpa()
+    const { path: ipaPath } = await resolveWdaIpa()
     log(`WDA IPA: ${ipaPath}`)
 
     // Reuse stored bundle ID from config to avoid burning free-tier bundle ID slots
@@ -391,9 +353,9 @@ class WdaManager {
     if (!entry) return
 
     if (entry.wdaSession) await entry.wdaSession.destroy().catch(() => {})
-    if (entry.xcodebuildProc) {
-      entry.xcodebuildProc.kill()
-      entry.xcodebuildProc = undefined
+    if (entry.goIosProc) {
+      entry.goIosProc.kill()
+      entry.goIosProc = undefined
     }
     if (entry.mainPort !== undefined) await tunnel.stopTunnel(entry.mainPort)
     if (entry.mjpegPort !== undefined) await tunnel.stopTunnel(entry.mjpegPort)

@@ -10,7 +10,7 @@ export interface DeviceMeta {
 
 function getDeviceStorePath(): string {
   if (process.platform === 'win32') {
-    const appData = process.env.APPDATA ?? homedir()
+    const appData = Bun.env.APPDATA ?? homedir()
     return join(appData, 'tachibana', 'devices.json')
   }
   return join(homedir(), '.local', 'state', 'tachibana', 'devices.json')

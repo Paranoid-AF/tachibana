@@ -1,4 +1,5 @@
 // Isideload native addon commands
+export * as apps from './isideload/commands/apps.ts'
 export * as sideloader from './isideload/commands/install.ts'
 export * as cert from './isideload/commands/cert.ts'
 export * as team from './isideload/commands/team.ts'
@@ -8,6 +9,7 @@ export * as screenshot from './isideload/commands/screenshot.ts'
 export * as photos from './isideload/commands/photos.ts'
 export * as tunnel from './isideload/commands/tunnel.ts'
 export * as launch from './isideload/commands/launch.ts'
+export * as xctest from './isideload/commands/xctest.ts'
 export * as device from './isideload/commands/device.ts'
 
 // Session lifecycle
@@ -58,6 +60,7 @@ export type {
   ListPhotosOptions,
 } from './isideload/commands/photos.ts'
 export type { IpaMetadata } from './utils/ipa.ts'
+export type { InstalledAppInfo } from './isideload/commands/apps.ts'
 
 // WDA types
 export type {
