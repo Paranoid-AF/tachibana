@@ -38,38 +38,50 @@ export interface TunnelInfo {
 }
 
 /**
- * Query a go-ios tunnel agent for device tunnel info.
+ * Query a go-ios tunnel agent for all device tunnel entries.
  */
-async function queryAgent(
+async function queryAgentAll(
   port: number
-): Promise<Omit<TunnelInfo, 'agentPort'> | null> {
+): Promise<Omit<TunnelInfo, 'agentPort'>[]> {
   try {
     const res = await fetch(`http://127.0.0.1:${port}/tunnels`, {
       signal: AbortSignal.timeout(2_000),
     })
-    if (!res.ok) return null
+    if (!res.ok) return []
 
     const data: unknown = await res.json()
-    if (!Array.isArray(data)) return null
+    if (!Array.isArray(data)) return []
 
+    const results: Omit<TunnelInfo, 'agentPort'>[] = []
     for (const d of data) {
       if (d.address && d.rsdPort && d.rsdPort > 0) {
-        return { address: d.address, rsdPort: d.rsdPort, udid: d.udid }
+        results.push({ address: d.address, rsdPort: d.rsdPort, udid: d.udid })
       }
     }
-    return null
+    return results
   } catch {
-    return null
+    return []
   }
 }
 
-/** Scan known ports for a running go-ios tunnel agent with a device. */
+/** Scan known ports for a running go-ios tunnel agent. Returns the first agent with at least one device. */
 async function findAgent(): Promise<TunnelInfo | null> {
   for (const port of AGENT_PORTS) {
-    const info = await queryAgent(port)
-    if (info) return { ...info, agentPort: port }
+    const infos = await queryAgentAll(port)
+    if (infos.length > 0) return { ...infos[0], agentPort: port }
   }
   return null
+}
+
+/** Query all known agent ports and return all tunnel entries. */
+export async function queryAllTunnels(): Promise<TunnelInfo[]> {
+  for (const port of AGENT_PORTS) {
+    const infos = await queryAgentAll(port)
+    if (infos.length > 0) {
+      return infos.map(info => ({ ...info, agentPort: port }))
+    }
+  }
+  return []
 }
 
 // ── DDI (Developer Disk Image) Manager ───────────────────────────────
@@ -131,66 +143,21 @@ export async function ensureDdiMounted(): Promise<void> {
 }
 
 /**
- * Spawn the go-ios tunnel with elevation and poll until a device tunnel
- * appears. Used by `ensureTunnel` for all platforms.
+ * Spawn the go-ios tunnel process (server must already be elevated)
+ * and poll until the agent HTTP endpoint responds.
  */
-async function elevateAndPoll(ios: string): Promise<TunnelInfo> {
-  const plat = process.platform
+async function spawnTunnelAndPoll(ios: string): Promise<TunnelInfo> {
+  console.log('[go-ios] Starting tunnel process (server is elevated)...')
 
-  // Already root — spawn directly
-  if (process.getuid?.() === 0) {
-    console.log('[go-ios] Already root, starting tunnel directly...')
-    const proc = Bun.spawn([ios, 'tunnel', 'start'], {
-      stdout: 'ignore',
-      stderr: 'ignore',
-      stdin: 'ignore',
-    })
-    proc.unref()
-  } else if (plat === 'win32') {
-    console.log('[go-ios] Starting tunnel with UAC elevation (userspace)...')
-    // Use userspace tunnel — avoids WinTUN driver dependency and works
-    // without a kernel TUN interface.  Still needs elevation for the
-    // underlying device pairing / RemoteXPC handshake.
-    const escapedPath = ios.replace(/'/g, "''")
-    Bun.spawnSync(
-      [
-        'powershell',
-        '-Command',
-        `Start-Process -FilePath '${escapedPath}' ` +
-          `-ArgumentList 'tunnel','start','--userspace' ` +
-          `-WindowStyle Hidden -Verb RunAs`,
-      ],
-      { stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' }
-    )
-  } else if (plat === 'darwin') {
-    console.log('[go-ios] Starting tunnel with admin privileges (macOS)...')
-    const escapedPath = ios.replace(/'/g, "'\\''")
-    // Spawn osascript as a detached process. It shows the system password
-    // dialog, then runs the tunnel as root in the foreground. The tunnel
-    // stays alive because osascript keeps running. Node doesn't wait.
-    const proc = Bun.spawn(
-      [
-        'osascript',
-        '-e',
-        `do shell script "\\"${escapedPath}\\" tunnel start" with administrator privileges`,
-      ],
-      { stdout: 'ignore', stderr: 'ignore', stdin: 'ignore' }
-    )
-    proc.unref()
-  } else if (Bun.env.DISPLAY || Bun.env.WAYLAND_DISPLAY) {
-    console.log('[go-ios] Starting tunnel with pkexec elevation (Linux)...')
-    Bun.spawnSync(
-      ['pkexec', 'sh', '-c', `"${ios}" tunnel start >/dev/null 2>&1 &`],
-      { stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' }
-    )
-  } else {
-    throw new Error(
-      'No go-ios tunnel agent detected. On iOS 17+, a tunnel is required.\n' +
-        'Start one in a terminal with root privileges:\n\n' +
-        `  sudo "${ios}" tunnel start\n\n` +
-        'The tunnel must remain running while the server is active.'
-    )
-  }
+  const args = [ios, 'tunnel', 'start']
+  if (process.platform === 'win32') args.push('--userspace')
+
+  const proc = Bun.spawn(args, {
+    stdout: 'ignore',
+    stderr: 'ignore',
+    stdin: 'ignore',
+  })
+  proc.unref()
 
   // Poll until a device tunnel is fully established
   const deadline = Date.now() + 30_000
@@ -214,11 +181,8 @@ async function elevateAndPoll(ios: string): Promise<TunnelInfo> {
 
 /**
  * Ensure a go-ios tunnel is running for iOS 17+ devices.
- * Automatically elevates privileges on all platforms:
- * - Windows: UAC dialog via PowerShell
- * - macOS: system password dialog via osascript
- * - Linux (desktop): PolicyKit dialog via pkexec
- * - Already root: spawns directly
+ * The server process must already be elevated (via ensureElevated).
+ * Spawns the tunnel process directly since we inherit root privileges.
  */
 export async function ensureTunnel(): Promise<TunnelInfo> {
   // Already running?
@@ -231,5 +195,5 @@ export async function ensureTunnel(): Promise<TunnelInfo> {
     return existing
   }
 
-  return elevateAndPoll(await getIosBinary())
+  return spawnTunnelAndPoll(await getIosBinary())
 }

@@ -6,7 +6,7 @@ import {
   generateBundleId,
 } from '@tbana/ios-connect'
 import { resolveWdaIpa } from '@tbana/ios-wda'
-import { getSession } from './session.ts'
+import { withSessionRetry } from './session-guard.ts'
 import { getConfig, setConfig } from './config.ts'
 import { ensureTunnel, ensureDdiMounted, getIosBinary } from './go-ios.ts'
 
@@ -317,9 +317,8 @@ class WdaManager {
     udid: string,
     log: (msg: string) => void
   ): Promise<string> {
-    const session = await getSession()
-    const teams = await session.listTeams()
-    if (teams.length === 0) throw new Error('No Apple Developer teams found')
+    const teams = await withSessionRetry(s => s.listTeams())
+    if (!teams.length) throw new Error('No Apple Developer teams found')
     const teamId = teams[0].teamId
     log(`Using team ${teamId}`)
 
@@ -342,7 +341,7 @@ class WdaManager {
     const rewrittenPath = await ipa.rewriteIpaBundleId(ipaPath, baseBundleId)
 
     // Sign and install
-    await session.installApp(rewrittenPath, udid, teamId)
+    await withSessionRetry(s => s.installApp(rewrittenPath, udid, teamId))
     log('WDA installed successfully')
 
     return baseBundleId

@@ -11,6 +11,8 @@ import {
   handleElysiaResponse,
   handleElysiaStaticRoute,
 } from './libs/http.ts'
+import { ensureElevated } from './libs/elevate.ts'
+import { deviceManager } from './libs/device-manager.ts'
 import type { ViteDevServer } from 'vite'
 
 const isDev = Bun.env.NODE_ENV === 'development'
@@ -74,14 +76,21 @@ const main = async () => {
     }
   })
 
-  process.on('SIGINT', () => process.exit(0))
-  process.on('SIGTERM', () => process.exit(0))
+  const shutdown = async () => {
+    await deviceManager.stop()
+    process.exit(0)
+  }
+  process.on('SIGINT', shutdown)
+  process.on('SIGTERM', shutdown)
 
   console.info(`🍊 Server is running on ${baseUrl}`)
 
   server.listen(port, hostname)
+
+  deviceManager.start()
 }
 
+await ensureElevated()
 main().catch(console.error)
 
 export type { DeviceListResponseItem } from './routes/devices.ts'

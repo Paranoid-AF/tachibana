@@ -24,7 +24,7 @@ export function startRenewalScheduler(options: SchedulerOptions): {
   async function runCheck(): Promise<void> {
     try {
       const expiring = await checkExpiring(thresholdDays)
-      if (expiring.length === 0) {
+      if (!expiring.length) {
         emit({ type: 'renewal:skip' })
         return
       }

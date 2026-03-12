@@ -4,8 +4,10 @@ import { device } from '@tbana/ios-connect'
 import type { ConnectedDevice, Device } from '@tbana/ios-connect'
 
 import { getSession } from '../libs/session.ts'
+import { withSessionRetry } from '../libs/session-guard.ts'
 import { getDeviceMeta, saveDeviceMeta } from '../libs/device-store.ts'
 import { wdaManager } from '../libs/wda-manager.ts'
+import { deviceManager } from '../libs/device-manager.ts'
 
 export interface MergedDeviceInfo extends Omit<
   Partial<ConnectedDevice> & Device,
@@ -38,7 +40,7 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
     const registeredMap = new Map<string, Omit<Device, 'udid'>>()
 
     if (sessionInfo.loggedIn) {
-      const registered = await session.listDevices()
+      const registered = await withSessionRetry(s => s.listDevices())
       for (const d of registered) {
         registeredMap.set(d.udid, { name: d.name, status: d.status })
       }
@@ -116,11 +118,13 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
 
       await session.pairDevice(udid)
 
-      const registered = await session.listDevices()
-      const alreadyRegistered = registered.some(d => d.udid === udid)
-      if (!alreadyRegistered) {
-        await session.registerDevice(udid, name)
-      }
+      await withSessionRetry(async (s) => {
+        const registered = await s.listDevices()
+        const alreadyRegistered = registered.some(d => d.udid === udid)
+        if (!alreadyRegistered) {
+          await s.registerDevice(udid, name)
+        }
+      })
 
       const connectedResult = await device.listConnected()
       if (connectedResult.success) {
@@ -146,15 +150,20 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
   .get('/:udid/screen', async ({ params, set }) => {
     const { udid } = params
 
-    wdaManager.prepare(udid)
+    // Check if DeviceManager already has this device ready
+    const entry = deviceManager.getDevice(udid)
+    let mjpegPort: number | undefined = entry?.wdaState === 'ready' ? entry.mjpegPort : undefined
 
-    let mjpegPort: number
-    try {
-      mjpegPort = await wdaManager.waitUntilReady(udid)
-    } catch (err) {
-      set.status = 503
-      return {
-        message: err instanceof Error ? err.message : 'WDA failed to start',
+    if (!mjpegPort) {
+      // Fallback: trigger WDA prepare and wait
+      wdaManager.prepare(udid)
+      try {
+        mjpegPort = await deviceManager.waitUntilReady(udid)
+      } catch (err) {
+        set.status = 503
+        return {
+          message: err instanceof Error ? err.message : 'WDA failed to start',
+        }
       }
     }
 

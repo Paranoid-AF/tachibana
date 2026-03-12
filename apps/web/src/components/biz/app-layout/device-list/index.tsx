@@ -46,7 +46,7 @@ export function DeviceList() {
           </div>
         ) : (
           <>
-            {devices.length === 0 && (
+            {!devices.length && (
               <p className="text-xs text-muted-foreground px-1 py-2">
                 No devices found.
               </p>
