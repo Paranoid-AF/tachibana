@@ -3,8 +3,6 @@ import { join, dirname } from 'path'
 import { mkdir } from 'fs/promises'
 import { z } from 'zod'
 
-import type { StoredSession } from '@tbana/ios-connect'
-
 const DEFAULT_DEV_PORT = 5173
 const DEFAULT_PROD_PORT = 13370
 
@@ -56,10 +54,6 @@ export function getConfigDir(): string {
 
 function getConfigFilePath(): string {
   return join(getConfigDir(), 'config.json')
-}
-
-function getSessionFilePath(): string {
-  return join(getConfigDir(), 'session.json')
 }
 
 export async function readPersistedConfig(): Promise<PersistedConfig> {
@@ -127,41 +121,3 @@ export const setConfig = async (partial: PersistedConfig): Promise<void> => {
   await Bun.write(path, JSON.stringify(cleaned, null, 2))
 }
 
-// ---------------------------------------------------------------------------
-// session.json — stores sensitive Apple session credentials separately
-// ---------------------------------------------------------------------------
-
-const SessionSchema = z.object({
-  email: z.string(),
-  token: z.string(),
-  duration: z.number(),
-  expiry: z.number(),
-  adsid: z.string(),
-})
-
-/** Read and validate the persisted session. Returns undefined if absent, invalid, or expired. */
-export async function getSessionData(): Promise<StoredSession | undefined> {
-  try {
-    const text = await Bun.file(getSessionFilePath()).text()
-    const data = SessionSchema.parse(JSON.parse(text))
-    return data
-  } catch {
-    return undefined
-  }
-}
-
-/** Persist session credentials to session.json. */
-export async function saveSessionData(data: StoredSession): Promise<void> {
-  const dir = getConfigDir()
-  await mkdir(dir, { recursive: true })
-  await Bun.write(getSessionFilePath(), JSON.stringify(data, null, 2))
-}
-
-/** Remove session.json. */
-export async function clearSessionData(): Promise<void> {
-  try {
-    await Bun.file(getSessionFilePath()).delete()
-  } catch {
-    // already gone
-  }
-}

@@ -41,9 +41,9 @@ class WdaManager {
     return this.entries.get(udid)!
   }
 
-  getState(udid: string): { state: WdaState; error?: string } {
+  getState(udid: string): { state: WdaState; error?: string; mainPort?: number } {
     const entry = this.entries.get(udid)
-    return { state: entry?.state ?? 'idle', error: entry?.error }
+    return { state: entry?.state ?? 'idle', error: entry?.error, mainPort: entry?.mainPort }
   }
 
   waitUntilReady(udid: string, timeoutMs = 90_000): Promise<number> {

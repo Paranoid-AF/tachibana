@@ -13,6 +13,7 @@ import {
 } from './libs/http.ts'
 import { ensureElevated } from './libs/elevate.ts'
 import { deviceManager } from './libs/device-manager.ts'
+import { openDatabase, closeDatabase } from './db/index.ts'
 import type { ViteDevServer } from 'vite'
 
 const isDev = Bun.env.NODE_ENV === 'development'
@@ -78,6 +79,7 @@ const main = async () => {
 
   const shutdown = async () => {
     await deviceManager.stop()
+    closeDatabase()
     process.exit(0)
   }
   process.on('SIGINT', shutdown)
@@ -91,6 +93,7 @@ const main = async () => {
 }
 
 await ensureElevated()
+openDatabase()
 main().catch(console.error)
 
 export type { DeviceListResponseItem } from './routes/devices.ts'

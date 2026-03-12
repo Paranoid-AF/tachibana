@@ -198,6 +198,7 @@ class DeviceManager {
     const wdaState = wdaManager.getState(udid)
     entry.wdaState = wdaState.state
     entry.wdaError = wdaState.error
+    entry.mainPort = wdaState.mainPort
   }
 
   private async cleanupDevice(udid: string): Promise<void> {

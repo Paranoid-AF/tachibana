@@ -147,6 +147,68 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
     return wdaManager.getState(params.udid)
   })
 
+  .post(
+    '/:udid/wda',
+    async ({ params, body, set }) => {
+      const { udid } = params
+      const { method, pathname, payload } = body
+
+      // Lookup device
+      const entry = deviceManager.getDevice(udid)
+      if (!entry || !entry.connected) {
+        set.status = 404
+        return { message: 'Device not found or disconnected' }
+      }
+
+      // Resolve mainPort — auto-start WDA if needed
+      let mainPort = entry.wdaState === 'ready' ? entry.mainPort : undefined
+
+      if (!mainPort) {
+        wdaManager.prepare(udid)
+        try {
+          await deviceManager.waitUntilReady(udid)
+          const refreshed = deviceManager.getDevice(udid)
+          mainPort = refreshed?.mainPort
+        } catch (err) {
+          set.status = 503
+          return {
+            message: err instanceof Error ? err.message : 'WDA failed to start',
+          }
+        }
+        if (!mainPort) {
+          set.status = 503
+          return { message: 'WDA started but mainPort is unavailable' }
+        }
+      }
+
+      // Proxy the request to WDA
+      try {
+        const wdaUrl = `http://localhost:${mainPort}${pathname}`
+        const init: RequestInit = { method }
+        if (payload !== undefined && method !== 'GET') {
+          init.body = JSON.stringify(payload)
+          init.headers = { 'Content-Type': 'application/json' }
+        }
+        const resp = await fetch(wdaUrl, init)
+        const data = await resp.json()
+        set.status = resp.status
+        return data
+      } catch (err) {
+        set.status = 502
+        return {
+          message: `Failed to reach WDA: ${err instanceof Error ? err.message : String(err)}`,
+        }
+      }
+    },
+    {
+      body: t.Object({
+        method: t.Union([t.Literal('GET'), t.Literal('POST'), t.Literal('DELETE')]),
+        pathname: t.String({ pattern: '^/' }),
+        payload: t.Optional(t.Unknown()),
+      }),
+    }
+  )
+
   .get('/:udid/screen', async ({ params, set }) => {
     const { udid } = params
 

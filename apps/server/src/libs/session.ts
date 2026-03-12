@@ -6,12 +6,12 @@ import {
 } from '@tbana/ios-connect'
 import type { NativeSession } from '@tbana/ios-connect'
 
+import { getConfigDir } from './config.ts'
 import {
-  getConfigDir,
   getSessionData,
   saveSessionData,
   clearSessionData,
-} from './config.ts'
+} from '../db/index.ts'
 
 let _initPromise: Promise<void> | null = null
 
@@ -21,7 +21,7 @@ function ensureInitialized(): Promise<void> {
     const dataDir = getConfigDir()
     await mkdir(dataDir, { recursive: true })
 
-    const restoredSession = await getSessionData()
+    const restoredSession = getSessionData()
 
     configureSession({ dataDir, restoredSession })
 
@@ -32,7 +32,7 @@ function ensureInitialized(): Promise<void> {
         console.warn(
           '[ios-connect] Session restore failed, clearing saved session'
         )
-        await clearSessionData()
+        clearSessionData()
       }
     }
   })()
@@ -48,7 +48,7 @@ export async function saveSession(session: NativeSession): Promise<void> {
   try {
     const data = await session.getSessionData()
     if (data) {
-      await saveSessionData(data)
+      saveSessionData(data)
     } else {
       console.warn(
         '[session] getSessionData() returned null, session will not be persisted'
@@ -60,6 +60,6 @@ export async function saveSession(session: NativeSession): Promise<void> {
 }
 
 export async function clearSession(): Promise<void> {
-  await clearSessionData()
+  clearSessionData()
   _initPromise = null
 }
