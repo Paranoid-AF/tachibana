@@ -192,7 +192,9 @@ export function DeviceScreen({ udid, email }: DeviceScreenProps) {
           <SetupHints email={email} />
         </DeviceNotice>
       )}
-      <div className={`relative flex items-center justify-center ${state === 'ready' ? 'w-full h-full' : 'w-0 h-0 overflow-hidden'}`}>
+      <div
+        className={`relative flex items-center justify-center ${state === 'ready' ? 'w-full h-full' : 'w-0 h-0 overflow-hidden'}`}
+      >
         <img
           key={key}
           src={src}
@@ -202,10 +204,7 @@ export function DeviceScreen({ udid, email }: DeviceScreenProps) {
           onError={() => setState('error')}
         />
         {state === 'ready' && windowSize && (
-          <ScreenOverlay
-            udid={udid}
-            windowSize={windowSize}
-          />
+          <ScreenOverlay udid={udid} windowSize={windowSize} />
         )}
       </div>
     </div>

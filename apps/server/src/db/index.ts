@@ -57,7 +57,8 @@ export function closeDatabase(): void {
 }
 
 export function getDb(): BunSQLiteDatabase<typeof schema> {
-  if (!db) throw new Error('Database not initialized — call openDatabase() first')
+  if (!db)
+    throw new Error('Database not initialized — call openDatabase() first')
   return db
 }
 
@@ -79,10 +80,9 @@ function acquireLock(): void {
   } catch (err: any) {
     if (err?.code === 'SQLITE_BUSY') {
       try {
-        const readSqlite = new Database(
-          join(getConfigDir(), 'storage.db'),
-          { readonly: true }
-        )
+        const readSqlite = new Database(join(getConfigDir(), 'storage.db'), {
+          readonly: true,
+        })
         const readDb = drizzle(readSqlite, { schema })
         const row = readDb
           .select()
@@ -176,17 +176,17 @@ export function getDevicePrefs(udid: string): DevicePrefs {
   return { alwaysAwake: row.prefAlwaysAwake === 1 }
 }
 
-export function setDevicePrefs(udid: string, prefs: Partial<DevicePrefs>): void {
+export function setDevicePrefs(
+  udid: string,
+  prefs: Partial<DevicePrefs>
+): void {
   const d = getDb()
   const set: Record<string, unknown> = {}
   if (prefs.alwaysAwake !== undefined) {
     set.prefAlwaysAwake = prefs.alwaysAwake ? 1 : 0
   }
   if (Object.keys(set).length === 0) return
-  d.update(schema.devices)
-    .set(set)
-    .where(eq(schema.devices.udid, udid))
-    .run()
+  d.update(schema.devices).set(set).where(eq(schema.devices.udid, udid)).run()
 }
 
 // ---------------------------------------------------------------------------

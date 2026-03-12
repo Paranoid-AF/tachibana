@@ -72,12 +72,7 @@ export function DevicePage() {
       </DeviceNotice>
     )
   } else {
-    screenContent = (
-      <DeviceScreen
-        udid={udid}
-        email={sessionInfo.email}
-      />
-    )
+    screenContent = <DeviceScreen udid={udid} email={sessionInfo.email} />
   }
 
   return (

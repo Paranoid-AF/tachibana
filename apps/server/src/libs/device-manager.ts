@@ -163,10 +163,7 @@ class DeviceManager {
     }
   }
 
-  private async setupDevice(
-    udid: string,
-    entry: DeviceEntry
-  ): Promise<void> {
+  private async setupDevice(udid: string, entry: DeviceEntry): Promise<void> {
     try {
       // Ensure go-ios kernel tunnel is running
       await ensureTunnel()
@@ -178,8 +175,6 @@ class DeviceManager {
 
       // Wait for WDA to become ready and capture ports
       const mjpegPort = await wdaManager.waitUntilReady(udid)
-      const wdaState = wdaManager.getState(udid)
-
       entry.wdaState = 'ready'
       entry.mjpegPort = mjpegPort
       // mainPort is tracked inside wdaManager; sync it
@@ -207,10 +202,7 @@ class DeviceManager {
     try {
       await wdaManager.stop(udid)
     } catch (err) {
-      console.error(
-        `[DeviceManager] Cleanup error for ${udid.slice(-8)}:`,
-        err
-      )
+      console.error(`[DeviceManager] Cleanup error for ${udid.slice(-8)}:`, err)
     }
   }
 }

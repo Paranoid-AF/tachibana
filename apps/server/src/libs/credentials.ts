@@ -5,11 +5,7 @@ const NAME = 'apple-credentials'
 const secrets = (Bun as any).secrets as
   | {
       get(opts: { service: string; name: string }): Promise<string | null>
-      set(opts: {
-        service: string
-        name: string
-        value: string
-      }): Promise<void>
+      set(opts: { service: string; name: string; value: string }): Promise<void>
       delete(opts: { service: string; name: string }): Promise<boolean>
     }
   | undefined

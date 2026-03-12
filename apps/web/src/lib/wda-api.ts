@@ -11,7 +11,7 @@ export async function wdaFetch(
   udid: string,
   method: 'GET' | 'POST' | 'DELETE',
   pathname: string,
-  payload?: unknown,
+  payload?: unknown
 ): Promise<WdaResponse> {
   const res = await fetch(`/api/devices/${udid}/wda`, {
     method: 'POST',
@@ -51,8 +51,10 @@ function pointerActions(actions: PointerAction[]) {
         id: 'finger1',
         parameters: { pointerType: 'touch' as const },
         actions: actions.map(a => {
-          if (a.type === 'pause') return { type: 'pause', duration: a.duration ?? 0 }
-          if (a.type === 'pointerDown') return { type: 'pointerDown', button: 0 }
+          if (a.type === 'pause')
+            return { type: 'pause', duration: a.duration ?? 0 }
+          if (a.type === 'pointerDown')
+            return { type: 'pointerDown', button: 0 }
           if (a.type === 'pointerUp') return { type: 'pointerUp', button: 0 }
           // pointerMove
           return {
@@ -71,12 +73,17 @@ function pointerActions(actions: PointerAction[]) {
 // --- Typed action helpers ---
 
 export async function tap(udid: string, x: number, y: number) {
-  return wdaFetch(udid, 'POST', `/session/${sid(udid)}/actions`, pointerActions([
-    { type: 'pointerMove', x, y },
-    { type: 'pointerDown' },
-    { type: 'pause', duration: 50 },
-    { type: 'pointerUp' },
-  ]))
+  return wdaFetch(
+    udid,
+    'POST',
+    `/session/${sid(udid)}/actions`,
+    pointerActions([
+      { type: 'pointerMove', x, y },
+      { type: 'pointerDown' },
+      { type: 'pause', duration: 50 },
+      { type: 'pointerUp' },
+    ])
+  )
 }
 
 export async function drag(
@@ -85,14 +92,24 @@ export async function drag(
   fromY: number,
   toX: number,
   toY: number,
-  duration: number,
+  duration: number
 ) {
-  return wdaFetch(udid, 'POST', `/session/${sid(udid)}/actions`, pointerActions([
-    { type: 'pointerMove', x: fromX, y: fromY },
-    { type: 'pointerDown' },
-    { type: 'pointerMove', x: toX, y: toY, duration: Math.round(duration * 1000) },
-    { type: 'pointerUp' },
-  ]))
+  return wdaFetch(
+    udid,
+    'POST',
+    `/session/${sid(udid)}/actions`,
+    pointerActions([
+      { type: 'pointerMove', x: fromX, y: fromY },
+      { type: 'pointerDown' },
+      {
+        type: 'pointerMove',
+        x: toX,
+        y: toY,
+        duration: Math.round(duration * 1000),
+      },
+      { type: 'pointerUp' },
+    ])
+  )
 }
 
 export async function doubleTap(udid: string, x: number, y: number) {
@@ -102,7 +119,12 @@ export async function doubleTap(udid: string, x: number, y: number) {
   })
 }
 
-export async function touchAndHold(udid: string, x: number, y: number, duration: number) {
+export async function touchAndHold(
+  udid: string,
+  x: number,
+  y: number,
+  duration: number
+) {
   return wdaFetch(udid, 'POST', `/session/${sid(udid)}/wda/touchAndHold`, {
     x: Math.round(x),
     y: Math.round(y),
@@ -134,11 +156,15 @@ export async function keys(udid: string, chars: string[]) {
 }
 
 export async function launchApp(udid: string, bundleId: string) {
-  return wdaFetch(udid, 'POST', `/session/${sid(udid)}/wda/apps/launch`, { bundleId })
+  return wdaFetch(udid, 'POST', `/session/${sid(udid)}/wda/apps/launch`, {
+    bundleId,
+  })
 }
 
 export async function terminateApp(udid: string, bundleId: string) {
-  return wdaFetch(udid, 'POST', `/session/${sid(udid)}/wda/apps/terminate`, { bundleId })
+  return wdaFetch(udid, 'POST', `/session/${sid(udid)}/wda/apps/terminate`, {
+    bundleId,
+  })
 }
 
 export interface WindowSize {

@@ -39,9 +39,7 @@ async function extractFileFromZip(
 const ghPlatform = GH_PLATFORM_MAP[process.platform]
 
 if (!ghPlatform) {
-  console.error(
-    `[go-ios] Unsupported platform: ${process.platform}, skipping.`
-  )
+  console.error(`[go-ios] Unsupported platform: ${process.platform}, skipping.`)
   process.exit(0)
 }
 
@@ -166,15 +164,16 @@ if (await Bun.file(ddiManifest).exists()) {
   if (ddiOk) {
     // go-ios expects filenames from BuildManifest.plist — create copies
     // with the expected names (022-20522-020.dmg, Firmware/022-20522-020.dmg.trustcache)
-    const manifest = await Bun.file(
-      join(ddiDir, 'BuildManifest.plist')
-    ).text()
+    const manifest = await Bun.file(join(ddiDir, 'BuildManifest.plist')).text()
     const dmgMatch = manifest.match(
       /<string>(\d{3}-\d{5}-\d{3}\.dmg)<\/string>/
     )
     if (dmgMatch) {
       const dmgName = dmgMatch[1]
-      await Bun.write(join(ddiDir, dmgName), Bun.file(join(ddiDir, 'Image.dmg')))
+      await Bun.write(
+        join(ddiDir, dmgName),
+        Bun.file(join(ddiDir, 'Image.dmg'))
+      )
       await Bun.write(
         join(ddiDir, 'Firmware', `${dmgName}.trustcache`),
         Bun.file(join(ddiDir, 'Image.dmg.trustcache'))

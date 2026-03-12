@@ -280,10 +280,15 @@ export function ControlPanel({ udid }: ControlPanelProps) {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem onSelect={() => handleLaunch(app.bundleId)}>
+                      <DropdownMenuItem
+                        onSelect={() => handleLaunch(app.bundleId)}
+                      >
                         Launch App
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => handleKillAndLaunch(app.bundleId)}>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onSelect={() => handleKillAndLaunch(app.bundleId)}
+                      >
                         Kill and Launch App
                       </DropdownMenuItem>
                     </DropdownMenuContent>

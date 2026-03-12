@@ -120,4 +120,3 @@ export const setConfig = async (partial: PersistedConfig): Promise<void> => {
   await mkdir(dir, { recursive: true })
   await Bun.write(path, JSON.stringify(cleaned, null, 2))
 }
-

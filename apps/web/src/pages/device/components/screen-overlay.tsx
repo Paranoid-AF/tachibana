@@ -13,7 +13,11 @@ interface ScreenOverlayProps {
   highlightRect?: { x: number; y: number; width: number; height: number }
 }
 
-export function ScreenOverlay({ udid, windowSize, highlightRect }: ScreenOverlayProps) {
+export function ScreenOverlay({
+  udid,
+  windowSize,
+  highlightRect,
+}: ScreenOverlayProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
   const downRef = useRef<{ x: number; y: number; time: number } | null>(null)
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -58,7 +62,7 @@ export function ScreenOverlay({ udid, windowSize, highlightRect }: ScreenOverlay
         y: ((clientY - rect.top - imgTop) / imgHeight) * windowSize.height,
       }
     },
-    [windowSize, getImageBounds],
+    [windowSize, getImageBounds]
   )
 
   const onMouseDown = useCallback(
@@ -68,7 +72,7 @@ export function ScreenOverlay({ udid, windowSize, highlightRect }: ScreenOverlay
       downRef.current = { x: pos.x, y: pos.y, time: Date.now() }
       dragActiveRef.current = false
     },
-    [toWda],
+    [toWda]
   )
 
   const onMouseMove = useCallback(
@@ -79,7 +83,7 @@ export function ScreenOverlay({ udid, windowSize, highlightRect }: ScreenOverlay
       const dy = pos.y - downRef.current.y
       if (Math.sqrt(dx * dx + dy * dy) > 10) dragActiveRef.current = true
     },
-    [toWda],
+    [toWda]
   )
 
   const onMouseUp = useCallback(
@@ -115,7 +119,7 @@ export function ScreenOverlay({ udid, windowSize, highlightRect }: ScreenOverlay
         }
       }, 250)
     },
-    [udid, toWda],
+    [udid, toWda]
   )
 
   const onContextMenu = useCallback(
@@ -124,7 +128,7 @@ export function ScreenOverlay({ udid, windowSize, highlightRect }: ScreenOverlay
       const pos = toWda(e.clientX, e.clientY)
       touchAndHold(udid, pos.x, pos.y, 1).catch(() => {})
     },
-    [udid, toWda],
+    [udid, toWda]
   )
 
   const onDoubleClick = useCallback(
@@ -136,7 +140,7 @@ export function ScreenOverlay({ udid, windowSize, highlightRect }: ScreenOverlay
       const pos = toWda(e.clientX, e.clientY)
       doubleTap(udid, pos.x, pos.y).catch(() => {})
     },
-    [udid, toWda],
+    [udid, toWda]
   )
 
   // Compute highlight rect in overlay pixel coordinates (accounting for letterboxing)

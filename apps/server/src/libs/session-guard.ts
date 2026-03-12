@@ -56,10 +56,7 @@ async function attemptRelogin(): Promise<NativeSession> {
         throw new Error('Session expired and 2FA is required to re-login')
       }),
       new Promise<never>((_, reject) =>
-        setTimeout(
-          () => reject(new Error('Auto re-login timed out')),
-          30_000
-        )
+        setTimeout(() => reject(new Error('Auto re-login timed out')), 30_000)
       ),
     ])
 
