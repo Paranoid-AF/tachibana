@@ -2,7 +2,7 @@
  * Persists signing state to ~/.tbana/signing-state.json.
  * Tracks which apps were signed, with which certs, for renewal.
  */
-import { readFile, writeFile, mkdir } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
 import type { SigningRecord, SigningState } from '../types.ts'
@@ -17,7 +17,7 @@ async function ensureDir(): Promise<void> {
 /** Load signing state from disk */
 export async function loadState(): Promise<SigningState> {
   try {
-    const data = await readFile(STATE_FILE, 'utf-8')
+    const data = await Bun.file(STATE_FILE).text()
     return JSON.parse(data) as SigningState
   } catch {
     return { records: [] }
@@ -27,7 +27,7 @@ export async function loadState(): Promise<SigningState> {
 /** Save signing state to disk */
 export async function saveState(state: SigningState): Promise<void> {
   await ensureDir()
-  await writeFile(STATE_FILE, JSON.stringify(state, null, 2), 'utf-8')
+  await Bun.write(STATE_FILE, JSON.stringify(state, null, 2))
 }
 
 /** Add or update a signing record */

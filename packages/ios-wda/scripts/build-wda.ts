@@ -1,6 +1,5 @@
 import { $ } from 'bun'
 import { join } from 'node:path'
-import { existsSync } from 'node:fs'
 import { WdaBuildError } from '../src/errors.ts'
 
 /**
@@ -45,7 +44,7 @@ export async function buildWebDriverAgent(
     }
 
     // Verify archive exists
-    if (!existsSync(archivePath)) {
+    if (!(await Bun.file(archivePath).exists())) {
       throw new WdaBuildError('Archive build failed: .xcarchive not found')
     }
 
@@ -57,7 +56,7 @@ export async function buildWebDriverAgent(
       await $`find ~/Library/Developer/Xcode/DerivedData -path "*/ArchiveIntermediates/WebDriverAgentRunner/*/UninstalledProducts/iphoneos/*.app" -type d | head -1`.text()
 
     const appPath = findAppResult.trim()
-    if (!appPath || !existsSync(appPath)) {
+    if (!appPath || !(await Bun.file(appPath).exists())) {
       throw new WdaBuildError(
         'Build product not found: .app not found in DerivedData'
       )
@@ -78,7 +77,7 @@ export async function buildWebDriverAgent(
     )
 
     // Verify IPA exists
-    if (!existsSync(ipaPath)) {
+    if (!(await Bun.file(ipaPath).exists())) {
       throw new WdaBuildError('IPA creation failed: .ipa file not found')
     }
 

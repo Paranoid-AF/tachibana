@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import type { WdaResolution } from './types.ts'
 import { WdaIpaNotFoundError } from './errors.ts'
@@ -7,11 +6,11 @@ import { WdaIpaNotFoundError } from './errors.ts'
  * Resolve WebDriverAgent IPA path.
  * Priority: WDA_IPA_PATH env > compiled mode assets/ > bundled IPA > error
  */
-export function resolveWdaIpa(): WdaResolution {
+export async function resolveWdaIpa(): Promise<WdaResolution> {
   // 1. Environment variable
-  const envPath = process.env.WDA_IPA_PATH
+  const envPath = Bun.env.WDA_IPA_PATH
   if (envPath) {
-    if (!existsSync(envPath)) {
+    if (!(await Bun.file(envPath).exists())) {
       throw new WdaIpaNotFoundError(
         `WDA_IPA_PATH points to non-existent file: ${envPath}`
       )
@@ -20,10 +19,10 @@ export function resolveWdaIpa(): WdaResolution {
   }
 
   // 2. Tbana bundle: resources are in a separate directory passed via env
-  const resourceDir = process.env.TBANA_RESOURCE_DIR
+  const resourceDir = Bun.env.TBANA_RESOURCE_DIR
   if (resourceDir) {
     const bundledPath = join(resourceDir, 'assets', 'WebDriverAgentRunner.ipa')
-    if (existsSync(bundledPath)) {
+    if (await Bun.file(bundledPath).exists()) {
       return { path: bundledPath, source: 'bundled' }
     }
   }
@@ -38,7 +37,7 @@ export function resolveWdaIpa(): WdaResolution {
     // Look for IPA in assets/ sibling to the compiled server
     const serverDir = dirname(process.execPath)
     const bundledPath = join(serverDir, 'assets', 'WebDriverAgentRunner.ipa')
-    if (existsSync(bundledPath)) {
+    if (await Bun.file(bundledPath).exists()) {
       return { path: bundledPath, source: 'bundled' }
     }
   }
@@ -47,7 +46,7 @@ export function resolveWdaIpa(): WdaResolution {
   const pkgRoot = dirname(import.meta.dirname!)
   const devPath = join(pkgRoot, 'ipa-build', 'WebDriverAgentRunner.ipa')
 
-  if (existsSync(devPath)) {
+  if (await Bun.file(devPath).exists()) {
     return { path: devPath, source: 'bundled' }
   }
 
@@ -62,6 +61,6 @@ export function resolveWdaIpa(): WdaResolution {
 /**
  * Get IPA path (convenience function that just returns the path string)
  */
-export function getWdaIpaPath(): string {
-  return resolveWdaIpa().path
+export async function getWdaIpaPath(): Promise<string> {
+  return (await resolveWdaIpa()).path
 }

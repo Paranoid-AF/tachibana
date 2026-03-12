@@ -1,18 +1,14 @@
-import { execSync, spawn } from 'node:child_process'
-import { platform } from 'node:os'
-import { join, dirname } from 'node:path'
-import { existsSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const __dirname = import.meta.dirname!
 const serverDir = join(__dirname, '..', '..')
 
 /** Resolve the go-ios `ios` binary from apps/server/bin/. */
-function resolveIosBinary(): string {
-  const binName = platform() === 'win32' ? 'ios.exe' : 'ios'
+async function resolveIosBinary(): Promise<string> {
+  const binName = process.platform === 'win32' ? 'ios.exe' : 'ios'
   const binPath = join(serverDir, 'bin', binName)
 
-  if (existsSync(binPath)) return binPath
+  if (await Bun.file(binPath).exists()) return binPath
 
   // Fallback: assume it's on PATH
   return binName
@@ -21,9 +17,9 @@ function resolveIosBinary(): string {
 let iosBinaryPath: string | undefined
 
 /** Get the path to the go-ios `ios` binary. */
-export function getIosBinary(): string {
+export async function getIosBinary(): Promise<string> {
   if (!iosBinaryPath) {
-    iosBinaryPath = resolveIosBinary()
+    iosBinaryPath = await resolveIosBinary()
   }
   return iosBinaryPath
 }
@@ -84,18 +80,19 @@ let ddiMounted = false
  * Ensure the Developer Disk Image is mounted on the device.
  * Required on iOS 17+ to expose testmanagerd and other developer services.
  */
-export function ensureDdiMounted(): void {
+export async function ensureDdiMounted(): Promise<void> {
   if (ddiMounted) return
 
-  const ios = getIosBinary()
+  const ios = await getIosBinary()
   const ddiDir = join(serverDir, 'bin', 'ddi')
 
   // Check if DDI is already mounted
   try {
-    const out = execSync(`"${ios}" image list`, {
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'pipe'],
+    const result = Bun.spawnSync([ios, 'image', 'list'], {
+      stdout: 'pipe',
+      stderr: 'pipe',
     })
+    const out = result.stdout.toString()
     if (!out.includes('"none"')) {
       console.log('[go-ios] DDI already mounted')
       ddiMounted = true
@@ -105,7 +102,7 @@ export function ensureDdiMounted(): void {
     // image list failed, try mounting anyway
   }
 
-  if (!existsSync(join(ddiDir, 'BuildManifest.plist'))) {
+  if (!(await Bun.file(join(ddiDir, 'BuildManifest.plist')).exists())) {
     console.warn(
       '[go-ios] DDI not found at ' +
         ddiDir +
@@ -116,10 +113,13 @@ export function ensureDdiMounted(): void {
 
   console.log('[go-ios] Mounting Developer Disk Image...')
   try {
-    execSync(`"${ios}" image mount --path="${ddiDir}"`, {
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'pipe'],
+    const result = Bun.spawnSync([ios, 'image', 'mount', `--path=${ddiDir}`], {
+      stdout: 'pipe',
+      stderr: 'pipe',
     })
+    if (!result.success) {
+      throw new Error(result.stderr.toString())
+    }
     console.log('[go-ios] DDI mounted successfully')
     ddiMounted = true
   } catch (e) {
@@ -135,14 +135,15 @@ export function ensureDdiMounted(): void {
  * appears. Used by `ensureTunnel` for all platforms.
  */
 async function elevateAndPoll(ios: string): Promise<TunnelInfo> {
-  const plat = platform()
+  const plat = process.platform
 
   // Already root — spawn directly
   if (process.getuid?.() === 0) {
     console.log('[go-ios] Already root, starting tunnel directly...')
-    const proc = spawn(ios, ['tunnel', 'start'], {
-      stdio: 'ignore',
-      detached: true,
+    const proc = Bun.spawn([ios, 'tunnel', 'start'], {
+      stdout: 'ignore',
+      stderr: 'ignore',
+      stdin: 'ignore',
     })
     proc.unref()
   } else if (plat === 'win32') {
@@ -151,11 +152,15 @@ async function elevateAndPoll(ios: string): Promise<TunnelInfo> {
     // without a kernel TUN interface.  Still needs elevation for the
     // underlying device pairing / RemoteXPC handshake.
     const escapedPath = ios.replace(/'/g, "''")
-    execSync(
-      `powershell -Command "Start-Process -FilePath '${escapedPath}' ` +
-        `-ArgumentList 'tunnel','start','--userspace' ` +
-        `-WindowStyle Hidden -Verb RunAs"`,
-      { stdio: 'ignore' }
+    Bun.spawnSync(
+      [
+        'powershell',
+        '-Command',
+        `Start-Process -FilePath '${escapedPath}' ` +
+          `-ArgumentList 'tunnel','start','--userspace' ` +
+          `-WindowStyle Hidden -Verb RunAs`,
+      ],
+      { stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' }
     )
   } else if (plat === 'darwin') {
     console.log('[go-ios] Starting tunnel with admin privileges (macOS)...')
@@ -163,20 +168,20 @@ async function elevateAndPoll(ios: string): Promise<TunnelInfo> {
     // Spawn osascript as a detached process. It shows the system password
     // dialog, then runs the tunnel as root in the foreground. The tunnel
     // stays alive because osascript keeps running. Node doesn't wait.
-    const proc = spawn(
-      'osascript',
+    const proc = Bun.spawn(
       [
+        'osascript',
         '-e',
         `do shell script "\\"${escapedPath}\\" tunnel start" with administrator privileges`,
       ],
-      { stdio: 'ignore', detached: true }
+      { stdout: 'ignore', stderr: 'ignore', stdin: 'ignore' }
     )
     proc.unref()
-  } else if (process.env.DISPLAY || process.env.WAYLAND_DISPLAY) {
+  } else if (Bun.env.DISPLAY || Bun.env.WAYLAND_DISPLAY) {
     console.log('[go-ios] Starting tunnel with pkexec elevation (Linux)...')
-    execSync(
-      `pkexec sh -c '"${ios}" tunnel start >/dev/null 2>&1 &'`,
-      { stdio: 'ignore' }
+    Bun.spawnSync(
+      ['pkexec', 'sh', '-c', `"${ios}" tunnel start >/dev/null 2>&1 &`],
+      { stdin: 'ignore', stdout: 'ignore', stderr: 'ignore' }
     )
   } else {
     throw new Error(
@@ -198,7 +203,7 @@ async function elevateAndPoll(ios: string): Promise<TunnelInfo> {
       )
       return info
     }
-    await new Promise(r => setTimeout(r, 1_000))
+    await Bun.sleep(1_000)
   }
 
   throw new Error(
@@ -226,5 +231,5 @@ export async function ensureTunnel(): Promise<TunnelInfo> {
     return existing
   }
 
-  return elevateAndPoll(getIosBinary())
+  return elevateAndPoll(await getIosBinary())
 }

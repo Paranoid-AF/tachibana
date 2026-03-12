@@ -6,7 +6,6 @@
  * Cached: skips if the platform .node file exists AND dist/rust-src.hash matches current sources.
  * Set SKIP_NAPI_BUILD=1 to skip entirely.
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { $ } from 'bun'
 import { hashElement } from 'folder-hash'
@@ -15,7 +14,7 @@ const PKG_ROOT = dirname(import.meta.dirname!)
 const DIST_DIR = join(PKG_ROOT, 'dist')
 const HASH_FILE = join(DIST_DIR, 'rust-src.hash')
 
-function getNodeFilename(): string {
+async function getNodeFilename(): Promise<string> {
   const platform = process.platform
   const arch = process.arch
 
@@ -39,8 +38,8 @@ function getNodeFilename(): string {
   } else if (platform === 'linux') {
     // Detect musl vs gnu by checking the bun/node binary or ldd
     const isMusl =
-      existsSync('/lib/ld-musl-x86_64.so.1') ||
-      existsSync('/lib/ld-musl-aarch64.so.1')
+      (await Bun.file('/lib/ld-musl-x86_64.so.1').exists()) ||
+      (await Bun.file('/lib/ld-musl-aarch64.so.1').exists())
     abi = isMusl ? '-musl' : '-gnu'
   }
 
@@ -61,19 +60,21 @@ async function computeRustHash(): Promise<string> {
 }
 
 async function buildNapiAddon() {
-  if (process.env.SKIP_NAPI_BUILD === '1') {
+  if (Bun.env.SKIP_NAPI_BUILD === '1') {
     console.log('Skipping napi addon build (SKIP_NAPI_BUILD=1)')
     return
   }
 
-  const nodeFile = join(DIST_DIR, getNodeFilename())
+  const nodeFilename = await getNodeFilename()
+  const nodeFile = join(DIST_DIR, nodeFilename)
   const currentHash = await computeRustHash()
-  const storedHash = existsSync(HASH_FILE)
-    ? readFileSync(HASH_FILE, 'utf8').trim()
+  const hashFileObj = Bun.file(HASH_FILE)
+  const storedHash = (await hashFileObj.exists())
+    ? (await hashFileObj.text()).trim()
     : null
 
-  if (existsSync(nodeFile) && storedHash === currentHash) {
-    console.log(`napi addon up to date: ${getNodeFilename()}`)
+  if ((await Bun.file(nodeFile).exists()) && storedHash === currentHash) {
+    console.log(`napi addon up to date: ${nodeFilename}`)
     return
   }
 
@@ -90,13 +91,13 @@ async function buildNapiAddon() {
     PKG_ROOT
   )
 
-  if (!existsSync(nodeFile)) {
-    console.error(`napi build completed but ${getNodeFilename()} not found`)
+  if (!(await Bun.file(nodeFile).exists())) {
+    console.error(`napi build completed but ${nodeFilename} not found`)
     process.exit(1)
   }
 
-  writeFileSync(HASH_FILE, currentHash)
-  console.log(`  napi addon built: ${getNodeFilename()}`)
+  await Bun.write(HASH_FILE, currentHash)
+  console.log(`  napi addon built: ${nodeFilename}`)
 }
 
 buildNapiAddon().catch(err => {

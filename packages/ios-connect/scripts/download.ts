@@ -9,8 +9,8 @@
  * Set DOWNLOAD_ALL_PLATFORMS=1 to download for all platforms (used in CI).
  * Cached: skips if binary already exists at expected path.
  */
-import { existsSync, mkdirSync, chmodSync, readdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
+import { mkdir, readdir, chmod } from 'node:fs/promises'
 import { $ } from 'bun'
 
 // ── Sideloader ──────────────────────────────────────────────
@@ -52,7 +52,7 @@ function exeExt(tbanaPlatform: string): string {
 }
 
 function getTargetPlatforms(platformMap: Record<string, string>): string[] {
-  if (process.env.DOWNLOAD_ALL_PLATFORMS === '1') {
+  if (Bun.env.DOWNLOAD_ALL_PLATFORMS === '1') {
     return Object.keys(platformMap)
   }
   return [getTbanaPlatform()]
@@ -73,7 +73,7 @@ async function downloadSideloaderForPlatform(tbanaPlatform: string) {
   const binDir = join(PKG_ROOT, 'bin', tbanaPlatform)
   const binaryPath = join(binDir, `sideloader${ext}`)
 
-  if (existsSync(binaryPath)) {
+  if (await Bun.file(binaryPath).exists()) {
     console.log(`Sideloader for ${tbanaPlatform} already exists`)
     return
   }
@@ -81,7 +81,7 @@ async function downloadSideloaderForPlatform(tbanaPlatform: string) {
   console.log(`Downloading Sideloader for ${tbanaPlatform}...`)
 
   const tmpDir = join(PKG_ROOT, `.tmp-download-sideloader-${tbanaPlatform}`)
-  mkdirSync(tmpDir, { recursive: true })
+  await mkdir(tmpDir, { recursive: true })
 
   try {
     await $`gh run download ${SIDELOADER_RUN_ID} -R ${SIDELOADER_REPO} -n ${artifactName} -D ${tmpDir}`
@@ -89,17 +89,17 @@ async function downloadSideloaderForPlatform(tbanaPlatform: string) {
     const binaryName = SIDELOADER_BINARY_NAME[tbanaPlatform]!
     const sourcePath = join(tmpDir, binaryName)
 
-    if (!existsSync(sourcePath)) {
-      const files = readdirSync(tmpDir)
+    if (!(await Bun.file(sourcePath).exists())) {
+      const files = await readdir(tmpDir)
       console.error(
         `  Expected binary '${binaryName}', found: ${files.join(', ')}`
       )
       return
     }
 
-    mkdirSync(binDir, { recursive: true })
+    await mkdir(binDir, { recursive: true })
     await $`mv ${sourcePath} ${binaryPath}`
-    chmodSync(binaryPath, 0o755)
+    await chmod(binaryPath, 0o755)
     console.log(`  Sideloader binary installed to ${binaryPath}`)
   } finally {
     await $`rm -rf ${tmpDir}`.quiet().nothrow()
@@ -107,7 +107,7 @@ async function downloadSideloaderForPlatform(tbanaPlatform: string) {
 }
 
 async function downloadSideloader() {
-  if (process.env.SKIP_SIDELOADER_DOWNLOAD === '1') {
+  if (Bun.env.SKIP_SIDELOADER_DOWNLOAD === '1') {
     console.log('Skipping Sideloader download (SKIP_SIDELOADER_DOWNLOAD=1)')
     return
   }

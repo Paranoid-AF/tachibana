@@ -5,13 +5,11 @@
  * On Windows, also downloads wintun.dll (required for iOS 17+ tunnel).
  */
 
-import { existsSync, mkdirSync, writeFileSync, chmodSync } from 'node:fs'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { platform, arch } from 'node:os'
-import { inflateRawSync } from 'node:zlib'
+import JSZip from 'jszip'
+import { join } from 'node:path'
+import { mkdir, chmod } from 'node:fs/promises'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const __dirname = import.meta.dirname!
 const serverDir = join(__dirname, '..')
 const binDir = join(serverDir, 'bin')
 
@@ -28,53 +26,33 @@ const GH_PLATFORM_MAP: Record<string, string> = {
 }
 
 /** Extract a single file from a .zip buffer by entry path. */
-function extractFileFromZip(zipBuf: Buffer, entryPath: string): Buffer | null {
-  let offset = 0
-  while (offset + 30 <= zipBuf.length) {
-    // Local file header signature: PK\x03\x04
-    if (
-      zipBuf[offset] !== 0x50 ||
-      zipBuf[offset + 1] !== 0x4b ||
-      zipBuf[offset + 2] !== 0x03 ||
-      zipBuf[offset + 3] !== 0x04
-    )
-      break
-
-    const method = zipBuf.readUInt16LE(offset + 8)
-    const compressedSize = zipBuf.readUInt32LE(offset + 18)
-    const nameLen = zipBuf.readUInt16LE(offset + 26)
-    const extraLen = zipBuf.readUInt16LE(offset + 28)
-    const name = zipBuf
-      .subarray(offset + 30, offset + 30 + nameLen)
-      .toString('utf-8')
-    const dataStart = offset + 30 + nameLen + extraLen
-
-    if (name === entryPath) {
-      const raw = zipBuf.subarray(dataStart, dataStart + compressedSize)
-      if (method === 0) return Buffer.from(raw) // stored
-      if (method === 8) return inflateRawSync(raw) // deflated
-      throw new Error(`Unsupported zip compression method ${method}`)
-    }
-    offset = dataStart + compressedSize
-  }
-  return null
+async function extractFileFromZip(
+  zipData: Uint8Array,
+  entryPath: string
+): Promise<Uint8Array | null> {
+  const zip = await JSZip.loadAsync(zipData)
+  const file = zip.file(entryPath)
+  if (!file) return null
+  return new Uint8Array(await file.async('arraybuffer'))
 }
 
-const ghPlatform = GH_PLATFORM_MAP[platform()]
+const ghPlatform = GH_PLATFORM_MAP[process.platform]
 
 if (!ghPlatform) {
-  console.error(`[go-ios] Unsupported platform: ${platform()}, skipping.`)
+  console.error(
+    `[go-ios] Unsupported platform: ${process.platform}, skipping.`
+  )
   process.exit(0)
 }
 
-const binName = platform() === 'win32' ? 'ios.exe' : 'ios'
+const binName = process.platform === 'win32' ? 'ios.exe' : 'ios'
 const destPath = join(binDir, binName)
 
-mkdirSync(binDir, { recursive: true })
+await mkdir(binDir, { recursive: true })
 
 // ── go-ios binary ───────────────────────────────────────────────────────
 
-if (existsSync(destPath)) {
+if (await Bun.file(destPath).exists()) {
   console.log(`[go-ios] Binary already exists at ${destPath}, skipping.`)
 } else {
   const zipUrl =
@@ -87,22 +65,22 @@ if (existsSync(destPath)) {
     console.error(`[go-ios] Failed to download release zip: ${res.status}`)
     process.exit(1)
   }
-  const zipBuf = Buffer.from(await res.arrayBuffer())
+  const zipData = new Uint8Array(await res.arrayBuffer())
 
-  const extracted = extractFileFromZip(zipBuf, binName)
+  const extracted = await extractFileFromZip(zipData, binName)
   if (extracted) {
-    writeFileSync(destPath, extracted)
+    await Bun.write(destPath, extracted)
   }
 
-  if (!existsSync(destPath)) {
+  if (!(await Bun.file(destPath).exists())) {
     console.error(
       `[go-ios] Binary not found after extraction. Expected "${binName}" in zip.`
     )
     process.exit(1)
   }
 
-  if (platform() !== 'win32') {
-    chmodSync(destPath, 0o755)
+  if (process.platform !== 'win32') {
+    await chmod(destPath, 0o755)
   }
 
   console.log(`[go-ios] Installed ${binName} to ${binDir}`)
@@ -110,9 +88,9 @@ if (existsSync(destPath)) {
 
 // ── wintun.dll (Windows only) ───────────────────────────────────────────
 
-if (platform() === 'win32') {
+if (process.platform === 'win32') {
   const wintunPath = join(binDir, 'wintun.dll')
-  if (existsSync(wintunPath)) {
+  if (await Bun.file(wintunPath).exists()) {
     console.log(`[go-ios] wintun.dll already exists, skipping.`)
   } else {
     const wintunUrl = `https://www.wintun.net/builds/wintun-${WINTUN_VERSION}.zip`
@@ -126,16 +104,20 @@ if (platform() === 'win32') {
           `and place wintun.dll next to ios.exe.`
       )
     } else {
-      const zipBuf = Buffer.from(await wintunRes.arrayBuffer())
+      const zipData = new Uint8Array(await wintunRes.arrayBuffer())
 
       const wintunArch =
-        arch() === 'ia32' ? 'x86' : arch() === 'x64' ? 'amd64' : arch()
+        process.arch === 'ia32'
+          ? 'x86'
+          : process.arch === 'x64'
+            ? 'amd64'
+            : process.arch
       const zipEntry = `wintun/bin/${wintunArch}/wintun.dll`
 
       try {
-        const dll = extractFileFromZip(zipBuf, zipEntry)
+        const dll = await extractFileFromZip(zipData, zipEntry)
         if (!dll) throw new Error(`Entry "${zipEntry}" not found in zip`)
-        writeFileSync(wintunPath, dll)
+        await Bun.write(wintunPath, dll)
         console.log(`[go-ios] Installed wintun.dll to ${binDir}`)
       } catch {
         console.error(
@@ -153,11 +135,11 @@ if (platform() === 'win32') {
 const ddiDir = join(binDir, 'ddi')
 const ddiManifest = join(ddiDir, 'BuildManifest.plist')
 
-if (existsSync(ddiManifest)) {
+if (await Bun.file(ddiManifest).exists()) {
   console.log(`[go-ios] DDI already exists at ${ddiDir}, skipping.`)
 } else {
   console.log(`[go-ios] Downloading Developer Disk Image...`)
-  mkdirSync(join(ddiDir, 'Firmware'), { recursive: true })
+  await mkdir(join(ddiDir, 'Firmware'), { recursive: true })
 
   const files = [
     { name: 'BuildManifest.plist', dest: join(ddiDir, 'BuildManifest.plist') },
@@ -177,25 +159,25 @@ if (existsSync(ddiManifest)) {
       ddiOk = false
       break
     }
-    writeFileSync(f.dest, Buffer.from(await res.arrayBuffer()))
+    await Bun.write(f.dest, new Uint8Array(await res.arrayBuffer()))
     console.log(`[go-ios]   ${f.name} downloaded`)
   }
 
   if (ddiOk) {
     // go-ios expects filenames from BuildManifest.plist — create copies
     // with the expected names (022-20522-020.dmg, Firmware/022-20522-020.dmg.trustcache)
-    const { readFileSync: readFile } = await import('node:fs')
-    const manifest = readFile(join(ddiDir, 'BuildManifest.plist'), 'utf-8')
+    const manifest = await Bun.file(
+      join(ddiDir, 'BuildManifest.plist')
+    ).text()
     const dmgMatch = manifest.match(
       /<string>(\d{3}-\d{5}-\d{3}\.dmg)<\/string>/
     )
     if (dmgMatch) {
       const dmgName = dmgMatch[1]
-      const { copyFileSync } = await import('node:fs')
-      copyFileSync(join(ddiDir, 'Image.dmg'), join(ddiDir, dmgName))
-      copyFileSync(
-        join(ddiDir, 'Image.dmg.trustcache'),
-        join(ddiDir, 'Firmware', `${dmgName}.trustcache`)
+      await Bun.write(join(ddiDir, dmgName), Bun.file(join(ddiDir, 'Image.dmg')))
+      await Bun.write(
+        join(ddiDir, 'Firmware', `${dmgName}.trustcache`),
+        Bun.file(join(ddiDir, 'Image.dmg.trustcache'))
       )
       console.log(`[go-ios]   Created ${dmgName} aliases for go-ios`)
     }

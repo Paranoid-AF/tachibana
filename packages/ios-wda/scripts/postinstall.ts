@@ -1,11 +1,5 @@
 import { join } from 'node:path'
-import {
-  existsSync,
-  mkdirSync,
-  copyFileSync,
-  writeFileSync,
-  readFileSync,
-} from 'node:fs'
+import { mkdir } from 'node:fs/promises'
 import { checkXcode } from './check-xcode.ts'
 import { resolveWdaPackage } from './resolve-wda-package.ts'
 import { buildWebDriverAgent } from './build-wda.ts'
@@ -19,9 +13,9 @@ const VERSION_FILE = join(BUILD_DIR, 'wda-version.json')
 /**
  * Check if build should be skipped
  */
-function shouldSkipBuild(): boolean {
+async function shouldSkipBuild(): Promise<boolean> {
   // Check SKIP_WDA_BUILD environment variable
-  if (process.env.SKIP_WDA_BUILD === '1') {
+  if (Bun.env.SKIP_WDA_BUILD === '1') {
     console.log('[ios-wda] SKIP_WDA_BUILD=1, skipping build')
     return true
   }
@@ -38,7 +32,7 @@ function shouldSkipBuild(): boolean {
   }
 
   // Check if IPA already exists
-  if (existsSync(IPA_PATH)) {
+  if (await Bun.file(IPA_PATH).exists()) {
     console.log('[ios-wda] WebDriverAgent IPA already exists, skipping build')
     return true
   }
@@ -53,7 +47,7 @@ async function main() {
   console.log('[ios-wda] Running postinstall...')
 
   // Check if build should be skipped
-  if (shouldSkipBuild()) {
+  if (await shouldSkipBuild()) {
     process.exit(0)
   }
 
@@ -106,30 +100,28 @@ async function main() {
 
   try {
     // Create build directory
-    if (!existsSync(BUILD_DIR)) {
-      mkdirSync(BUILD_DIR, { recursive: true })
-    }
+    await mkdir(BUILD_DIR, { recursive: true })
 
     // Resolve WDA package from node_modules
-    wdaSourceDir = resolveWdaPackage()
+    wdaSourceDir = await resolveWdaPackage()
 
     // Build unsigned IPA
     const builtIpaPath = await buildWebDriverAgent(wdaSourceDir)
 
     // Copy IPA to build directory
     console.log('[ios-wda] Copying IPA to build directory...')
-    copyFileSync(builtIpaPath, IPA_PATH)
+    await Bun.write(IPA_PATH, Bun.file(builtIpaPath))
 
     // Write version metadata
     const packageJson = JSON.parse(
-      readFileSync(join(wdaSourceDir, 'package.json'), 'utf-8')
+      await Bun.file(join(wdaSourceDir, 'package.json')).text()
     )
     const versionInfo: WdaVersionInfo = {
       wdaVersion: packageJson.version,
       builtAt: new Date().toISOString(),
       xcodeVersion: xcodeInfo.version?.toString(),
     }
-    writeFileSync(VERSION_FILE, JSON.stringify(versionInfo, null, 2), 'utf-8')
+    await Bun.write(VERSION_FILE, JSON.stringify(versionInfo, null, 2))
 
     console.log('[ios-wda] ✓ WebDriverAgent IPA built successfully!')
     console.log(`[ios-wda] Location: ${IPA_PATH}`)

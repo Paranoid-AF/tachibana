@@ -1,4 +1,3 @@
-import { spawn, type ChildProcess } from 'node:child_process'
 import {
   tunnel,
   wdaClient,
@@ -28,7 +27,7 @@ interface WdaEntry {
   mainPort?: number
   mjpegPort?: number
   wdaSession?: InstanceType<typeof WdaSession>
-  goIosProc?: ChildProcess
+  goIosProc?: ReturnType<typeof Bun.spawn>
   waiters: Array<(entry: WdaEntry) => void>
 }
 
@@ -183,7 +182,7 @@ class WdaManager {
       log(`Health check #${attempt}: ${healthy ? 'healthy' : 'not ready'}`)
       if (healthy)
         return { mainPort, mjpegPort, wdaSession, healthy: true as const }
-      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
+      await Bun.sleep(POLL_INTERVAL_MS)
     }
 
     return { mainPort, mjpegPort, wdaSession, healthy: false as const }
@@ -198,18 +197,18 @@ class WdaManager {
     log: (msg: string) => void
   ) {
     // Ensure DDI is mounted (required for testmanagerd on iOS 17+)
-    ensureDdiMounted()
+    await ensureDdiMounted()
 
     // Ensure tunnel is running (required for runwda)
     await ensureTunnel()
     log('go-ios tunnel ready')
 
-    const ios = getIosBinary()
+    const ios = await getIosBinary()
     log('Launching WDA via go-ios runwda...')
 
-    const proc = spawn(
-      ios,
+    const proc = Bun.spawn(
       [
+        ios,
         'runwda',
         `--bundleid=${bundleId}`,
         `--testrunnerbundleid=${bundleId}`,
@@ -219,7 +218,9 @@ class WdaManager {
         `--udid=${udid}`,
       ],
       {
-        stdio: ['ignore', 'pipe', 'pipe'],
+        stdout: 'pipe',
+        stderr: 'pipe',
+        stdin: 'ignore',
       }
     )
     entry.goIosProc = proc
@@ -232,34 +233,50 @@ class WdaManager {
       }, 10_000)
 
       let output = ''
-      const onData = (data: Buffer) => {
-        const chunk = data.toString()
-        output += chunk
-        for (const line of chunk.split('\n')) {
-          const trimmed = line.trim()
-          if (trimmed) log(`runwda: ${trimmed}`)
-        }
-        // go-ios prints "ServerURLHere" when WDA HTTP server is ready
-        if (output.includes('ServerURLHere')) {
-          clearTimeout(timeout)
-          resolve()
+      let settled = false
+
+      const settle = (fn: () => void) => {
+        if (settled) return
+        settled = true
+        clearTimeout(timeout)
+        fn()
+      }
+
+      // Read stdout
+      const readStream = async (stream: ReadableStream<Uint8Array>) => {
+        const reader = stream.getReader()
+        const decoder = new TextDecoder()
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            const chunk = decoder.decode(value, { stream: true })
+            output += chunk
+            for (const line of chunk.split('\n')) {
+              const trimmed = line.trim()
+              if (trimmed) log(`runwda: ${trimmed}`)
+            }
+            // go-ios prints "ServerURLHere" when WDA HTTP server is ready
+            if (output.includes('ServerURLHere')) {
+              settle(() => resolve())
+            }
+          }
+        } catch {
+          // stream closed
         }
       }
 
-      proc.stdout?.on('data', onData)
-      proc.stderr?.on('data', onData)
+      readStream(proc.stdout)
+      readStream(proc.stderr)
 
-      proc.on('error', err => {
-        clearTimeout(timeout)
-        reject(err)
-      })
-
-      proc.on('exit', code => {
-        clearTimeout(timeout)
+      // Handle process exit
+      proc.exited.then(code => {
         if (!output.includes('ServerURLHere')) {
-          reject(
-            new Error(
-              `go-ios runwda exited with code ${code} before WDA started`
+          settle(() =>
+            reject(
+              new Error(
+                `go-ios runwda exited with code ${code} before WDA started`
+              )
             )
           )
         }
@@ -307,7 +324,7 @@ class WdaManager {
     log(`Using team ${teamId}`)
 
     // Resolve WDA IPA
-    const { path: ipaPath } = resolveWdaIpa()
+    const { path: ipaPath } = await resolveWdaIpa()
     log(`WDA IPA: ${ipaPath}`)
 
     // Reuse stored bundle ID from config to avoid burning free-tier bundle ID slots
