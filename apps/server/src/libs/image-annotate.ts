@@ -1,10 +1,18 @@
 import sharp from 'sharp'
 
+export interface AnnotatedCoordinate {
+  full: string   // base64 PNG — full screenshot with crosshair
+  crop: string   // base64 PNG — cropped close-up around intersection
+}
+
+// Crop radius in WDA points around the intersection
+const CROP_RADIUS_PT = 80
+
 export async function annotateScreenshot(
   screenshotBase64: string,
   coordinates: Array<{ x: number; y: number }>,
   wdaSize: { width: number; height: number }
-): Promise<string[]> {
+): Promise<AnnotatedCoordinate[]> {
   const imgBuf = Buffer.from(screenshotBase64, 'base64')
   const metadata = await sharp(imgBuf).metadata()
   const imgW = metadata.width!
@@ -18,14 +26,15 @@ export async function annotateScreenshot(
 
   const channels = 4 // ensureAlpha guarantees RGBA
   const scale = imgW / wdaSize.width
+  const cropRadiusPx = Math.round(CROP_RADIUS_PT * scale)
 
-  const results: string[] = []
+  const results: AnnotatedCoordinate[] = []
 
   for (let i = 0; i < coordinates.length; i++) {
     const { x, y } = coordinates[i]
 
-    let pixelX = Math.max(0, Math.min(Math.round(x * scale), imgW - 1))
-    let pixelY = Math.max(0, Math.min(Math.round(y * scale), imgH - 1))
+    const pixelX = Math.max(0, Math.min(Math.round(x * scale), imgW - 1))
+    const pixelY = Math.max(0, Math.min(Math.round(y * scale), imgH - 1))
 
     const lineWidth = Math.max(2, Math.round(imgW / 400))
     const halfLW = Math.floor(lineWidth / 2)
@@ -74,12 +83,31 @@ export async function annotateScreenshot(
   <text x="${pixelX}" y="${pixelY}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="${fontSize}" font-weight="bold" fill="white">${label}</text>
 </svg>`
 
-    const annotated = await sharp(buf, { raw: { width: imgW, height: imgH, channels } })
+    const annotatedBuf = await sharp(buf, { raw: { width: imgW, height: imgH, channels } })
       .composite([{ input: Buffer.from(labelSvg), top: 0, left: 0 }])
       .png()
       .toBuffer()
 
-    results.push(annotated.toString('base64'))
+    // Crop close-up around intersection
+    const cropLeft = Math.max(0, pixelX - cropRadiusPx)
+    const cropTop = Math.max(0, pixelY - cropRadiusPx)
+    const cropRight = Math.min(imgW, pixelX + cropRadiusPx)
+    const cropBottom = Math.min(imgH, pixelY + cropRadiusPx)
+
+    const cropBuf = await sharp(annotatedBuf)
+      .extract({
+        left: cropLeft,
+        top: cropTop,
+        width: cropRight - cropLeft,
+        height: cropBottom - cropTop,
+      })
+      .png()
+      .toBuffer()
+
+    results.push({
+      full: annotatedBuf.toString('base64'),
+      crop: cropBuf.toString('base64'),
+    })
   }
 
   return results

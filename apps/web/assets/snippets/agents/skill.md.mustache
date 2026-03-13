@@ -66,7 +66,7 @@ Get the device control coordinate space. All coordinate-based tools use this ran
 - Returns: `{ "width", "height" }`
 
 #### `mark_coordinates`
-Visually verify coordinates before performing device control actions. Returns one annotated screenshot per coordinate with crosshair markers.
+Visually verify coordinates before performing device control actions. Returns one annotated screenshot per coordinate. Each image has a full-screen crosshair: a horizontal line spanning the full width and a vertical line spanning the full height. The point where these two lines intersect is the EXACT coordinate that will be acted on. A small numbered badge sits at the intersection. Lines use per-pixel color negation for visibility. To verify: look ONLY at the intersection point and confirm it lands on the intended UI element.
 - `udid` (string, required) — Device UDID
 - `coordinates` (array, required) — Array of `{ x, y }` in device control points
 - Returns: MCP content format with one image per coordinate

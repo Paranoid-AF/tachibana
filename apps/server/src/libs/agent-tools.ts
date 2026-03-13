@@ -604,7 +604,7 @@ const getDeviceControlSize: ToolDefinition = {
 
 const markCoordinates: ToolDefinition = {
   name: 'mark_coordinates',
-  description: 'Visually verify coordinates before performing device control actions. Returns one annotated screenshot per coordinate with crosshair markers.',
+  description: 'Visually verify coordinates before performing device control actions. Returns one annotated screenshot per coordinate. Each image has a full-screen crosshair: a horizontal line spanning the full width and a vertical line spanning the full height. The point where these two lines intersect is the EXACT coordinate that will be acted on. A small numbered badge sits at the intersection. Lines use per-pixel color negation for visibility. To verify: look ONLY at the intersection point and confirm it lands on the intended UI element.',
   inputSchema: MarkCoordinatesSchema,
   handler: async ({ udid, coordinates }) => {
     const { mainPort, sessionId } = await ensureWda(udid)
@@ -617,11 +617,16 @@ const markCoordinates: ToolDefinition = {
     const annotatedImages = await annotateScreenshot(base64, coordinates, windowSize)
 
     return {
-      content: annotatedImages.map(data => ({
-        type: 'image' as const,
-        data,
-        mimeType: 'image/png',
-      })),
+      content: [
+        { type: 'text' as const, text: 'Original screenshot (without markers):' },
+        { type: 'image' as const, data: base64, mimeType: 'image/png' },
+        ...annotatedImages.flatMap(({ full, crop }, idx) => [
+          { type: 'text' as const, text: `Coordinate ${idx} (${coordinates[idx].x}, ${coordinates[idx].y}) — full crosshair:` },
+          { type: 'image' as const, data: full, mimeType: 'image/png' },
+          { type: 'text' as const, text: `Coordinate ${idx} — close-up around intersection (this is what will be tapped):` },
+          { type: 'image' as const, data: crop, mimeType: 'image/png' },
+        ]),
+      ],
     }
   },
 }
