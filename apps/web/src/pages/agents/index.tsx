@@ -1,6 +1,13 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Copy, Download, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
+import {
+  Copy,
+  Download,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Trash2,
+} from 'lucide-react'
 import JSZip from 'jszip'
 import Mustache from 'mustache'
 
@@ -164,9 +171,7 @@ export function AgentsPage() {
     setCopiedItem(item)
   }
 
-  const rendered = revealedAgent
-    ? renderTemplates(revealedAgent.key)
-    : null
+  const rendered = revealedAgent ? renderTemplates(revealedAgent.key) : null
 
   return (
     <AppLayout>
@@ -373,7 +378,7 @@ export function AgentsPage() {
                 <DialogTitle>Setup your agent</DialogTitle>
                 <DialogDescription>
                   This window includes your secret key &mdash; it will only be
-                  shown once.
+                  shown once. Keep it open until finishing the setup.
                 </DialogDescription>
               </DialogHeader>
 
@@ -389,8 +394,8 @@ export function AgentsPage() {
                     <span className="font-semibold">AgentSkill</span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Download a ZIP containing a SKILL.md file with connection
-                    info and API reference for your agent.
+                    Works with OpenClaw and more latest agents, providing atomic
+                    operations over devices.
                   </p>
                   <Button
                     variant="outline"
@@ -405,7 +410,8 @@ export function AgentsPage() {
                     Download ZIP
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Place this file in your agent&apos;s working directory.
+                    Search the web if you don&apos;t know what to do with your
+                    agent.
                   </p>
                 </div>
 
@@ -427,8 +433,7 @@ export function AgentsPage() {
                       size="icon"
                       className="absolute top-1 right-1 h-7 w-7"
                       onClick={() =>
-                        rendered &&
-                        copyToClipboard(rendered.mcpJson, 'mcp')
+                        rendered && copyToClipboard(rendered.mcpJson, 'mcp')
                       }
                     >
                       <Copy className="w-3.5 h-3.5" />
