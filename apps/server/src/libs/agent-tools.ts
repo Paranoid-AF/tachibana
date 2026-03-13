@@ -1,12 +1,13 @@
 import { z } from 'zod'
 
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
-import { apps, photos } from '@tbana/ios-connect'
+import { photos } from '@tbana/ios-connect'
 
 import { deviceManager } from './device-manager.ts'
 import { wdaManager } from './wda-manager.ts'
 import { getDevicePrefs, setDevicePrefs } from './device-store.ts'
-import { getConfig } from './config.ts'
+import { ensureWdaPorts, getFilteredApps, downloadPhotoToCache, ensureCompatibleImage } from './idevice-utils.ts'
+import { MEDIA_MIME_TYPES } from '../consts/idevice.ts'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,22 +29,7 @@ export interface ToolDefinition {
 async function ensureWda(
   udid: string
 ): Promise<{ mainPort: number; sessionId: string }> {
-  const device = deviceManager.getDevice(udid)
-  if (!device || !device.connected) {
-    throw new Error(`Device ${udid} not found or disconnected`)
-  }
-
-  let mainPort = device.wdaState === 'ready' ? device.mainPort : undefined
-
-  if (!mainPort) {
-    wdaManager.prepare(udid)
-    await deviceManager.waitUntilReady(udid)
-    mainPort = wdaManager.getState(udid).mainPort
-  }
-
-  if (!mainPort) {
-    throw new Error('WDA started but mainPort is unavailable')
-  }
+  const { mainPort } = await ensureWdaPorts(udid)
 
   const sessionId = wdaManager.getSessionId(udid)
   if (!sessionId) {
@@ -82,51 +68,6 @@ function textResult(data: Record<string, unknown>): CallToolResult {
   }
 }
 
-// Well-known Apple system apps visible on the home screen
-const VISIBLE_SYSTEM_APPS = new Set([
-  'com.apple.Preferences',
-  'com.apple.mobilesafari',
-  'com.apple.mobilephone',
-  'com.apple.MobileSMS',
-  'com.apple.mobileslideshow',
-  'com.apple.camera',
-  'com.apple.Maps',
-  'com.apple.weather',
-  'com.apple.mobiletimer',
-  'com.apple.calculator',
-  'com.apple.compass',
-  'com.apple.measure',
-  'com.apple.Music',
-  'com.apple.Fitness',
-  'com.apple.news',
-  'com.apple.stocks',
-  'com.apple.iBooks',
-  'com.apple.AppStore',
-  'com.apple.Health',
-  'com.apple.Passbook',
-  'com.apple.Home',
-  'com.apple.findmy',
-  'com.apple.shortcuts',
-  'com.apple.VoiceMemos',
-  'com.apple.mobilemail',
-  'com.apple.reminders',
-  'com.apple.mobilenotes',
-  'com.apple.freeform',
-  'com.apple.facetime',
-  'com.apple.MobileAddressBook',
-  'com.apple.podcasts',
-  'com.apple.tv',
-  'com.apple.DocumentsApp',
-  'com.apple.tips',
-  'com.apple.Translate',
-  'com.apple.MobileStore',
-  'com.apple.clips',
-  'com.apple.Pages',
-  'com.apple.Numbers',
-  'com.apple.Keynote',
-  'com.apple.iMovie',
-  'com.apple.garageband',
-])
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -561,25 +502,7 @@ const listApps: ToolDefinition = {
   inputSchema: ListAppsSchema,
   outputSchema: ListAppsOutputSchema,
   handler: async ({ udid }) => {
-    const [userResult, systemResult] = await Promise.all([
-      apps.listInstalledApps(udid, 'User'),
-      apps.listInstalledApps(udid, 'System'),
-    ])
-    if (!userResult.success) {
-      throw new Error(userResult.error.message)
-    }
-
-    const systemApps = systemResult.success
-      ? systemResult.data.filter(app => VISIBLE_SYSTEM_APPS.has(app.bundleId))
-      : []
-
-    const config = await getConfig()
-    const wdaBundleId = config.wda.bundleId
-    const allApps = [...userResult.data, ...systemApps]
-    const filtered = allApps.filter(
-      app => !wdaBundleId || !app.bundleId.startsWith(wdaBundleId)
-    )
-
+    const filtered = await getFilteredApps(udid)
     return textResult({
       apps: filtered.map(app => ({
         bundleId: app.bundleId,
@@ -633,39 +556,13 @@ const downloadPhoto: ToolDefinition = {
   description: 'Download a photo from the device and return it as base64',
   inputSchema: DownloadPhotoSchema,
   handler: async ({ udid, path: remotePath }) => {
-    // Security: only allow DCIM paths, reject traversal
-    if (!remotePath.startsWith('/DCIM/') || remotePath.includes('..')) {
-      throw new Error('Only /DCIM/ paths are allowed')
-    }
+    const { localPath, ext } = await downloadPhotoToCache(udid, remotePath)
+    const { filePath, mimeExt } = await ensureCompatibleImage(localPath, ext)
 
-    const { tmpdir } = await import('os')
-    const { join, extname } = await import('path')
-    const { mkdirSync, existsSync, readFileSync } = await import('fs')
-
-    const cacheDir = join(tmpdir(), 'tachibana-photos', udid)
-    const ext = extname(remotePath).toLowerCase()
-    const hash = new Bun.CryptoHasher('sha256').update(remotePath).digest('hex')
-    const localPath = join(cacheDir, `${hash}${ext}`)
-
-    if (!existsSync(localPath)) {
-      mkdirSync(cacheDir, { recursive: true })
-      const result = await photos.downloadPhoto(udid, remotePath, localPath)
-      if (!result.success) {
-        throw new Error(result.error.message)
-      }
-    }
-
-    const buffer = readFileSync(localPath)
-    const base64 = buffer.toString('base64')
-
-    const mimeMap: Record<string, string> = {
-      '.heic': 'image/heic',
-      '.jpg': 'image/jpeg',
-      '.jpeg': 'image/jpeg',
-      '.png': 'image/png',
-      '.gif': 'image/gif',
-    }
-    const mimeType = mimeMap[ext] ?? 'application/octet-stream'
+    const base64 = Buffer.from(
+      await Bun.file(filePath).arrayBuffer()
+    ).toString('base64')
+    const mimeType = MEDIA_MIME_TYPES[mimeExt] ?? 'application/octet-stream'
 
     return {
       content: [{ type: 'image' as const, data: base64, mimeType }],

@@ -1,11 +1,8 @@
 import { Elysia, t } from 'elysia'
 
-import { mkdirSync, existsSync } from 'fs'
-import { tmpdir } from 'os'
-import { join, extname } from 'path'
-import convert from 'heic-convert'
+import { join } from 'path'
 
-import { device, apps, photos } from '@tbana/ios-connect'
+import { device, photos } from '@tbana/ios-connect'
 import type { ConnectedDevice, Device } from '@tbana/ios-connect'
 
 import { getSession } from '../libs/session.ts'
@@ -16,9 +13,9 @@ import {
   getDevicePrefs,
   setDevicePrefs,
 } from '../libs/device-store.ts'
-import { getConfig } from '../libs/config.ts'
 import { wdaManager } from '../libs/wda-manager.ts'
-import { deviceManager } from '../libs/device-manager.ts'
+import { ensureWdaPorts, getFilteredApps, downloadPhotoToCache, ensureCompatibleImage } from '../libs/idevice-utils.ts'
+import { MEDIA_MIME_TYPES } from '../consts/idevice.ts'
 
 export interface MergedDeviceInfo extends Omit<
   Partial<ConnectedDevice> & Device,
@@ -35,52 +32,6 @@ export interface DeviceListResponseItem extends Omit<
 > {
   linked: boolean
 }
-
-// Well-known Apple system apps visible on the home screen
-const VISIBLE_SYSTEM_APPS = new Set([
-  'com.apple.Preferences', // Settings
-  'com.apple.mobilesafari', // Safari
-  'com.apple.mobilephone', // Phone
-  'com.apple.MobileSMS', // Messages
-  'com.apple.mobileslideshow', // Photos
-  'com.apple.camera', // Camera
-  'com.apple.Maps', // Maps
-  'com.apple.weather', // Weather
-  'com.apple.mobiletimer', // Clock
-  'com.apple.calculator', // Calculator
-  'com.apple.compass', // Compass
-  'com.apple.measure', // Measure
-  'com.apple.Music', // Music
-  'com.apple.Fitness', // Fitness
-  'com.apple.news', // News
-  'com.apple.stocks', // Stocks
-  'com.apple.iBooks', // Books
-  'com.apple.AppStore', // App Store
-  'com.apple.Health', // Health
-  'com.apple.Passbook', // Wallet
-  'com.apple.Home', // Home
-  'com.apple.findmy', // Find My
-  'com.apple.shortcuts', // Shortcuts
-  'com.apple.VoiceMemos', // Voice Memos
-  'com.apple.mobilemail', // Mail
-  'com.apple.reminders', // Reminders
-  'com.apple.mobilenotes', // Notes
-  'com.apple.freeform', // Freeform
-  'com.apple.facetime', // FaceTime
-  'com.apple.MobileAddressBook', // Contacts
-  'com.apple.podcasts', // Podcasts
-  'com.apple.tv', // TV
-  'com.apple.DocumentsApp', // Files
-  'com.apple.tips', // Tips
-  'com.apple.Translate', // Translate
-  'com.apple.MobileStore', // iTunes Store
-  'com.apple.clips', // Clips
-  'com.apple.Pages', // Pages
-  'com.apple.Numbers', // Numbers
-  'com.apple.Keynote', // Keynote
-  'com.apple.iMovie', // iMovie
-  'com.apple.garageband', // GarageBand
-])
 
 export const deviceRoutes = new Elysia({ prefix: '/devices' })
   .get('/', async () => {
@@ -227,32 +178,13 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
       const { udid } = params
       const { method, pathname, payload } = body
 
-      // Lookup device
-      const entry = deviceManager.getDevice(udid)
-      if (!entry || !entry.connected) {
-        set.status = 404
-        return { message: 'Device not found or disconnected' }
-      }
-
-      // Resolve mainPort — auto-start WDA if needed
-      let mainPort = entry.wdaState === 'ready' ? entry.mainPort : undefined
-
-      if (!mainPort) {
-        wdaManager.prepare(udid)
-        try {
-          await deviceManager.waitUntilReady(udid)
-          const refreshed = deviceManager.getDevice(udid)
-          mainPort = refreshed?.mainPort
-        } catch (err) {
-          set.status = 503
-          return {
-            message: err instanceof Error ? err.message : 'WDA failed to start',
-          }
-        }
-        if (!mainPort) {
-          set.status = 503
-          return { message: 'WDA started but mainPort is unavailable' }
-        }
+      let mainPort: number
+      try {
+        ;({ mainPort } = await ensureWdaPorts(udid))
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'WDA failed to start'
+        set.status = msg.includes('not found') ? 404 : 503
+        return { message: msg }
       }
 
       // Proxy the request to WDA
@@ -289,25 +221,13 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
 
   .get('/:udid/apps', async ({ params, set }) => {
     const { udid } = params
-    const [userResult, systemResult] = await Promise.all([
-      apps.listInstalledApps(udid, 'User'),
-      apps.listInstalledApps(udid, 'System'),
-    ])
-    if (!userResult.success) {
+    let filtered: Array<{ bundleId: string; bundleName: string | null }>
+    try {
+      filtered = await getFilteredApps(udid)
+    } catch (err) {
       set.status = 500
-      return { message: userResult.error.message }
+      return { message: err instanceof Error ? err.message : 'Failed to list apps' }
     }
-
-    const systemApps = systemResult.success
-      ? systemResult.data.filter(app => VISIBLE_SYSTEM_APPS.has(app.bundleId))
-      : []
-
-    const config = await getConfig()
-    const wdaBundleId = config.wda.bundleId
-    const allApps = [...userResult.data, ...systemApps]
-    const filtered = allApps.filter(
-      app => !wdaBundleId || !app.bundleId.startsWith(wdaBundleId)
-    )
 
     const lookups = filtered.map(async app => {
       try {
@@ -403,59 +323,24 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
       return { message: 'Missing required query param: path' }
     }
 
-    // Security: only allow DCIM paths, reject traversal
-    if (!remotePath.startsWith('/DCIM/') || remotePath.includes('..')) {
-      set.status = 403
-      return { message: 'Only /DCIM/ paths are allowed' }
-    }
-
-    const cacheDir = join(tmpdir(), 'tachibana-photos', udid)
-    const ext = extname(remotePath).toLowerCase()
-    const hash = new Bun.CryptoHasher('sha256').update(remotePath).digest('hex')
-    const localPath = join(cacheDir, `${hash}${ext}`)
-
-    if (!existsSync(localPath)) {
-      mkdirSync(cacheDir, { recursive: true })
-      const result = await photos.downloadPhoto(udid, remotePath, localPath)
-      if (!result.success) {
-        set.status = 500
-        return { message: result.error.message }
-      }
+    let localPath: string
+    let ext: string
+    try {
+      ;({ localPath, ext } = await downloadPhotoToCache(udid, remotePath))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Download failed'
+      set.status = msg.includes('Only /DCIM/') ? 403 : 500
+      return { message: msg }
     }
 
     // Convert HEIC to JPEG for browser preview
-    const needsConversion = preview && ext === '.heic'
-    if (needsConversion) {
-      const jpegPath = join(cacheDir, `${hash}.preview.jpg`)
-      if (!existsSync(jpegPath)) {
-        const inputBuffer = await Bun.file(localPath).arrayBuffer()
-        const outputBuffer = await convert({
-          buffer: Buffer.from(inputBuffer) as unknown as ArrayBufferLike,
-          format: 'JPEG',
-          quality: 0.85,
-        })
-        await Bun.write(jpegPath, outputBuffer)
-      }
-      return new Response(Bun.file(jpegPath), {
-        headers: {
-          'Content-Type': 'image/jpeg',
-          'Cache-Control': 'public, max-age=3600',
-        },
-      })
-    }
+    const { filePath, mimeExt } = preview
+      ? await ensureCompatibleImage(localPath, ext)
+      : { filePath: localPath, mimeExt: ext }
 
-    const mimeMap: Record<string, string> = {
-      '.heic': 'image/heic',
-      '.jpg': 'image/jpeg',
-      '.jpeg': 'image/jpeg',
-      '.png': 'image/png',
-      '.gif': 'image/gif',
-      '.mov': 'video/quicktime',
-      '.mp4': 'video/mp4',
-    }
-    const contentType = mimeMap[ext] ?? 'application/octet-stream'
+    const contentType = MEDIA_MIME_TYPES[mimeExt] ?? 'application/octet-stream'
 
-    return new Response(Bun.file(localPath), {
+    return new Response(Bun.file(filePath), {
       headers: {
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=3600',
@@ -466,22 +351,18 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
   .get('/:udid/screen', async ({ params, set }) => {
     const { udid } = params
 
-    // Check if DeviceManager already has this device ready
-    const entry = deviceManager.getDevice(udid)
-    let mjpegPort: number | undefined =
-      entry?.wdaState === 'ready' ? entry.mjpegPort : undefined
+    let mjpegPort: number | undefined
+    try {
+      ;({ mjpegPort } = await ensureWdaPorts(udid))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'WDA failed to start'
+      set.status = msg.includes('not found') ? 404 : 503
+      return { message: msg }
+    }
 
     if (!mjpegPort) {
-      // Fallback: trigger WDA prepare and wait
-      wdaManager.prepare(udid)
-      try {
-        mjpegPort = await deviceManager.waitUntilReady(udid)
-      } catch (err) {
-        set.status = 503
-        return {
-          message: err instanceof Error ? err.message : 'WDA failed to start',
-        }
-      }
+      set.status = 503
+      return { message: 'WDA started but mjpegPort is unavailable' }
     }
 
     const upstream = await fetch(`http://localhost:${mjpegPort}`)
