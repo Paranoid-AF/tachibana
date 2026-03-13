@@ -43,7 +43,7 @@ export function SignInPage() {
         setTwoFaType(result.type)
         setShowTwoFa(true)
       } else {
-        queryClient.invalidateQueries({ queryKey: ['auth/session'] })
+        queryClient.invalidateQueries({ queryKey: ['apple-account/session'] })
         queryClient.invalidateQueries({ queryKey: ['devices'] })
         navigate('/')
       }
@@ -57,7 +57,7 @@ export function SignInPage() {
     mutationFn: () => submitTwoFa(twoFaCode),
     onSuccess: () => {
       setShowTwoFa(false)
-      queryClient.invalidateQueries({ queryKey: ['auth/session'] })
+      queryClient.invalidateQueries({ queryKey: ['apple-account/session'] })
       queryClient.invalidateQueries({ queryKey: ['devices'] })
       navigate('/')
     },

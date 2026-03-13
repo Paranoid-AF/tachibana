@@ -10,6 +10,7 @@
     "build": "bun build src/index.ts --compile --outfile dist/tachibana-server"
   },
   "dependencies": {
+    "@elysiajs/jwt": "^1.4.1",
     "@tbana/ios-connect": "workspace:*",
     "@tbana/ios-wda": "workspace:*",
     "drizzle-orm": "^0.45.1",

@@ -1,5 +1,5 @@
 export async function startSignIn(email: string, password: string) {
-  const res = await fetch('/api/auth/signin', {
+  const res = await fetch('/api/apple-account/signin', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -10,7 +10,7 @@ export async function startSignIn(email: string, password: string) {
 }
 
 export async function submitTwoFa(code: string) {
-  const res = await fetch('/api/auth/2fa', {
+  const res = await fetch('/api/apple-account/2fa', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code }),

@@ -71,7 +71,8 @@ export function ControlPanel({ udid }: ControlPanelProps) {
     fetch(`/api/devices/${udid}/apps`)
       .then(res => res.json())
       .then((data: AppInfo[]) => {
-        if (!cancelled) setApps(data.sort((a, b) => a.name.localeCompare(b.name)))
+        if (!cancelled)
+          setApps(data.sort((a, b) => a.name.localeCompare(b.name)))
       })
       .catch(() => {})
       .finally(() => {
@@ -89,18 +90,13 @@ export function ControlPanel({ udid }: ControlPanelProps) {
       if (cursor) params.set('cursor', cursor)
       fetch(`/api/devices/${udid}/photos?${params}`)
         .then(res => res.json())
-        .then(
-          (data: {
-            photos: PhotoEntry[]
-            nextCursor?: string
-          }) => {
-            setPhotosList(prev =>
-              cursor ? [...prev, ...data.photos] : data.photos
-            )
-            setPhotosNextCursor(data.nextCursor)
-            setPhotosHasMore(!!data.nextCursor)
-          }
-        )
+        .then((data: { photos: PhotoEntry[]; nextCursor?: string }) => {
+          setPhotosList(prev =>
+            cursor ? [...prev, ...data.photos] : data.photos
+          )
+          setPhotosNextCursor(data.nextCursor)
+          setPhotosHasMore(!!data.nextCursor)
+        })
         .catch(() => {})
         .finally(() => setPhotosLoading(false))
     },
@@ -385,13 +381,11 @@ export function ControlPanel({ udid }: ControlPanelProps) {
               <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-1.5">
                 {photosList.map(photo => {
                   const revealed = revealedPhotos.has(photo.path)
-                  const ext = photo.path
-                    .split('.')
-                    .pop()
-                    ?.toUpperCase() ?? ''
+                  const ext = photo.path.split('.').pop()?.toUpperCase() ?? ''
                   const photoUrl = `/api/devices/${udid}/photos/file?path=${encodeURIComponent(photo.path)}`
                   const previewUrl = `${photoUrl}&preview=true`
-                  const extLower = photo.path.split('.').pop()?.toLowerCase() ?? ''
+                  const extLower =
+                    photo.path.split('.').pop()?.toLowerCase() ?? ''
                   const d = new Date(photo.modified * 1000)
                   const dateTimeStr =
                     `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}` +

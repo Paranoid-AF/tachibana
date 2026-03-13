@@ -8,8 +8,8 @@ let loginPromise: Promise<void> | null = null
 let pendingEmail: string | null = null
 let pendingPassword: string | null = null
 
-export const authRoutes = new Elysia({ prefix: '/auth' })
-  .get('/session', async (): Promise<SessionInfo> => {
+export const appleAccountRoutes = new Elysia({ prefix: '/apple-account' })
+  .get('/', async (): Promise<SessionInfo> => {
     const session = await getSession()
     return await session.getSessionInfo()
   })

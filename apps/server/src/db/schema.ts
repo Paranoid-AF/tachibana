@@ -26,3 +26,16 @@ export const session = sqliteTable('session', {
   expiry: integer('expiry').notNull(),
   adsid: text('adsid').notNull(),
 })
+
+export const auth = sqliteTable('auth', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  type: text('type').notNull(), // 'password' | 'token'
+  name: text('name'), // label for tokens; null for password
+  keyHash: text('key_hash').notNull(),
+  keyHashSalt: text('key_hash_salt').notNull(),
+  keyPrefix: text('key_prefix'), // first ~16 chars of token; null for password
+  expiresAt: integer('expires_at'), // unix ms; null = never
+  lastUsedAt: integer('last_used_at'), // unix ms
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+})

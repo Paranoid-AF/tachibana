@@ -6,6 +6,7 @@ import { Elysia } from 'elysia'
 
 import { getConfig } from './libs/config.ts'
 import * as routes from './routes/index.ts'
+import { adminAuthGuard } from './libs/auth-middleware.ts'
 import {
   buildHttpRequest,
   handleElysiaResponse,
@@ -31,9 +32,14 @@ const _app = new Elysia({ prefix: '/api' })
     const message = error instanceof Error ? error.message : String(error)
     return { message }
   })
+  // Public routes
   .use(routes.health)
-  .use(routes.authRoutes)
+  .use(routes.adminAuthRoutes)
+  // Protected routes (require admin login)
+  .use(adminAuthGuard)
+  .use(routes.appleAccountRoutes)
   .use(routes.deviceRoutes)
+  .use(routes.apiTokenRoutes)
 
 export const app = _app
 export type App = typeof _app
