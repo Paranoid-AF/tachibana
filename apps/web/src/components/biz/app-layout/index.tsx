@@ -48,10 +48,10 @@ function NavLink({
 const agents = [
   { name: 'OpenClaw', icon: openclawIcon, duration: 6_000 },
   { name: 'ChatWise', icon: chatwiseIcon, duration: 4_000 },
+  { name: 'Cursor', icon: cursorIcon, duration: 2_000 },
   { name: 'GitHub Copilot', icon: githubCopilotIcon, duration: 2_000 },
   { name: 'Antigravity', icon: antigravityIcon, duration: 2_000 },
   { name: 'Gemini CLI', icon: geminiCliIcon, duration: 2_000 },
-  { name: 'Cursor', icon: cursorIcon, duration: 2_000 },
 ]
 
 function GradientNavLink() {
@@ -152,14 +152,17 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
 
         <DeviceList />
-        <AccountPanel />
 
-        <nav className="flex flex-col gap-1 mt-auto">
+        <nav className="flex flex-col gap-1">
           <GradientNavLink />
           <NavLink href="/security" icon={Shield}>
             Security
           </NavLink>
         </nav>
+
+        <div className="mt-auto">
+          <AccountPanel />
+        </div>
       </aside>
 
       {/* Main content area */}
