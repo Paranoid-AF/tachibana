@@ -15,6 +15,13 @@
       "when": 1773332497926,
       "tag": "0001_chilly_stephen_strange",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1773379631677,
+      "tag": "0002_cute_owl",
+      "breakpoints": true
     }
   ]
 }

@@ -7,7 +7,7 @@ export async function fetchDevices(): Promise<DeviceListResponseItem[]> {
 }
 
 export async function fetchSessionInfo(): Promise<SessionInfo> {
-  const res = await fetch('/api/auth/session')
+  const res = await fetch('/api/apple-account')
   if (!res.ok) throw new Error('Failed to fetch session')
   return res.json()
 }

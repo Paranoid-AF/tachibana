@@ -5,7 +5,7 @@ import type { SessionInfo } from '@/types'
 
 export function useSession() {
   return useQuery<SessionInfo>({
-    queryKey: ['auth/session'],
+    queryKey: ['apple-account/session'],
     queryFn: fetchSessionInfo,
     refetchInterval: 5000,
   })

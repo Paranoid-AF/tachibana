@@ -1,5 +1,14 @@
 @import 'tailwindcss';
 
+@keyframes gradient-flow {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+@utility animate-gradient-flow {
+  animation: gradient-flow 3s linear infinite;
+}
+
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));

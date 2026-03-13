@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 async function signOut() {
-  const res = await fetch('/api/auth/signout', { method: 'POST' })
+  const res = await fetch('/api/apple-account/signout', { method: 'POST' })
   if (!res.ok) throw new Error('Failed to sign out')
   return res.json()
 }
@@ -28,7 +28,7 @@ export function AccountPanel() {
   const signOutMutation = useMutation({
     mutationFn: signOut,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['auth/session'] })
+      queryClient.invalidateQueries({ queryKey: ['apple-account/session'] })
       queryClient.invalidateQueries({ queryKey: ['devices'] })
     },
   })

@@ -1,0 +1,25 @@
+# Tachibana Agent Skill
+
+## Connection
+
+- **Server:** `{{{server_origin}}}`
+- **Authorization:** `Bearer {{{auth_token}}}`
+
+## API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/health` | Health check |
+| GET | `/api/devices` | List connected devices |
+| GET | `/api/devices/:udid` | Get device info |
+| GET | `/api/devices/:udid/apps` | List installed apps |
+| GET | `/api/devices/:udid/photos` | List photos |
+| GET | `/api/devices/:udid/photos/:id` | Get photo |
+
+## Authentication
+
+Include the following header in all requests:
+
+```
+Authorization: Bearer {{{auth_token}}}
+```

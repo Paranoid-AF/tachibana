@@ -377,7 +377,9 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
 
     const entries = infoResults
       .filter(
-        (r): r is PromiseFulfilledResult<{
+        (
+          r
+        ): r is PromiseFulfilledResult<{
           path: string
           size: number
           modified: number

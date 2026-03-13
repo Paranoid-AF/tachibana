@@ -237,3 +237,176 @@ export function clearSessionData(): void {
   const d = getDb()
   d.delete(schema.session).where(eq(schema.session.id, 1)).run()
 }
+
+// ---------------------------------------------------------------------------
+// Admin auth — password
+// ---------------------------------------------------------------------------
+
+export function isPasswordSet(): boolean {
+  return getPasswordEntry() !== null
+}
+
+export function getPasswordEntry(): {
+  keyHash: string
+  keyHashSalt: string
+} | null {
+  const d = getDb()
+  const row = d
+    .select({
+      keyHash: schema.auth.keyHash,
+      keyHashSalt: schema.auth.keyHashSalt,
+    })
+    .from(schema.auth)
+    .where(eq(schema.auth.type, 'password'))
+    .get()
+  return row ?? null
+}
+
+export function upsertPassword(hash: string, salt: string): void {
+  const d = getDb()
+  const existing = d
+    .select({ id: schema.auth.id })
+    .from(schema.auth)
+    .where(eq(schema.auth.type, 'password'))
+    .get()
+
+  const now = Date.now()
+  if (existing) {
+    d.update(schema.auth)
+      .set({ keyHash: hash, keyHashSalt: salt, updatedAt: now })
+      .where(eq(schema.auth.id, existing.id))
+      .run()
+  } else {
+    d.insert(schema.auth)
+      .values({
+        type: 'password',
+        keyHash: hash,
+        keyHashSalt: salt,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .run()
+  }
+}
+
+export function updatePasswordLastUsed(): void {
+  const d = getDb()
+  d.update(schema.auth)
+    .set({ lastUsedAt: Date.now() })
+    .where(eq(schema.auth.type, 'password'))
+    .run()
+}
+
+// ---------------------------------------------------------------------------
+// Admin auth — API tokens
+// ---------------------------------------------------------------------------
+
+export interface TokenRow {
+  id: number
+  name: string | null
+  keyPrefix: string | null
+  expiresAt: number | null
+  lastUsedAt: number | null
+  createdAt: number
+}
+
+export function insertToken(
+  name: string,
+  keyHash: string,
+  salt: string,
+  keyPrefix: string,
+  expiresAt?: number
+): number {
+  const d = getDb()
+  const now = Date.now()
+  const result = d
+    .insert(schema.auth)
+    .values({
+      type: 'token',
+      name,
+      keyHash,
+      keyHashSalt: salt,
+      keyPrefix,
+      expiresAt: expiresAt ?? null,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .returning({ id: schema.auth.id })
+    .get()
+  return result.id
+}
+
+export function listTokens(): TokenRow[] {
+  const d = getDb()
+  return d
+    .select({
+      id: schema.auth.id,
+      name: schema.auth.name,
+      keyPrefix: schema.auth.keyPrefix,
+      expiresAt: schema.auth.expiresAt,
+      lastUsedAt: schema.auth.lastUsedAt,
+      createdAt: schema.auth.createdAt,
+    })
+    .from(schema.auth)
+    .where(eq(schema.auth.type, 'token'))
+    .all()
+}
+
+export function getTokenById(id: number): TokenRow | null {
+  const d = getDb()
+  const row = d
+    .select({
+      id: schema.auth.id,
+      name: schema.auth.name,
+      keyPrefix: schema.auth.keyPrefix,
+      expiresAt: schema.auth.expiresAt,
+      lastUsedAt: schema.auth.lastUsedAt,
+      createdAt: schema.auth.createdAt,
+    })
+    .from(schema.auth)
+    .where(eq(schema.auth.id, id))
+    .get()
+  return row ?? null
+}
+
+export function getAllTokenHashes(): {
+  id: number
+  keyHash: string
+  keyHashSalt: string
+  keyPrefix: string | null
+  expiresAt: number | null
+}[] {
+  const d = getDb()
+  return d
+    .select({
+      id: schema.auth.id,
+      keyHash: schema.auth.keyHash,
+      keyHashSalt: schema.auth.keyHashSalt,
+      keyPrefix: schema.auth.keyPrefix,
+      expiresAt: schema.auth.expiresAt,
+    })
+    .from(schema.auth)
+    .where(eq(schema.auth.type, 'token'))
+    .all()
+}
+
+export function updateTokenLastUsed(id: number): void {
+  const d = getDb()
+  d.update(schema.auth)
+    .set({ lastUsedAt: Date.now() })
+    .where(eq(schema.auth.id, id))
+    .run()
+}
+
+export function renameToken(id: number, name: string): void {
+  const d = getDb()
+  d.update(schema.auth)
+    .set({ name, updatedAt: Date.now() })
+    .where(eq(schema.auth.id, id))
+    .run()
+}
+
+export function deleteToken(id: number): void {
+  const d = getDb()
+  d.delete(schema.auth).where(eq(schema.auth.id, id)).run()
+}
