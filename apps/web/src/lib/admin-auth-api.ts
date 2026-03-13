@@ -84,10 +84,7 @@ export async function createApiToken(
   return res.json()
 }
 
-export async function renameApiToken(
-  id: number,
-  name: string
-): Promise<void> {
+export async function renameApiToken(id: number, name: string): Promise<void> {
   const res = await fetch(`/api/tokens/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
