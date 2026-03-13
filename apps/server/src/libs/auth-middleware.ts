@@ -46,17 +46,22 @@ export const adminAuthGuard = new Elysia({ name: 'admin-auth-guard' })
 
 export const apiTokenGuard = new Elysia({
   name: 'api-token-guard',
-}).onBeforeHandle(async ({ headers, set }) => {
-  const authHeader = headers.authorization
-  if (!authHeader?.startsWith('Bearer ')) {
-    set.status = 401
-    return { message: 'Missing bearer token' }
-  }
-
-  const token = authHeader.slice(7)
-  const valid = await verifyApiToken(token)
-  if (!valid) {
-    set.status = 401
-    return { message: 'Invalid or expired token' }
-  }
 })
+  .resolve(async ({ headers }) => {
+    const authHeader = headers.authorization
+    if (!authHeader?.startsWith('Bearer ')) {
+      return { apiAuthId: null as number | null }
+    }
+    const token = authHeader.slice(7)
+    const result = await verifyApiToken(token)
+    if (!result.valid) {
+      return { apiAuthId: null as number | null }
+    }
+    return { apiAuthId: result.authId ?? null }
+  })
+  .onBeforeHandle(({ apiAuthId, set }) => {
+    if (apiAuthId === null) {
+      set.status = 401
+      return { message: 'Missing or invalid bearer token' }
+    }
+  })

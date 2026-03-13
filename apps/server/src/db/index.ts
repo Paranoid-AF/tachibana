@@ -3,7 +3,7 @@ import { mkdirSync } from 'fs'
 import { Database } from 'bun:sqlite'
 import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
-import { eq } from 'drizzle-orm'
+import { eq, desc, count } from 'drizzle-orm'
 
 import { getConfigDir } from '../libs/config.ts'
 import * as schema from './schema.ts'
@@ -197,21 +197,21 @@ export function getSessionData(): StoredSession | undefined {
   const d = getDb()
   const row = d
     .select({
-      email: schema.session.email,
-      token: schema.session.token,
-      duration: schema.session.duration,
-      expiry: schema.session.expiry,
-      adsid: schema.session.adsid,
+      email: schema.sessions.email,
+      token: schema.sessions.token,
+      duration: schema.sessions.duration,
+      expiry: schema.sessions.expiry,
+      adsid: schema.sessions.adsid,
     })
-    .from(schema.session)
-    .where(eq(schema.session.id, 1))
+    .from(schema.sessions)
+    .where(eq(schema.sessions.id, 1))
     .get()
   return row ?? undefined
 }
 
 export function saveSessionData(data: StoredSession): void {
   const d = getDb()
-  d.insert(schema.session)
+  d.insert(schema.sessions)
     .values({
       id: 1,
       email: data.email,
@@ -219,15 +219,17 @@ export function saveSessionData(data: StoredSession): void {
       duration: data.duration,
       expiry: data.expiry,
       adsid: data.adsid,
+      updatedAt: Date.now(),
     })
     .onConflictDoUpdate({
-      target: schema.session.id,
+      target: schema.sessions.id,
       set: {
         email: data.email,
         token: data.token,
         duration: data.duration,
         expiry: data.expiry,
         adsid: data.adsid,
+        updatedAt: Date.now(),
       },
     })
     .run()
@@ -235,7 +237,7 @@ export function saveSessionData(data: StoredSession): void {
 
 export function clearSessionData(): void {
   const d = getDb()
-  d.delete(schema.session).where(eq(schema.session.id, 1)).run()
+  d.delete(schema.sessions).where(eq(schema.sessions.id, 1)).run()
 }
 
 // ---------------------------------------------------------------------------
@@ -409,4 +411,84 @@ export function renameToken(id: number, name: string): void {
 export function deleteToken(id: number): void {
   const d = getDb()
   d.delete(schema.auth).where(eq(schema.auth.id, id)).run()
+}
+
+// ---------------------------------------------------------------------------
+// Device logs
+// ---------------------------------------------------------------------------
+
+export function insertDeviceLog(data: {
+  udid: string
+  authId?: number
+  source: string
+  action: string
+  params?: string
+}): number {
+  const d = getDb()
+  const result = d
+    .insert(schema.deviceLogs)
+    .values({
+      udid: data.udid,
+      authId: data.authId ?? null,
+      source: data.source,
+      action: data.action,
+      params: data.params ?? null,
+      status: 'processing',
+      createdAt: Date.now(),
+    })
+    .returning({ id: schema.deviceLogs.id })
+    .get()
+  return result.id
+}
+
+export function completeDeviceLog(
+  id: number,
+  status: string,
+  error?: string
+): void {
+  const d = getDb()
+  d.update(schema.deviceLogs)
+    .set({
+      status,
+      error: error ?? null,
+      completedAt: Date.now(),
+    })
+    .where(eq(schema.deviceLogs.id, id))
+    .run()
+}
+
+export function getDeviceLogs(
+  udid: string,
+  page: number,
+  pageSize: number
+): { logs: (typeof schema.deviceLogs.$inferSelect)[]; total: number } {
+  const d = getDb()
+  const offset = (page - 1) * pageSize
+
+  const logs = d
+    .select()
+    .from(schema.deviceLogs)
+    .where(eq(schema.deviceLogs.udid, udid))
+    .orderBy(desc(schema.deviceLogs.createdAt))
+    .limit(pageSize)
+    .offset(offset)
+    .all()
+
+  const totalResult = d
+    .select({ count: count() })
+    .from(schema.deviceLogs)
+    .where(eq(schema.deviceLogs.udid, udid))
+    .get()
+
+  return { logs, total: totalResult?.count ?? 0 }
+}
+
+export function getAdminAuthId(): number | null {
+  const d = getDb()
+  const row = d
+    .select({ id: schema.auth.id })
+    .from(schema.auth)
+    .where(eq(schema.auth.type, 'password'))
+    .get()
+  return row?.id ?? null
 }
