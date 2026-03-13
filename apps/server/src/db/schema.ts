@@ -16,7 +16,7 @@ export const devices = sqliteTable('devices', {
   prefAlwaysAwake: integer('pref_always_awake').notNull().default(1),
 })
 
-export const session = sqliteTable('session', {
+export const sessions = sqliteTable('sessions', {
   id: integer('id')
     .primaryKey()
     .$default(() => 1),

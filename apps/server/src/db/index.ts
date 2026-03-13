@@ -197,21 +197,21 @@ export function getSessionData(): StoredSession | undefined {
   const d = getDb()
   const row = d
     .select({
-      email: schema.session.email,
-      token: schema.session.token,
-      duration: schema.session.duration,
-      expiry: schema.session.expiry,
-      adsid: schema.session.adsid,
+      email: schema.sessions.email,
+      token: schema.sessions.token,
+      duration: schema.sessions.duration,
+      expiry: schema.sessions.expiry,
+      adsid: schema.sessions.adsid,
     })
-    .from(schema.session)
-    .where(eq(schema.session.id, 1))
+    .from(schema.sessions)
+    .where(eq(schema.sessions.id, 1))
     .get()
   return row ?? undefined
 }
 
 export function saveSessionData(data: StoredSession): void {
   const d = getDb()
-  d.insert(schema.session)
+  d.insert(schema.sessions)
     .values({
       id: 1,
       email: data.email,
@@ -221,7 +221,7 @@ export function saveSessionData(data: StoredSession): void {
       adsid: data.adsid,
     })
     .onConflictDoUpdate({
-      target: schema.session.id,
+      target: schema.sessions.id,
       set: {
         email: data.email,
         token: data.token,
@@ -235,7 +235,7 @@ export function saveSessionData(data: StoredSession): void {
 
 export function clearSessionData(): void {
   const d = getDb()
-  d.delete(schema.session).where(eq(schema.session.id, 1)).run()
+  d.delete(schema.sessions).where(eq(schema.sessions.id, 1)).run()
 }
 
 // ---------------------------------------------------------------------------
