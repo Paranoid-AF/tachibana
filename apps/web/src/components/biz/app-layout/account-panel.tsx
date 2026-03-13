@@ -20,7 +20,7 @@ async function signOut() {
 }
 
 export function AccountPanel() {
-  const [, navigate] = useLocation()
+  const [location, navigate] = useLocation()
   const queryClient = useQueryClient()
 
   const { data: sessionInfo, isLoading } = useSession()
@@ -42,6 +42,8 @@ export function AccountPanel() {
   }
 
   if (!sessionInfo?.loggedIn) {
+    if (location === '/signin') return null
+
     return (
       <div className="rounded-xl border border-border p-3">
         <div className="text-xs font-medium uppercase tracking-wide text-foreground mb-2">

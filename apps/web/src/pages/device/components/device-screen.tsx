@@ -12,6 +12,8 @@ import {
   CarouselItem,
 } from '@/components/ui/carousel'
 import { DeviceNotice } from './device-notice'
+import { ScreenOverlay } from './screen-overlay'
+import { getWindowSize, homescreen, type WindowSize } from '@/lib/wda-api'
 
 import guideTrustImg from '../../../../assets/images/device/guide-trust.png'
 import guideModeImg from '../../../../assets/images/device/guide-mode.png'
@@ -143,6 +145,7 @@ function SetupHints({ email }: { email?: string }) {
 export function DeviceScreen({ udid, email }: DeviceScreenProps) {
   const [state, setState] = useState<ScreenState>('preparing')
   const [key, setKey] = useState(0)
+  const [windowSize, setWindowSize] = useState<WindowSize | null>(null)
   const wdaError = useWdaStatus(udid, state !== 'ready')
 
   const src = `/api/devices/${udid}/screen?k=${key}`
@@ -152,11 +155,26 @@ export function DeviceScreen({ udid, email }: DeviceScreenProps) {
     setKey(k => k + 1)
   }
 
+  // Unlock device and fetch WDA window size once screen is ready
+  useEffect(() => {
+    if (state !== 'ready') return
+    let cancelled = false
+    homescreen(udid).catch(() => {})
+    getWindowSize(udid)
+      .then(size => {
+        if (!cancelled) setWindowSize(size)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [udid, state])
+
   const errorDescription =
     wdaError ?? 'Could not start screen. Make sure the device is connected.'
 
   return (
-    <div className="flex-1 flex overflow-hidden relative">
+    <div className="flex-1 flex overflow-hidden relative overscroll-contain">
       {state !== 'ready' && (
         <DeviceNotice
           icon={state === 'error' ? MonitorX : Spinner}
@@ -175,14 +193,21 @@ export function DeviceScreen({ udid, email }: DeviceScreenProps) {
           <SetupHints email={email} />
         </DeviceNotice>
       )}
-      <img
-        key={key}
-        src={src}
-        alt="Device screen"
-        className={`w-full h-full object-contain ${state === 'ready' ? '' : 'hidden'}`}
-        onLoad={() => setState('ready')}
-        onError={() => setState('error')}
-      />
+      <div
+        className={`relative flex items-center justify-center ${state === 'ready' ? 'w-full h-full' : 'w-0 h-0 overflow-hidden'}`}
+      >
+        <img
+          key={key}
+          src={src}
+          alt="Device screen"
+          className={`w-full h-full object-contain pointer-events-none ${state === 'ready' ? '' : 'hidden'}`}
+          onLoad={() => setState('ready')}
+          onError={() => setState('error')}
+        />
+        {state === 'ready' && windowSize && (
+          <ScreenOverlay udid={udid} windowSize={windowSize} />
+        )}
+      </div>
     </div>
   )
 }

@@ -63,7 +63,7 @@ export async function renewAll(
   const thresholdDays = options?.thresholdDays ?? 1
   const expiring = await findExpiring(thresholdDays)
 
-  if (expiring.length === 0) {
+  if (!expiring.length) {
     return { renewed: [], failed: [] }
   }
 

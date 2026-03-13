@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia'
 
 import { getSession, saveSession, clearSession } from '../libs/session.ts'
+import { saveCredentials, clearCredentials } from '../libs/credentials.ts'
 import type { SessionInfo } from '@tbana/ios-connect'
 
 let loginPromise: Promise<void> | null = null
@@ -54,6 +55,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
       })
 
       if (result && 'loggedIn' in result && result.loggedIn) {
+        await saveCredentials(email, password)
         await saveSession(session)
       }
 
@@ -98,6 +100,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
         return { message: err.message }
       }
 
+      await saveCredentials(pendingEmail!, pendingPassword!)
       loginPromise = null
       pendingEmail = null
       pendingPassword = null
@@ -111,6 +114,7 @@ export const authRoutes = new Elysia({ prefix: '/auth' })
     loginPromise = null
     pendingEmail = null
     pendingPassword = null
+    await clearCredentials()
     await clearSession()
     return { ok: true }
   })

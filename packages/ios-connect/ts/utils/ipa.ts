@@ -93,7 +93,7 @@ export async function rewriteIpaBundleId(
 
   // Strip XCTest frameworks that conflict with device-local ones on iOS 17+
   const toRemove: string[] = []
-  zip.forEach((path) => {
+  zip.forEach(path => {
     if (STRIP_FRAMEWORK_RE.test(path)) {
       toRemove.push(path)
     }

@@ -68,7 +68,7 @@ export function LinkDevicePage() {
 
               {/* Connected unlinked devices */}
               <div className="rounded-xl border border-border divide-y divide-border mb-6">
-                {!firstAvailableDevice ? (
+                {!devices.length ? (
                   <div className="px-4 py-6 text-center text-sm text-muted-foreground">
                     No devices connected via USB.
                   </div>
@@ -86,19 +86,25 @@ export function LinkDevicePage() {
                           Connected
                         </div>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-3 text-xs shrink-0"
-                        onClick={() =>
-                          handleLink(device, sessionInfo?.loggedIn ?? false)
-                        }
-                        disabled={isPending && pendingUdid === device.udid}
-                      >
-                        {isPending && pendingUdid === device.udid
-                          ? 'Linking…'
-                          : 'Link'}
-                      </Button>
+                      {device.linked ? (
+                        <span className="text-xs text-muted-foreground font-medium shrink-0 px-3">
+                          Linked
+                        </span>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-3 text-xs shrink-0"
+                          onClick={() =>
+                            handleLink(device, sessionInfo?.loggedIn ?? false)
+                          }
+                          disabled={isPending && pendingUdid === device.udid}
+                        >
+                          {isPending && pendingUdid === device.udid
+                            ? 'Linking…'
+                            : 'Link'}
+                        </Button>
+                      )}
                     </div>
                   ))
                 )}
