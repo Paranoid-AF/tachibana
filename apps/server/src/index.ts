@@ -1,10 +1,9 @@
 import path from 'node:path'
 import http from 'node:http'
-import getPort from 'get-port'
 
 import { Elysia } from 'elysia'
 
-import { getConfig } from './libs/config.ts'
+import { getConfig, getConfigDir } from './libs/config.ts'
 import * as routes from './routes/index.ts'
 import { adminAuthGuard } from './libs/auth-middleware.ts'
 import {
@@ -47,11 +46,24 @@ export type App = typeof _app
 const main = async () => {
   const config = await getConfig(isDev)
 
-  const port = await getPort({ port: config.server.port })
-  const hostname = config.server.hostname
-  const baseUrl = `http://${hostname}:${port}`
+  const port = config.server.port
+  const host = config.server.host
+  const baseUrl = `http://${host}:${port}`
 
   const server = http.createServer()
+
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      const configPath = path.join(getConfigDir(), 'config.json')
+      console.error(
+        `\n❌ Port ${port} is already in use.\n` +
+          `   Either stop the other process using this port, or change the port in:\n` +
+          `   ${configPath}\n`
+      )
+      process.exit(1)
+    }
+    throw err
+  })
 
   let vite: ViteDevServer | null = null
 
@@ -93,7 +105,7 @@ const main = async () => {
 
   console.info(`🍊 Server is running on ${baseUrl}`)
 
-  server.listen(port, hostname)
+  server.listen(port, host)
 
   deviceManager.start()
 }

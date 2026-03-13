@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Copy, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Copy, Download, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
+import JSZip from 'jszip'
+import Mustache from 'mustache'
 
 import {
   fetchApiTokens,
@@ -35,6 +37,11 @@ import {
   TableCell,
 } from '@/components/ui/table'
 
+import skillTemplate from '../../../assets/snippets/agents/skill.md.mustache?raw'
+import mcpTemplate from '../../../assets/snippets/agents/mcp.json.mustache?raw'
+import agentSkillsLogo from '../../../assets/images/agents/agentskills-logo.png'
+import mcpLogo from '../../../assets/images/agents/mcp-logo.svg'
+
 const EXPIRATION_OPTIONS = [
   { label: 'Never', value: 0 },
   { label: '7 days', value: 7 * 24 * 60 * 60 * 1000 },
@@ -61,6 +68,32 @@ function formatRelativeDate(ms: number | null): string {
   return formatDate(ms)
 }
 
+function renderTemplates(authToken: string) {
+  const vars = {
+    server_origin: window.location.origin,
+    auth_token: authToken,
+  }
+  return {
+    skillMd: Mustache.render(skillTemplate, vars),
+    mcpJson: Mustache.render(mcpTemplate, vars),
+  }
+}
+
+async function downloadSkillZip(agentName: string, skillMdContent: string) {
+  const safeName = `tachibana-${agentName.toLowerCase().replace(/[^a-z0-9-]/g, '-')}-1.0.0`
+  const zip = new JSZip()
+  zip.file(`${safeName}/SKILL.md`, skillMdContent)
+  const blob = await zip.generateAsync({ type: 'blob' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${safeName}.zip`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
 export function AgentsPage() {
   const queryClient = useQueryClient()
 
@@ -79,9 +112,12 @@ export function AgentsPage() {
   const [renameToken, setRenameToken] = useState<TokenRow | null>(null)
   const [renameName, setRenameName] = useState('')
 
-  // Key reveal dialog state
-  const [revealedKey, setRevealedKey] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+  // Setup guide dialog state
+  const [revealedAgent, setRevealedAgent] = useState<{
+    name: string
+    key: string
+  } | null>(null)
+  const [copiedItem, setCopiedItem] = useState<'mcp' | 'token' | null>(null)
 
   const createMutation = useMutation({
     mutationFn: () => {
@@ -90,9 +126,9 @@ export function AgentsPage() {
     },
     onSuccess: result => {
       setCreateOpen(false)
+      setRevealedAgent({ name: tokenName, key: result.key })
       setTokenName('')
       setExpiration(0)
-      setRevealedKey(result.key)
       queryClient.invalidateQueries({ queryKey: ['api-tokens'] })
     },
     onError: (err: Error) => {
@@ -123,11 +159,14 @@ export function AgentsPage() {
     createMutation.mutate()
   }
 
-  async function copyKey() {
-    if (!revealedKey) return
-    await navigator.clipboard.writeText(revealedKey)
-    setCopied(true)
+  async function copyToClipboard(text: string, item: 'mcp' | 'token') {
+    await navigator.clipboard.writeText(text)
+    setCopiedItem(item)
   }
+
+  const rendered = revealedAgent
+    ? renderTemplates(revealedAgent.key)
+    : null
 
   return (
     <AppLayout>
@@ -319,42 +358,117 @@ export function AgentsPage() {
             </DialogContent>
           </Dialog>
 
-          {/* Key reveal dialog */}
+          {/* Setup guide dialog */}
           <Dialog
-            open={!!revealedKey}
+            open={!!revealedAgent}
             onOpenChange={open => {
               if (!open) {
-                setRevealedKey(null)
-                setCopied(false)
+                setRevealedAgent(null)
+                setCopiedItem(null)
               }
             }}
           >
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-3xl">
               <DialogHeader>
-                <DialogTitle>Your new access token</DialogTitle>
+                <DialogTitle>Setup your agent</DialogTitle>
                 <DialogDescription>
-                  This key will only be shown once. Copy it now.
+                  This window includes your secret key &mdash; it will only be
+                  shown once.
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="flex items-center gap-2">
-                <code className="flex-1 rounded-md bg-muted px-3 py-2 text-xs font-mono break-all">
-                  {revealedKey}
-                </code>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={copyKey}
-                  className="shrink-0"
-                >
-                  <Copy className="w-4 h-4" />
-                </Button>
+              <div className="grid grid-cols-2 gap-6">
+                {/* AgentSkill column */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={agentSkillsLogo}
+                      alt="AgentSkills"
+                      className="w-6 h-6"
+                    />
+                    <span className="font-semibold">AgentSkill</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Download a ZIP containing a SKILL.md file with connection
+                    info and API reference for your agent.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() =>
+                      revealedAgent &&
+                      rendered &&
+                      downloadSkillZip(revealedAgent.name, rendered.skillMd)
+                    }
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download ZIP
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Place this file in your agent&apos;s working directory.
+                  </p>
+                </div>
+
+                {/* MCP column */}
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <img src={mcpLogo} alt="MCP" className="w-6 h-6" />
+                    <span className="font-semibold">MCP</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Add this JSON snippet to your MCP client configuration.
+                  </p>
+                  <div className="relative">
+                    <pre className="rounded-md bg-muted px-3 py-2 text-xs font-mono overflow-x-auto whitespace-pre">
+                      {rendered?.mcpJson}
+                    </pre>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-1 right-1 h-7 w-7"
+                      onClick={() =>
+                        rendered &&
+                        copyToClipboard(rendered.mcpJson, 'mcp')
+                      }
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                  {copiedItem === 'mcp' && (
+                    <p className="text-xs text-muted-foreground">
+                      Copied to clipboard
+                    </p>
+                  )}
+                </div>
               </div>
-              {copied && (
-                <p className="text-sm text-muted-foreground">
-                  Copied to clipboard
+
+              {/* Raw token section */}
+              <div className="border-t pt-4 mt-2">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Or save the token for later...
                 </p>
-              )}
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 rounded-md bg-muted px-3 py-2 text-xs font-mono break-all">
+                    {revealedAgent?.key}
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() =>
+                      revealedAgent &&
+                      copyToClipboard(revealedAgent.key, 'token')
+                    }
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+                {copiedItem === 'token' && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Copied to clipboard
+                  </p>
+                )}
+              </div>
             </DialogContent>
           </Dialog>
         </div>

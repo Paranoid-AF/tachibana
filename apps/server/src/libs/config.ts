@@ -4,12 +4,12 @@ import { mkdir } from 'fs/promises'
 import { z } from 'zod'
 
 const DEFAULT_DEV_PORT = 5173
-const DEFAULT_PROD_PORT = 13370
+const DEFAULT_PROD_PORT = 17962
 
 const ConfigSchema = z.object({
   server: z.object({
     port: z.number().int().min(1).max(65535),
-    hostname: z.string(),
+    host: z.string(),
   }),
   wda: z.object({
     bundleId: z.string(),
@@ -37,7 +37,7 @@ export type PersistedConfig = z.infer<typeof PersistedConfigSchema>
 const DEFAULTS: Config = {
   server: {
     port: DEFAULT_PROD_PORT,
-    hostname: 'localhost',
+    host: 'localhost',
   },
   wda: {
     bundleId: '',
@@ -97,7 +97,7 @@ export const getConfig = async (isDev?: boolean): Promise<Config> => {
 
   if (isDev) {
     config.server.port = DEFAULT_DEV_PORT
-    config.server.hostname = 'localhost'
+    config.server.host = 'localhost'
   }
 
   return config
