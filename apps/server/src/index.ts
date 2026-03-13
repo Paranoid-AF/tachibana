@@ -11,6 +11,7 @@ import {
   handleElysiaResponse,
   handleElysiaStaticRoute,
 } from './libs/http.ts'
+import { handleMcpRequest } from './routes/agent.ts'
 import { ensureElevated } from './libs/elevate.ts'
 import { deviceManager } from './libs/device-manager.ts'
 import { openDatabase, closeDatabase } from './db/index.ts'
@@ -34,6 +35,8 @@ const _app = new Elysia({ prefix: '/api' })
   // Public routes
   .use(routes.health)
   .use(routes.adminAuthRoutes)
+  // Agent routes (Bearer token auth, self-contained)
+  .use(routes.agentRoutes)
   // Protected routes (require admin login)
   .use(adminAuthGuard)
   .use(routes.appleAccountRoutes)
@@ -85,6 +88,11 @@ const main = async () => {
 
   server.on('request', async (req, res) => {
     const pathname = req.url || '/'
+    // Intercept MCP requests at HTTP level (before Elysia)
+    if (pathname.startsWith('/api/agent/mcp')) {
+      await handleMcpRequest(req, res)
+      return
+    }
     const url = new URL(pathname, baseUrl).toString()
     if (vite && !pathname.startsWith('/api/')) {
       vite.middlewares(req, res)

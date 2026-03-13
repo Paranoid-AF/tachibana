@@ -43,6 +43,11 @@ class WdaManager {
     return this.entries.get(udid)!
   }
 
+  getSessionId(udid: string): string | null {
+    const entry = this.entries.get(udid)
+    return entry?.wdaSession?.getSessionId() ?? null
+  }
+
   getState(udid: string): {
     state: WdaState
     error?: string

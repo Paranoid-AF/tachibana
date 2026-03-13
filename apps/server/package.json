@@ -11,16 +11,19 @@
   },
   "dependencies": {
     "@elysiajs/jwt": "^1.4.1",
+    "@modelcontextprotocol/sdk": "^1.12.1",
     "@tbana/ios-connect": "workspace:*",
     "@tbana/ios-wda": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "elysia": "^1.4.22",
     "heic-convert": "^2.1.0",
     "jszip": "^3.10.1",
+    "sharp": "^0.34.5",
     "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/heic-convert": "^2.1.0",
+    "@types/sharp": "^0.32.0",
     "drizzle-kit": "^0.31.9",
     "vite": "^7.0.0"
   }

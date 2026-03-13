@@ -71,7 +71,7 @@ function GradientNavLink() {
       onClick={() => navigate('/agents')}
       className={cn(
         'flex flex-col gap-1 rounded-lg px-3 py-2 text-sm font-medium transition-colors w-full text-left',
-        active ? 'bg-purple-500/15' : 'hover:bg-accent'
+        active ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
       )}
     >
       {/* SVG gradient definition for the key icon */}
@@ -99,37 +99,53 @@ function GradientNavLink() {
         </defs>
       </svg>
       <div className="flex items-center gap-2">
-        {/* Stacked icon: agent icon behind, key icon in front */}
-        <div className="relative w-7 h-7 shrink-0">
-          {agents.map((a, i) => (
-            <img
-              key={a.name}
-              src={a.icon}
-              alt={a.name}
-              className={cn(
-                'absolute inset-0 w-7 h-7 object-contain transition-opacity duration-500',
-                i === agentIndex ? 'opacity-100' : 'opacity-0'
-              )}
-            />
-          ))}
-          <KeyRound className="absolute -bottom-1.5 -right-1.5 w-5 h-5 [&>*]:[stroke:url(#mcp-icon-gradient)] [&>*]:[fill:white]" />
-        </div>
+        {active ? (
+          <KeyRound className="w-7 h-7 shrink-0" />
+        ) : (
+          <>
+            {/* Stacked icon: agent icon behind, key icon in front */}
+            <div className="relative w-7 h-7 shrink-0">
+              {agents.map((a, i) => (
+                <img
+                  key={a.name}
+                  src={a.icon}
+                  alt={a.name}
+                  className={cn(
+                    'absolute inset-0 w-7 h-7 object-contain transition-opacity duration-500',
+                    i === agentIndex ? 'opacity-100' : 'opacity-0'
+                  )}
+                />
+              ))}
+              <KeyRound className="absolute -bottom-1.5 -right-1.5 w-5 h-5 [&>*]:[stroke:url(#mcp-icon-gradient)] [&>*]:[fill:white]" />
+            </div>
+          </>
+        )}
         <div className="flex flex-col flex-1 min-w-0">
-          <span className="animate-gradient-flow bg-gradient-to-r from-purple-500 via-pink-500 via-orange-400 to-purple-500 bg-[length:200%_auto] bg-clip-text text-transparent">
+          <span className={cn(
+            active
+              ? ''
+              : 'animate-gradient-flow bg-gradient-to-r from-purple-500 via-pink-500 via-orange-400 to-purple-500 bg-[length:200%_auto] bg-clip-text text-transparent'
+          )}>
             MCP &amp; Skills
           </span>
           <div className="relative h-4">
-            {agents.map((a, i) => (
-              <span
-                key={a.name}
-                className={cn(
-                  'absolute inset-0 text-xs text-muted-foreground whitespace-nowrap truncate transition-opacity duration-500',
-                  i === agentIndex ? 'opacity-100' : 'opacity-0'
-                )}
-              >
-                Works with {a.name}
+            {active ? (
+              <span className="absolute inset-0 text-xs opacity-80 whitespace-nowrap truncate">
+                Works with agents
               </span>
-            ))}
+            ) : (
+              agents.map((a, i) => (
+                <span
+                  key={a.name}
+                  className={cn(
+                    'absolute inset-0 text-xs text-muted-foreground whitespace-nowrap truncate transition-opacity duration-500',
+                    i === agentIndex ? 'opacity-100' : 'opacity-0'
+                  )}
+                >
+                  Works with {a.name}
+                </span>
+              ))
+            )}
           </div>
         </div>
       </div>
