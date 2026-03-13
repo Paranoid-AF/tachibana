@@ -23,12 +23,22 @@ Most tools return a JSON object directly. For example:
 { "ok": true }
 ```
 
-Image tools (`take_screenshot`, `download_photo`) return MCP content format:
+Image tools (`take_screenshot`, `download_photo`, `mark_coordinates`) return MCP content format:
 ```json
 { "content": [{ "type": "image", "data": "<base64>", "mimeType": "image/png" }] }
 ```
 
 Error responses: `{ "error": "<message>" }`
+
+## Coordinate Verification (REQUIRED)
+
+Before tapping, double-tapping, long-pressing, or dragging on the device screen, you **MUST** follow this workflow:
+
+1. Call `get_device_control_size` to learn the valid coordinate range.
+2. Call `mark_coordinates` with your intended coordinates to visually verify they hit the correct target.
+3. Only after confirming the crosshair markers are positioned correctly, perform the action (`tap`, `double_tap`, `touch_and_hold`, `drag`).
+
+Never guess coordinates without verifying them first — skipping this workflow risks tapping the wrong element.
 
 ## Tools
 
@@ -50,27 +60,38 @@ Update preferences for a device.
 
 ### Screen Interaction
 
+#### `get_device_control_size`
+Get the device control coordinate space. All coordinate-based tools use this range.
+- `udid` (string, required) — Device UDID
+- Returns: `{ "width", "height" }`
+
+#### `mark_coordinates`
+Visually verify coordinates before performing device control actions. Returns one annotated screenshot per coordinate with crosshair markers.
+- `udid` (string, required) — Device UDID
+- `coordinates` (array, required) — Array of `{ x, y }` in device control points
+- Returns: MCP content format with one image per coordinate
+
 #### `tap`
-Tap at a coordinate on the device screen.
+Tap at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before tapping).
 - `udid` (string, required) — Device UDID
 - `x` (number, required) — X coordinate
 - `y` (number, required) — Y coordinate
 
 #### `double_tap`
-Double-tap at a coordinate on the device screen.
+Double-tap at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before double-tapping).
 - `udid` (string, required) — Device UDID
 - `x` (number, required) — X coordinate
 - `y` (number, required) — Y coordinate
 
 #### `touch_and_hold`
-Long-press at a coordinate on the device screen.
+Long-press at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before pressing).
 - `udid` (string, required) — Device UDID
 - `x` (number, required) — X coordinate
 - `y` (number, required) — Y coordinate
 - `duration` (number, required) — Hold duration in seconds
 
 #### `drag`
-Drag (swipe) from one coordinate to another.
+Drag (swipe) from one coordinate to another on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify start and end points before dragging).
 - `udid` (string, required) — Device UDID
 - `fromX` (number, required) — Start X coordinate
 - `fromY` (number, required) — Start Y coordinate
@@ -79,7 +100,7 @@ Drag (swipe) from one coordinate to another.
 - `duration` (number, required) — Drag duration in seconds
 
 #### `type_text`
-Type text on the device (requires a focused text field).
+Type text on the device (requires a focused text field). If you need to tap a text field first, follow the coordinate verification workflow: get_device_control_size → mark_coordinates → tap, then type_text.
 - `udid` (string, required) — Device UDID
 - `text` (string, required) — Text to type
 

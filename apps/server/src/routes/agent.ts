@@ -75,10 +75,21 @@ function unwrapSkillResult(result: CallToolResult): unknown {
 // ---------------------------------------------------------------------------
 
 function createMcpServer(): McpServer {
-  const server = new McpServer({
-    name: 'tachibana',
-    version: '0.1.0',
-  })
+  const server = new McpServer(
+    {
+      name: 'tachibana',
+      version: '0.1.0',
+    },
+    {
+      instructions: [
+        'Coordinate verification workflow: before tapping, double-tapping, long-pressing, or dragging on the device screen, you MUST:',
+        '1. Call get_device_control_size to learn the valid coordinate range.',
+        '2. Call mark_coordinates with your intended coordinates to visually verify they hit the correct target.',
+        '3. Only after confirming the crosshair markers are positioned correctly, perform the action (tap, double_tap, touch_and_hold, drag).',
+        'Skipping this workflow risks tapping the wrong element. Never guess coordinates without verifying them first.',
+      ].join('\n'),
+    }
+  )
 
   for (const tool of allTools) {
     server.registerTool(

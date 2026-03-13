@@ -8,6 +8,7 @@ import { wdaManager } from './wda-manager.ts'
 import { getDevicePrefs, setDevicePrefs } from './device-store.ts'
 import { ensureWdaPorts, getFilteredApps, downloadPhotoToCache, ensureCompatibleImage } from './idevice-utils.ts'
 import { MEDIA_MIME_TYPES } from '../consts/idevice.ts'
+import { annotateScreenshot } from './image-annotate.ts'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -121,6 +122,20 @@ const GetScreenSizeSchema = z.object({
   udid: z.string().describe('Device UDID'),
 })
 
+const GetDeviceControlSizeSchema = z.object({
+  udid: z.string().describe('Device UDID'),
+})
+
+const MarkCoordinatesSchema = z.object({
+  udid: z.string().describe('Device UDID'),
+  coordinates: z.array(
+    z.object({
+      x: z.number().describe('X coordinate in device control points'),
+      y: z.number().describe('Y coordinate in device control points'),
+    })
+  ).min(1).max(10).describe('Coordinates to mark (in device control point space, same as tap/drag)'),
+})
+
 const TakeScreenshotSchema = z.object({
   udid: z.string().describe('Device UDID'),
 })
@@ -207,6 +222,11 @@ const ScreenSizeOutputSchema = z.object({
   height: z.number(),
 })
 
+const DeviceControlSizeOutputSchema = z.object({
+  width: z.number(),
+  height: z.number(),
+})
+
 const IsLockedOutputSchema = z.object({
   locked: z.boolean(),
 })
@@ -269,7 +289,7 @@ const setDevicePrefsT: ToolDefinition = {
 
 const tap: ToolDefinition = {
   name: 'tap',
-  description: 'Tap at a coordinate on the device screen',
+  description: 'Tap at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before tapping).',
   inputSchema: TapSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid, x, y }) => {
@@ -301,7 +321,7 @@ const tap: ToolDefinition = {
 
 const doubleTap: ToolDefinition = {
   name: 'double_tap',
-  description: 'Double-tap at a coordinate on the device screen',
+  description: 'Double-tap at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before double-tapping).',
   inputSchema: DoubleTapSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid, x, y }) => {
@@ -316,7 +336,7 @@ const doubleTap: ToolDefinition = {
 
 const touchAndHold: ToolDefinition = {
   name: 'touch_and_hold',
-  description: 'Long-press at a coordinate on the device screen',
+  description: 'Long-press at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before pressing).',
   inputSchema: TouchAndHoldSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid, x, y, duration }) => {
@@ -333,7 +353,7 @@ const touchAndHold: ToolDefinition = {
 const drag: ToolDefinition = {
   name: 'drag',
   description:
-    'Drag (swipe) from one coordinate to another on the device screen',
+    'Drag (swipe) from one coordinate to another on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify start and end points before dragging).',
   inputSchema: DragSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid, fromX, fromY, toX, toY, duration }) => {
@@ -371,7 +391,7 @@ const drag: ToolDefinition = {
 
 const typeText: ToolDefinition = {
   name: 'type_text',
-  description: 'Type text on the device (requires a focused text field)',
+  description: 'Type text on the device (requires a focused text field). If you need to tap a text field first, follow the coordinate verification workflow: get_device_control_size → mark_coordinates → tap, then type_text.',
   inputSchema: TypeTextSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid, text }) => {
@@ -570,6 +590,42 @@ const downloadPhoto: ToolDefinition = {
   },
 }
 
+const getDeviceControlSize: ToolDefinition = {
+  name: 'get_device_control_size',
+  description: 'Get the device control coordinate space. All coordinate-based tools use this range.',
+  inputSchema: GetDeviceControlSizeSchema,
+  outputSchema: DeviceControlSizeOutputSchema,
+  handler: async ({ udid }) => {
+    const { mainPort } = await ensureWda(udid)
+    const value = await wdaFetch(mainPort, 'GET', '/window/size')
+    return textResult(value as Record<string, unknown>)
+  },
+}
+
+const markCoordinates: ToolDefinition = {
+  name: 'mark_coordinates',
+  description: 'Visually verify coordinates before performing device control actions. Returns one annotated screenshot per coordinate with crosshair markers.',
+  inputSchema: MarkCoordinatesSchema,
+  handler: async ({ udid, coordinates }) => {
+    const { mainPort, sessionId } = await ensureWda(udid)
+
+    const [windowSize, base64] = await Promise.all([
+      wdaFetch(mainPort, 'GET', '/window/size') as Promise<{ width: number; height: number }>,
+      wdaFetch(mainPort, 'GET', `/session/${sessionId}/screenshot`) as Promise<string>,
+    ])
+
+    const annotatedImages = await annotateScreenshot(base64, coordinates, windowSize)
+
+    return {
+      content: annotatedImages.map(data => ({
+        type: 'image' as const,
+        data,
+        mimeType: 'image/png',
+      })),
+    }
+  },
+}
+
 // ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
@@ -578,6 +634,8 @@ export const allTools: ToolDefinition[] = [
   listDevices,
   getDevicePrefsT,
   setDevicePrefsT,
+  getDeviceControlSize,
+  markCoordinates,
   tap,
   doubleTap,
   touchAndHold,

@@ -32,10 +32,12 @@
         "elysia": "^1.4.22",
         "heic-convert": "^2.1.0",
         "jszip": "^3.10.1",
+        "sharp": "^0.34.5",
         "zod": "^3.24.0",
       },
       "devDependencies": {
         "@types/heic-convert": "^2.1.0",
+        "@types/sharp": "^0.32.0",
         "drizzle-kit": "^0.31.9",
         "vite": "^7.0.0",
       },
@@ -693,6 +695,8 @@
     "@types/react": ["@types/react@18.3.28", "", { "dependencies": { "@types/prop-types": "*", "csstype": "^3.2.2" } }, "sha512-z9VXpC7MWrhfWipitjNdgCauoMLRdIILQsAEV+ZesIzBq/oUlxk0m3ApZuMFCXdnS4U7KrI+l3WRUEGQ8K1QKw=="],
 
     "@types/react-dom": ["@types/react-dom@18.3.7", "", { "peerDependencies": { "@types/react": "^18.0.0" } }, "sha512-MEe3UeoENYVFXzoXEWsvcpg6ZvlrFNlOQ7EOsvhI3CfAXwzPfO8Qwuxd40nepsYKqyyVQnTdEfv68q91yLcKrQ=="],
+
+    "@types/sharp": ["@types/sharp@0.32.0", "", { "dependencies": { "sharp": "*" } }, "sha512-OOi3kL+FZDnPhVzsfD37J88FNeZh6gQsGcLc95NbeURRGvmSjeXiDcyWzF2o3yh/gQAUn2uhh/e+CPCa5nwAxw=="],
 
     "@vitejs/plugin-react": ["@vitejs/plugin-react@4.7.0", "", { "dependencies": { "@babel/core": "^7.28.0", "@babel/plugin-transform-react-jsx-self": "^7.27.1", "@babel/plugin-transform-react-jsx-source": "^7.27.1", "@rolldown/pluginutils": "1.0.0-beta.27", "@types/babel__core": "^7.20.5", "react-refresh": "^0.17.0" }, "peerDependencies": { "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" } }, "sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA=="],
 
