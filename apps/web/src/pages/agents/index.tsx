@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { format, formatDistanceToNow } from 'date-fns'
 import {
   Copy,
   Download,
@@ -58,21 +59,12 @@ const EXPIRATION_OPTIONS = [
 
 function formatDate(ms: number | null): string {
   if (!ms) return 'Never'
-  return new Date(ms).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
+  return format(ms, 'MMM d, yyyy')
 }
 
 function formatRelativeDate(ms: number | null): string {
   if (!ms) return 'Never'
-  const now = Date.now()
-  const diff = now - ms
-  if (diff < 60_000) return 'Just now'
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`
-  return formatDate(ms)
+  return formatDistanceToNow(ms, { addSuffix: true })
 }
 
 function renderTemplates(authToken: string) {

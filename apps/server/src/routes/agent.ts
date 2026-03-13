@@ -6,6 +6,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 
 import { apiTokenGuard } from '../libs/auth-middleware.ts'
 import { verifyApiToken } from '../libs/admin-auth.ts'
+import { logDeviceAction } from '../libs/audit-log.ts'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { allTools, toolMap } from '../libs/agent-tools.ts'
 
@@ -17,7 +18,9 @@ export const agentRoutes = new Elysia({ prefix: '/agent' })
   .use(apiTokenGuard)
   .post(
     '/skill',
-    async ({ body, set }) => {
+    async ctx => {
+      const { body, set } = ctx
+      const apiAuthId = (ctx as any).apiAuthId as number | null
       const { tool, parameters } = body
       const def = toolMap.get(tool)
       if (!def) {
@@ -26,6 +29,17 @@ export const agentRoutes = new Elysia({ prefix: '/agent' })
       }
       try {
         const parsed = def.inputSchema.parse(parameters ?? {})
+        if (parsed.udid) {
+          const result = await logDeviceAction({
+            udid: parsed.udid as string,
+            authId: apiAuthId,
+            source: 'agent',
+            action: tool,
+            params: parsed as Record<string, unknown>,
+            work: () => def.handler(parsed),
+          })
+          return unwrapSkillResult(result)
+        }
         const result = await def.handler(parsed)
         return unwrapSkillResult(result)
       } catch (err: any) {
@@ -74,7 +88,7 @@ function unwrapSkillResult(result: CallToolResult): unknown {
 // MCP helper — creates a fresh McpServer with all tools registered
 // ---------------------------------------------------------------------------
 
-function createMcpServer(): McpServer {
+function createMcpServer(authId: number | null): McpServer {
   const server = new McpServer(
     {
       name: 'tachibana',
@@ -100,7 +114,19 @@ function createMcpServer(): McpServer {
         inputSchema: tool.inputSchema,
         outputSchema: tool.outputSchema,
       },
-      async (params: any) => tool.handler(params)
+      async (params: any) => {
+        if (params.udid) {
+          return logDeviceAction({
+            udid: params.udid as string,
+            authId,
+            source: 'mcp',
+            action: tool.name,
+            params: params as Record<string, unknown>,
+            work: () => tool.handler(params),
+          })
+        }
+        return tool.handler(params)
+      }
     )
   }
 
@@ -129,8 +155,8 @@ export async function handleMcpRequest(
     res.end(JSON.stringify({ message: 'Missing bearer token' }))
     return
   }
-  const valid = await verifyApiToken(authHeader.slice(7))
-  if (!valid) {
+  const authResult = await verifyApiToken(authHeader.slice(7))
+  if (!authResult.valid) {
     res.writeHead(401, { 'Content-Type': 'application/json' })
     res.end(JSON.stringify({ message: 'Invalid or expired token' }))
     return
@@ -139,7 +165,7 @@ export async function handleMcpRequest(
   // Stateless: create fresh transport + server per request.
   // enableJsonResponse ensures handleRequest blocks until tool execution
   // completes, instead of returning immediately with an SSE stream.
-  const server = createMcpServer()
+  const server = createMcpServer(authResult.authId ?? null)
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

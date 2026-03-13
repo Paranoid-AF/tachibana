@@ -25,6 +25,20 @@ export const sessions = sqliteTable('sessions', {
   duration: integer('duration').notNull(),
   expiry: integer('expiry').notNull(),
   adsid: text('adsid').notNull(),
+  updatedAt: integer('updated_at'),
+})
+
+export const deviceLogs = sqliteTable('device_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  udid: text('udid').notNull(),
+  authId: integer('auth_id'),
+  source: text('source').notNull(), // 'web' | 'agent' | 'mcp'
+  action: text('action').notNull(), // unified action name
+  params: text('params'), // JSON string, udid stripped
+  status: text('status').notNull(), // 'processing' | 'success' | 'failed'
+  error: text('error'),
+  createdAt: integer('created_at').notNull(),
+  completedAt: integer('completed_at'),
 })
 
 export const auth = sqliteTable('auth', {

@@ -1,7 +1,5 @@
 import { Elysia, t } from 'elysia'
 
-import { join } from 'path'
-
 import { device, photos } from '@tbana/ios-connect'
 import type { ConnectedDevice, Device } from '@tbana/ios-connect'
 
@@ -13,8 +11,15 @@ import {
   getDevicePrefs,
   setDevicePrefs,
 } from '../libs/device-store.ts'
+import { resolveWdaAction, logDeviceAction } from '../libs/audit-log.ts'
+import { getAdminAuthId, getDeviceLogs } from '../db/index.ts'
 import { wdaManager } from '../libs/wda-manager.ts'
-import { ensureWdaPorts, getFilteredApps, downloadPhotoToCache, ensureCompatibleImage } from '../libs/idevice-utils.ts'
+import {
+  ensureWdaPorts,
+  getFilteredApps,
+  downloadPhotoToCache,
+  ensureCompatibleImage,
+} from '../libs/idevice-utils.ts'
 import { MEDIA_MIME_TYPES } from '../consts/idevice.ts'
 
 export interface MergedDeviceInfo extends Omit<
@@ -124,29 +129,38 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
       const { udid } = params
       const { name } = body
 
-      await session.pairDevice(udid)
+      return logDeviceAction({
+        udid,
+        authId: getAdminAuthId(),
+        source: 'web',
+        action: 'link_device',
+        params: { name },
+        work: async () => {
+          await session.pairDevice(udid)
 
-      await withSessionRetry(async s => {
-        const registered = await s.listDevices()
-        const alreadyRegistered = registered.some(d => d.udid === udid)
-        if (!alreadyRegistered) {
-          await s.registerDevice(udid, name)
-        }
-      })
-
-      const connectedResult = await device.listConnected()
-      if (connectedResult.success) {
-        const info = connectedResult.data.find(d => d.udid === udid)
-        if (info) {
-          await saveDeviceMeta(udid, {
-            name: info.name,
-            productType: info.productType,
-            productVersion: info.productVersion,
+          await withSessionRetry(async s => {
+            const registered = await s.listDevices()
+            const alreadyRegistered = registered.some(d => d.udid === udid)
+            if (!alreadyRegistered) {
+              await s.registerDevice(udid, name)
+            }
           })
-        }
-      }
 
-      return { ok: true }
+          const connectedResult = await device.listConnected()
+          if (connectedResult.success) {
+            const info = connectedResult.data.find(d => d.udid === udid)
+            if (info) {
+              await saveDeviceMeta(udid, {
+                name: info.name,
+                productType: info.productType,
+                productVersion: info.productVersion,
+              })
+            }
+          }
+
+          return { ok: true }
+        },
+      })
     },
     { body: t.Object({ name: t.String() }) }
   )
@@ -162,8 +176,17 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
   .post(
     '/:udid/prefs',
     ({ params, body }) => {
-      setDevicePrefs(params.udid, body)
-      return getDevicePrefs(params.udid)
+      return logDeviceAction({
+        udid: params.udid,
+        authId: getAdminAuthId(),
+        source: 'web',
+        action: 'set_device_prefs',
+        params: body as Record<string, unknown>,
+        work: async () => {
+          setDevicePrefs(params.udid, body)
+          return getDevicePrefs(params.udid)
+        },
+      })
     },
     {
       body: t.Object({
@@ -187,8 +210,7 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
         return { message: msg }
       }
 
-      // Proxy the request to WDA
-      try {
+      const proxyFetch = async () => {
         const wdaUrl = `http://localhost:${mainPort}${pathname}`
         const init: RequestInit = { method }
         if (payload !== undefined && method !== 'GET') {
@@ -199,6 +221,34 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
         const data = await resp.json()
         set.status = resp.status
         return data
+      }
+
+      const action = resolveWdaAction(method, pathname, payload)
+
+      if (action) {
+        try {
+          return await logDeviceAction({
+            udid,
+            authId: getAdminAuthId(),
+            source: 'web',
+            action,
+            params:
+              payload != null
+                ? (payload as Record<string, unknown>)
+                : undefined,
+            work: proxyFetch,
+          })
+        } catch (err) {
+          set.status = 502
+          return {
+            message: `Failed to reach WDA: ${err instanceof Error ? err.message : String(err)}`,
+          }
+        }
+      }
+
+      // Unrecognized WDA path — proxy without logging
+      try {
+        return await proxyFetch()
       } catch (err) {
         set.status = 502
         return {
@@ -226,7 +276,9 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
       filtered = await getFilteredApps(udid)
     } catch (err) {
       set.status = 500
-      return { message: err instanceof Error ? err.message : 'Failed to list apps' }
+      return {
+        message: err instanceof Error ? err.message : 'Failed to list apps',
+      }
     }
 
     const lookups = filtered.map(async app => {
@@ -373,4 +425,10 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
         'Cache-Control': 'no-cache',
       },
     })
+  })
+
+  .get('/:udid/logs', ({ params, query }) => {
+    const page = Math.max(1, Number(query.page ?? '1'))
+    const pageSize = Math.min(100, Math.max(1, Number(query.pageSize ?? '20')))
+    return getDeviceLogs(params.udid, page, pageSize)
   })

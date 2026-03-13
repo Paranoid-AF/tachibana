@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { formatDistanceToNow, format } from 'date-fns'
 import {
   ArrowUpToLine,
+  ChevronLeft,
+  ChevronRight,
   CircleHelp,
   Download,
   Home,
@@ -22,6 +26,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
+import { fetchDeviceLogs } from '@/lib/logs-api'
+import type { DeviceLog } from '@/lib/logs-api'
 import {
   homescreen,
   keys,
@@ -45,6 +51,15 @@ interface PhotoEntry {
   modified: number
 }
 
+const LOGS_PAGE_SIZE = 20
+
+const SOURCE_COLORS: Record<string, string> = {
+  web: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+  agent:
+    'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+  mcp: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
+}
+
 interface ControlPanelProps {
   udid: string
 }
@@ -62,6 +77,8 @@ export function ControlPanel({ udid }: ControlPanelProps) {
   const [photosNextCursor, setPhotosNextCursor] = useState<string | undefined>()
   const [photosHasMore, setPhotosHasMore] = useState(false)
   const [revealedPhotos, setRevealedPhotos] = useState<Set<string>>(new Set())
+  const [logsPage, setLogsPage] = useState(1)
+  const [logsAutoRefresh, setLogsAutoRefresh] = useState(true)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -128,6 +145,16 @@ export function ControlPanel({ udid }: ControlPanelProps) {
       )
       .catch(() => {})
   }, [udid])
+
+  const { data: logsData } = useQuery({
+    queryKey: ['device-logs', udid, logsPage],
+    queryFn: () => fetchDeviceLogs(udid, logsPage, LOGS_PAGE_SIZE),
+    refetchInterval: logsAutoRefresh ? 5000 : false,
+  })
+
+  const logs = logsData?.logs ?? []
+  const logsTotal = logsData?.total ?? 0
+  const logsTotalPages = Math.max(1, Math.ceil(logsTotal / LOGS_PAGE_SIZE))
 
   const handleAlwaysAwakeToggle = useCallback(
     (checked: boolean) => {
@@ -386,10 +413,10 @@ export function ControlPanel({ udid }: ControlPanelProps) {
                   const previewUrl = `${photoUrl}&preview=true`
                   const extLower =
                     photo.path.split('.').pop()?.toLowerCase() ?? ''
-                  const d = new Date(photo.modified * 1000)
-                  const dateTimeStr =
-                    `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}` +
-                    `-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}${String(d.getSeconds()).padStart(2, '0')}`
+                  const dateTimeStr = format(
+                    new Date(photo.modified * 1000),
+                    'yyyyMMdd-HHmmss'
+                  )
                   const downloadName = `idevice-photo-${dateTimeStr}.${extLower}`
 
                   if (revealed) {
@@ -426,10 +453,7 @@ export function ControlPanel({ udid }: ControlPanelProps) {
                       }
                     >
                       <span className="text-[10px] text-muted-foreground">
-                        {new Date(photo.modified * 1000).toLocaleDateString(
-                          undefined,
-                          { month: 'short', day: 'numeric', year: 'numeric' }
-                        )}
+                        {format(new Date(photo.modified * 1000), 'MMM d, yyyy')}
                       </span>
                       <span className="text-[10px] text-muted-foreground">
                         {photo.size < 1024 * 1024
@@ -471,8 +495,16 @@ export function ControlPanel({ udid }: ControlPanelProps) {
       {/* LOGS section */}
       <div className={appsOpen || photosOpen ? '' : 'flex-1 flex flex-col'}>
         <div className="flex items-center justify-between px-4 py-2 border-t">
-          <span className="text-xs font-semibold tracking-wider text-muted-foreground">
+          <span className="flex items-center gap-4 text-xs font-semibold tracking-wider text-muted-foreground">
             LOGS
+            <label className="flex items-center font-normal tracking-normal cursor-pointer select-none">
+              <Switch
+                checked={logsAutoRefresh}
+                onCheckedChange={setLogsAutoRefresh}
+                className="scale-75 origin-left"
+              />
+              Auto Refresh
+            </label>
           </span>
           {(appsOpen || photosOpen) && (
             <Button
@@ -489,6 +521,77 @@ export function ControlPanel({ udid }: ControlPanelProps) {
             </Button>
           )}
         </div>
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="px-2">
+            {logs.length === 0 && (
+              <div className="text-xs text-muted-foreground py-4 text-center">
+                No logs yet
+              </div>
+            )}
+            {logs.map((log: DeviceLog) => (
+              <div
+                key={log.id}
+                className="flex items-center gap-2 px-2 py-1.5 text-xs border-b border-border/50 last:border-b-0"
+                title={
+                  log.status === 'failed' && log.error
+                    ? `Error: ${log.error}`
+                    : undefined
+                }
+              >
+                <span className="text-muted-foreground shrink-0 w-24 text-right tabular-nums">
+                  {formatDistanceToNow(log.createdAt, { addSuffix: true })}
+                </span>
+                <span
+                  className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${SOURCE_COLORS[log.source] ?? 'bg-muted text-muted-foreground'}`}
+                >
+                  {log.source}
+                </span>
+                <span className="font-mono truncate flex-1">{log.action}</span>
+                <span
+                  className={`shrink-0 h-2 w-2 rounded-full ${
+                    log.status === 'success'
+                      ? 'bg-green-500'
+                      : log.status === 'processing'
+                        ? 'bg-yellow-500 animate-pulse'
+                        : 'bg-red-500'
+                  }`}
+                  title={log.status}
+                />
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+        {logsTotal > 0 && (
+          <div className="flex items-center justify-between px-4 py-1.5 border-t text-xs text-muted-foreground">
+            <span>
+              Page {logsPage} of {logsTotalPages}
+            </span>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                disabled={logsPage <= 1}
+                onClick={() => setLogsPage(p => Math.max(1, p - 1))}
+                title="Previous page"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                disabled={logsPage >= logsTotalPages}
+                onClick={() =>
+                  setLogsPage(p => Math.min(logsTotalPages, p + 1))
+                }
+                title="Next page"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

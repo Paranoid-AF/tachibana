@@ -6,7 +6,12 @@ import { photos } from '@tbana/ios-connect'
 import { deviceManager } from './device-manager.ts'
 import { wdaManager } from './wda-manager.ts'
 import { getDevicePrefs, setDevicePrefs } from './device-store.ts'
-import { ensureWdaPorts, getFilteredApps, downloadPhotoToCache, ensureCompatibleImage } from './idevice-utils.ts'
+import {
+  ensureWdaPorts,
+  getFilteredApps,
+  downloadPhotoToCache,
+  ensureCompatibleImage,
+} from './idevice-utils.ts'
 import { MEDIA_MIME_TYPES } from '../consts/idevice.ts'
 import { annotateScreenshot } from './image-annotate.ts'
 
@@ -69,7 +74,6 @@ function textResult(data: Record<string, unknown>): CallToolResult {
   }
 }
 
-
 // ---------------------------------------------------------------------------
 // Schemas
 // ---------------------------------------------------------------------------
@@ -128,12 +132,18 @@ const GetDeviceControlSizeSchema = z.object({
 
 const MarkCoordinatesSchema = z.object({
   udid: z.string().describe('Device UDID'),
-  coordinates: z.array(
-    z.object({
-      x: z.number().describe('X coordinate in device control points'),
-      y: z.number().describe('Y coordinate in device control points'),
-    })
-  ).min(1).max(10).describe('Coordinates to mark (in device control point space, same as tap/drag)'),
+  coordinates: z
+    .array(
+      z.object({
+        x: z.number().describe('X coordinate in device control points'),
+        y: z.number().describe('Y coordinate in device control points'),
+      })
+    )
+    .min(1)
+    .max(10)
+    .describe(
+      'Coordinates to mark (in device control point space, same as tap/drag)'
+    ),
 })
 
 const TakeScreenshotSchema = z.object({
@@ -289,7 +299,8 @@ const setDevicePrefsT: ToolDefinition = {
 
 const tap: ToolDefinition = {
   name: 'tap',
-  description: 'Tap at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before tapping).',
+  description:
+    'Tap at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before tapping).',
   inputSchema: TapSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid, x, y }) => {
@@ -321,7 +332,8 @@ const tap: ToolDefinition = {
 
 const doubleTap: ToolDefinition = {
   name: 'double_tap',
-  description: 'Double-tap at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before double-tapping).',
+  description:
+    'Double-tap at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before double-tapping).',
   inputSchema: DoubleTapSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid, x, y }) => {
@@ -336,7 +348,8 @@ const doubleTap: ToolDefinition = {
 
 const touchAndHold: ToolDefinition = {
   name: 'touch_and_hold',
-  description: 'Long-press at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before pressing).',
+  description:
+    'Long-press at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before pressing).',
   inputSchema: TouchAndHoldSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid, x, y, duration }) => {
@@ -391,7 +404,8 @@ const drag: ToolDefinition = {
 
 const typeText: ToolDefinition = {
   name: 'type_text',
-  description: 'Type text on the device (requires a focused text field). If you need to tap a text field first, follow the coordinate verification workflow: get_device_control_size → mark_coordinates → tap, then type_text.',
+  description:
+    'Type text on the device (requires a focused text field). If you need to tap a text field first, follow the coordinate verification workflow: get_device_control_size → mark_coordinates → tap, then type_text.',
   inputSchema: TypeTextSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid, text }) => {
@@ -579,9 +593,9 @@ const downloadPhoto: ToolDefinition = {
     const { localPath, ext } = await downloadPhotoToCache(udid, remotePath)
     const { filePath, mimeExt } = await ensureCompatibleImage(localPath, ext)
 
-    const base64 = Buffer.from(
-      await Bun.file(filePath).arrayBuffer()
-    ).toString('base64')
+    const base64 = Buffer.from(await Bun.file(filePath).arrayBuffer()).toString(
+      'base64'
+    )
     const mimeType = MEDIA_MIME_TYPES[mimeExt] ?? 'application/octet-stream'
 
     return {
@@ -592,7 +606,8 @@ const downloadPhoto: ToolDefinition = {
 
 const getDeviceControlSize: ToolDefinition = {
   name: 'get_device_control_size',
-  description: 'Get the device control coordinate space. All coordinate-based tools use this range.',
+  description:
+    'Get the device control coordinate space. All coordinate-based tools use this range.',
   inputSchema: GetDeviceControlSizeSchema,
   outputSchema: DeviceControlSizeOutputSchema,
   handler: async ({ udid }) => {
@@ -604,26 +619,47 @@ const getDeviceControlSize: ToolDefinition = {
 
 const markCoordinates: ToolDefinition = {
   name: 'mark_coordinates',
-  description: 'Visually verify coordinates before performing device control actions. Returns one annotated screenshot per coordinate. Each image has a full-screen crosshair: a horizontal line spanning the full width and a vertical line spanning the full height. The point where these two lines intersect is the EXACT coordinate that will be acted on. A small numbered badge sits at the intersection. Lines use per-pixel color negation for visibility. To verify: look ONLY at the intersection point and confirm it lands on the intended UI element.',
+  description:
+    'Visually verify coordinates before performing device control actions. Returns one annotated screenshot per coordinate. Each image has a full-screen crosshair: a horizontal line spanning the full width and a vertical line spanning the full height. The point where these two lines intersect is the EXACT coordinate that will be acted on. A small numbered badge sits at the intersection. Lines use per-pixel color negation for visibility. To verify: look ONLY at the intersection point and confirm it lands on the intended UI element.',
   inputSchema: MarkCoordinatesSchema,
   handler: async ({ udid, coordinates }) => {
     const { mainPort, sessionId } = await ensureWda(udid)
 
     const [windowSize, base64] = await Promise.all([
-      wdaFetch(mainPort, 'GET', '/window/size') as Promise<{ width: number; height: number }>,
-      wdaFetch(mainPort, 'GET', `/session/${sessionId}/screenshot`) as Promise<string>,
+      wdaFetch(mainPort, 'GET', '/window/size') as Promise<{
+        width: number
+        height: number
+      }>,
+      wdaFetch(
+        mainPort,
+        'GET',
+        `/session/${sessionId}/screenshot`
+      ) as Promise<string>,
     ])
 
-    const annotatedImages = await annotateScreenshot(base64, coordinates, windowSize)
+    const annotatedImages = await annotateScreenshot(
+      base64,
+      coordinates,
+      windowSize
+    )
 
     return {
       content: [
-        { type: 'text' as const, text: 'Original screenshot (without markers):' },
+        {
+          type: 'text' as const,
+          text: 'Original screenshot (without markers):',
+        },
         { type: 'image' as const, data: base64, mimeType: 'image/png' },
         ...annotatedImages.flatMap(({ full, crop }, idx) => [
-          { type: 'text' as const, text: `Coordinate ${idx} (${coordinates[idx].x}, ${coordinates[idx].y}) — full crosshair:` },
+          {
+            type: 'text' as const,
+            text: `Coordinate ${idx} (${coordinates[idx].x}, ${coordinates[idx].y}) — full crosshair:`,
+          },
           { type: 'image' as const, data: full, mimeType: 'image/png' },
-          { type: 'text' as const, text: `Coordinate ${idx} — close-up around intersection (this is what will be tapped):` },
+          {
+            type: 'text' as const,
+            text: `Coordinate ${idx} — close-up around intersection (this is what will be tapped):`,
+          },
           { type: 'image' as const, data: crop, mimeType: 'image/png' },
         ]),
       ],

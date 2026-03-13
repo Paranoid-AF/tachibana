@@ -1,8 +1,8 @@
 import sharp from 'sharp'
 
 export interface AnnotatedCoordinate {
-  full: string   // base64 PNG — full screenshot with crosshair
-  crop: string   // base64 PNG — cropped close-up around intersection
+  full: string // base64 PNG — full screenshot with crosshair
+  crop: string // base64 PNG — cropped close-up around intersection
 }
 
 // Crop radius in WDA points around the intersection
@@ -83,7 +83,9 @@ export async function annotateScreenshot(
   <text x="${pixelX}" y="${pixelY}" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-size="${fontSize}" font-weight="bold" fill="white">${label}</text>
 </svg>`
 
-    const annotatedBuf = await sharp(buf, { raw: { width: imgW, height: imgH, channels } })
+    const annotatedBuf = await sharp(buf, {
+      raw: { width: imgW, height: imgH, channels },
+    })
       .composite([{ input: Buffer.from(labelSvg), top: 0, left: 0 }])
       .png()
       .toBuffer()

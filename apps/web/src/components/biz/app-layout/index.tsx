@@ -121,11 +121,13 @@ function GradientNavLink() {
           </>
         )}
         <div className="flex flex-col flex-1 min-w-0">
-          <span className={cn(
-            active
-              ? ''
-              : 'animate-gradient-flow bg-gradient-to-r from-purple-500 via-pink-500 via-orange-400 to-purple-500 bg-[length:200%_auto] bg-clip-text text-transparent'
-          )}>
+          <span
+            className={cn(
+              active
+                ? ''
+                : 'animate-gradient-flow bg-gradient-to-r from-purple-500 via-pink-500 via-orange-400 to-purple-500 bg-[length:200%_auto] bg-clip-text text-transparent'
+            )}
+          >
             MCP &amp; Skills
           </span>
           <div className="relative h-4">

@@ -108,15 +108,17 @@ export async function createApiToken(
   return { id, key }
 }
 
-export async function verifyApiToken(bearerToken: string): Promise<boolean> {
-  if (!bearerToken.startsWith(TOKEN_PREFIX)) return false
+export async function verifyApiToken(
+  bearerToken: string
+): Promise<{ valid: boolean; authId?: number }> {
+  if (!bearerToken.startsWith(TOKEN_PREFIX)) return { valid: false }
 
   const prefix = bearerToken.slice(0, 16)
   const allHashes = getAllTokenHashes()
 
   // Narrow by prefix first
   const candidates = allHashes.filter(t => t.keyPrefix === prefix)
-  if (candidates.length === 0) return false
+  if (candidates.length === 0) return { valid: false }
 
   for (const candidate of candidates) {
     // Check expiry
@@ -128,9 +130,9 @@ export async function verifyApiToken(bearerToken: string): Promise<boolean> {
     )
     if (valid) {
       updateTokenLastUsed(candidate.id)
-      return true
+      return { valid: true, authId: candidate.id }
     }
   }
 
-  return false
+  return { valid: false }
 }
