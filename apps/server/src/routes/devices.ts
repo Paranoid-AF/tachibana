@@ -1,6 +1,11 @@
 import { Elysia, t } from 'elysia'
 
-import { device, apps } from '@tbana/ios-connect'
+import { mkdirSync, existsSync } from 'fs'
+import { tmpdir } from 'os'
+import { join, extname } from 'path'
+import convert from 'heic-convert'
+
+import { device, apps, photos } from '@tbana/ios-connect'
 import type { ConnectedDevice, Device } from '@tbana/ios-connect'
 
 import { getSession } from '../libs/session.ts'
@@ -345,6 +350,115 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
         }> => r.status === 'fulfilled'
       )
       .map(r => r.value)
+  })
+
+  .get('/:udid/photos', async ({ params, query, set }) => {
+    const { udid } = params
+    const limit = Number(query.limit ?? '50')
+    const cursor = query.cursor as string | undefined
+
+    const listResult = await photos.listPhotos(udid, {
+      limit,
+      cursor: cursor || undefined,
+    })
+    if (!listResult.success) {
+      set.status = 500
+      return { message: listResult.error.message }
+    }
+
+    const { photos: paths, nextCursor } = listResult.data
+    const infoResults = await Promise.allSettled(
+      paths.map(async p => {
+        const info = await photos.getPhotoInfo(udid, p)
+        if (!info.success) throw new Error(info.error.message)
+        return { path: p, size: info.data.size, modified: info.data.modified }
+      })
+    )
+
+    const entries = infoResults
+      .filter(
+        (r): r is PromiseFulfilledResult<{
+          path: string
+          size: number
+          modified: number
+        }> => r.status === 'fulfilled'
+      )
+      .map(r => r.value)
+
+    return {
+      photos: entries,
+      nextCursor: nextCursor ?? undefined,
+    }
+  })
+
+  .get('/:udid/photos/file', async ({ params, query, set }) => {
+    const { udid } = params
+    const remotePath = query.path as string | undefined
+    const preview = query.preview === 'true'
+
+    if (!remotePath) {
+      set.status = 400
+      return { message: 'Missing required query param: path' }
+    }
+
+    // Security: only allow DCIM paths, reject traversal
+    if (!remotePath.startsWith('/DCIM/') || remotePath.includes('..')) {
+      set.status = 403
+      return { message: 'Only /DCIM/ paths are allowed' }
+    }
+
+    const cacheDir = join(tmpdir(), 'tachibana-photos', udid)
+    const ext = extname(remotePath).toLowerCase()
+    const hash = new Bun.CryptoHasher('sha256').update(remotePath).digest('hex')
+    const localPath = join(cacheDir, `${hash}${ext}`)
+
+    if (!existsSync(localPath)) {
+      mkdirSync(cacheDir, { recursive: true })
+      const result = await photos.downloadPhoto(udid, remotePath, localPath)
+      if (!result.success) {
+        set.status = 500
+        return { message: result.error.message }
+      }
+    }
+
+    // Convert HEIC to JPEG for browser preview
+    const needsConversion = preview && ext === '.heic'
+    if (needsConversion) {
+      const jpegPath = join(cacheDir, `${hash}.preview.jpg`)
+      if (!existsSync(jpegPath)) {
+        const inputBuffer = await Bun.file(localPath).arrayBuffer()
+        const outputBuffer = await convert({
+          buffer: Buffer.from(inputBuffer) as unknown as ArrayBufferLike,
+          format: 'JPEG',
+          quality: 0.85,
+        })
+        await Bun.write(jpegPath, outputBuffer)
+      }
+      return new Response(Bun.file(jpegPath), {
+        headers: {
+          'Content-Type': 'image/jpeg',
+          'Cache-Control': 'public, max-age=3600',
+        },
+      })
+    }
+
+    const mimeMap: Record<string, string> = {
+      '.heic': 'image/heic',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.mov': 'video/quicktime',
+      '.mp4': 'video/mp4',
+    }
+    const contentType = mimeMap[ext] ?? 'application/octet-stream'
+
+    return new Response(Bun.file(localPath), {
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=3600',
+      },
+    })
   })
 
   .get('/:udid/screen', async ({ params, set }) => {

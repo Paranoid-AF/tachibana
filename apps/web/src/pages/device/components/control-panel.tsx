@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   ArrowUpToLine,
   CircleHelp,
+  Download,
   Home,
+  ImageIcon,
   LayoutGrid,
   Lock,
   LockOpen,
@@ -37,6 +39,12 @@ interface AppInfo {
   iconUrl100?: string
 }
 
+interface PhotoEntry {
+  path: string
+  size: number
+  modified: number
+}
+
 interface ControlPanelProps {
   udid: string
 }
@@ -48,6 +56,12 @@ export function ControlPanel({ udid }: ControlPanelProps) {
   const [locked, setLocked] = useState(false)
   const [alwaysAwake, setAlwaysAwake] = useState(true)
   const [contextMenuApp, setContextMenuApp] = useState<string | null>(null)
+  const [photosOpen, setPhotosOpen] = useState(false)
+  const [photosList, setPhotosList] = useState<PhotoEntry[]>([])
+  const [photosLoading, setPhotosLoading] = useState(false)
+  const [photosNextCursor, setPhotosNextCursor] = useState<string | undefined>()
+  const [photosHasMore, setPhotosHasMore] = useState(false)
+  const [revealedPhotos, setRevealedPhotos] = useState<Set<string>>(new Set())
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -67,6 +81,40 @@ export function ControlPanel({ udid }: ControlPanelProps) {
       cancelled = true
     }
   }, [udid, appsOpen])
+
+  const fetchPhotos = useCallback(
+    (cursor?: string) => {
+      setPhotosLoading(true)
+      const params = new URLSearchParams({ limit: '50' })
+      if (cursor) params.set('cursor', cursor)
+      fetch(`/api/devices/${udid}/photos?${params}`)
+        .then(res => res.json())
+        .then(
+          (data: {
+            photos: PhotoEntry[]
+            nextCursor?: string
+          }) => {
+            setPhotosList(prev =>
+              cursor ? [...prev, ...data.photos] : data.photos
+            )
+            setPhotosNextCursor(data.nextCursor)
+            setPhotosHasMore(!!data.nextCursor)
+          }
+        )
+        .catch(() => {})
+        .finally(() => setPhotosLoading(false))
+    },
+    [udid]
+  )
+
+  useEffect(() => {
+    if (!photosOpen) return
+    setPhotosList([])
+    setRevealedPhotos(new Set())
+    setPhotosNextCursor(undefined)
+    setPhotosHasMore(false)
+    fetchPhotos()
+  }, [udid, photosOpen, fetchPhotos])
 
   // Poll lock state on mount
   useEffect(() => {
@@ -171,15 +219,32 @@ export function ControlPanel({ udid }: ControlPanelProps) {
             </div>
           </span>
         </span>
-        <Button
-          variant={appsOpen ? 'default' : 'ghost'}
-          size="sm"
-          className="h-7 gap-1.5 text-xs"
-          onClick={() => setAppsOpen(v => !v)}
-        >
-          <LayoutGrid className="h-3.5 w-3.5" />
-          Apps
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant={appsOpen ? 'default' : 'ghost'}
+            size="sm"
+            className="h-7 gap-1.5 text-xs"
+            onClick={() => {
+              setAppsOpen(v => !v)
+              setPhotosOpen(false)
+            }}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />
+            Apps
+          </Button>
+          <Button
+            variant={photosOpen ? 'default' : 'ghost'}
+            size="sm"
+            className="h-7 gap-1.5 text-xs"
+            onClick={() => {
+              setPhotosOpen(v => !v)
+              setAppsOpen(false)
+            }}
+          >
+            <ImageIcon className="h-3.5 w-3.5" />
+            Photos
+          </Button>
+        </div>
       </div>
 
       {/* Home + lock + text input row */}
@@ -300,19 +365,131 @@ export function ControlPanel({ udid }: ControlPanelProps) {
         </>
       )}
 
+      {/* Photos grid */}
+      {photosOpen && (
+        <>
+          <Separator />
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="p-3">
+              {photosLoading && photosList.length === 0 && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-4 justify-center">
+                  <Spinner className="h-4 w-4" />
+                  Loading photos...
+                </div>
+              )}
+              {!photosLoading && photosList.length === 0 && (
+                <div className="text-xs text-muted-foreground py-4 text-center">
+                  No photos found
+                </div>
+              )}
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-1.5">
+                {photosList.map(photo => {
+                  const revealed = revealedPhotos.has(photo.path)
+                  const ext = photo.path
+                    .split('.')
+                    .pop()
+                    ?.toUpperCase() ?? ''
+                  const photoUrl = `/api/devices/${udid}/photos/file?path=${encodeURIComponent(photo.path)}`
+                  const previewUrl = `${photoUrl}&preview=true`
+                  const extLower = photo.path.split('.').pop()?.toLowerCase() ?? ''
+                  const d = new Date(photo.modified * 1000)
+                  const dateTimeStr =
+                    `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}` +
+                    `-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}${String(d.getSeconds()).padStart(2, '0')}`
+                  const downloadName = `idevice-photo-${dateTimeStr}.${extLower}`
+
+                  if (revealed) {
+                    return (
+                      <div
+                        key={photo.path}
+                        className="aspect-square rounded-md overflow-hidden relative group bg-muted"
+                      >
+                        <img
+                          src={previewUrl}
+                          alt={photo.path}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        <a
+                          href={photoUrl}
+                          download={downloadName}
+                          className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white rounded-md p-1"
+                          title="Download"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </a>
+                      </div>
+                    )
+                  }
+
+                  return (
+                    <button
+                      key={photo.path}
+                      className="aspect-square rounded-md bg-muted flex flex-col items-center justify-center gap-1 p-2 cursor-pointer hover:bg-accent/50 transition-colors"
+                      onClick={() =>
+                        setRevealedPhotos(prev => new Set(prev).add(photo.path))
+                      }
+                    >
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(photo.modified * 1000).toLocaleDateString(
+                          undefined,
+                          { month: 'short', day: 'numeric', year: 'numeric' }
+                        )}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {photo.size < 1024 * 1024
+                          ? `${(photo.size / 1024).toFixed(0)} KB`
+                          : `${(photo.size / 1024 / 1024).toFixed(1)} MB`}
+                      </span>
+                      <span className="text-[9px] font-medium bg-background/80 px-1.5 py-0.5 rounded">
+                        {ext}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+              {photosHasMore && (
+                <div className="flex justify-center pt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    disabled={photosLoading}
+                    onClick={() => fetchPhotos(photosNextCursor)}
+                  >
+                    {photosLoading ? (
+                      <>
+                        <Spinner className="h-3.5 w-3.5 mr-1.5" />
+                        Loading...
+                      </>
+                    ) : (
+                      'Load More'
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </>
+      )}
+
       {/* LOGS section */}
-      <div className={appsOpen ? '' : 'flex-1 flex flex-col'}>
+      <div className={appsOpen || photosOpen ? '' : 'flex-1 flex flex-col'}>
         <div className="flex items-center justify-between px-4 py-2 border-t">
           <span className="text-xs font-semibold tracking-wider text-muted-foreground">
             LOGS
           </span>
-          {appsOpen && (
+          {(appsOpen || photosOpen) && (
             <Button
               variant="ghost"
               size="icon"
               className="h-6 w-6"
-              onClick={() => setAppsOpen(false)}
-              title="Close Apps"
+              onClick={() => {
+                setAppsOpen(false)
+                setPhotosOpen(false)
+              }}
+              title="Close panel"
             >
               <ArrowUpToLine className="h-3.5 w-3.5" />
             </Button>
