@@ -2,24 +2,139 @@
 
 ## Connection
 
-- **Server:** `{{{server_origin}}}`
+- **Endpoint:** `{{{server_origin}}}/api/agent/skill`
+- **Method:** `POST`
+- **Content-Type:** `application/json`
 - **Authorization:** `Bearer {{{auth_token}}}`
 
-## API Endpoints
+## Request Format
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/health` | Health check |
-| GET | `/api/devices` | List connected devices |
-| GET | `/api/devices/:udid` | Get device info |
-| GET | `/api/devices/:udid/apps` | List installed apps |
-| GET | `/api/devices/:udid/photos` | List photos |
-| GET | `/api/devices/:udid/photos/:id` | Get photo |
-
-## Authentication
-
-Include the following header in all requests:
-
+```json
+{
+  "tool": "<tool_name>",
+  "parameters": { ... }
+}
 ```
-Authorization: Bearer {{{auth_token}}}
+
+## Response Format
+
+Most tools return a JSON object directly. For example:
+```json
+{ "ok": true }
 ```
+
+Image tools (`take_screenshot`, `download_photo`) return MCP content format:
+```json
+{ "content": [{ "type": "image", "data": "<base64>", "mimeType": "image/png" }] }
+```
+
+Error responses: `{ "error": "<message>" }`
+
+## Tools
+
+### Device Management
+
+#### `list_devices`
+List all connected iOS devices with their status.
+- Parameters: _(none)_
+- Returns: `{ "devices": [{ "udid", "connected", "linked", "tunnelReady", "wdaState", "mainPort?", "mjpegPort?" }] }`
+
+#### `get_device_prefs`
+Get preferences for a device.
+- `udid` (string, required) — Device UDID
+
+#### `set_device_prefs`
+Update preferences for a device.
+- `udid` (string, required) — Device UDID
+- `alwaysAwake` (boolean, optional) — Keep the device screen on
+
+### Screen Interaction
+
+#### `tap`
+Tap at a coordinate on the device screen.
+- `udid` (string, required) — Device UDID
+- `x` (number, required) — X coordinate
+- `y` (number, required) — Y coordinate
+
+#### `double_tap`
+Double-tap at a coordinate on the device screen.
+- `udid` (string, required) — Device UDID
+- `x` (number, required) — X coordinate
+- `y` (number, required) — Y coordinate
+
+#### `touch_and_hold`
+Long-press at a coordinate on the device screen.
+- `udid` (string, required) — Device UDID
+- `x` (number, required) — X coordinate
+- `y` (number, required) — Y coordinate
+- `duration` (number, required) — Hold duration in seconds
+
+#### `drag`
+Drag (swipe) from one coordinate to another.
+- `udid` (string, required) — Device UDID
+- `fromX` (number, required) — Start X coordinate
+- `fromY` (number, required) — Start Y coordinate
+- `toX` (number, required) — End X coordinate
+- `toY` (number, required) — End Y coordinate
+- `duration` (number, required) — Drag duration in seconds
+
+#### `type_text`
+Type text on the device (requires a focused text field).
+- `udid` (string, required) — Device UDID
+- `text` (string, required) — Text to type
+
+#### `get_screen_size`
+Get the device screen dimensions in points.
+- `udid` (string, required) — Device UDID
+
+#### `take_screenshot`
+Take a screenshot of the device screen (returns base64 PNG).
+- `udid` (string, required) — Device UDID
+
+### Device Control
+
+#### `go_home`
+Press the home button / go to home screen.
+- `udid` (string, required) — Device UDID
+
+#### `lock_device`
+Lock the device screen.
+- `udid` (string, required) — Device UDID
+
+#### `unlock_device`
+Unlock the device screen.
+- `udid` (string, required) — Device UDID
+
+#### `is_locked`
+Check if the device screen is locked.
+- `udid` (string, required) — Device UDID
+
+### App Management
+
+#### `launch_app`
+Launch an app by bundle identifier.
+- `udid` (string, required) — Device UDID
+- `bundleId` (string, required) — App bundle identifier (e.g. com.apple.mobilesafari)
+
+#### `terminate_app`
+Terminate a running app by bundle identifier.
+- `udid` (string, required) — Device UDID
+- `bundleId` (string, required) — App bundle identifier
+
+#### `list_apps`
+List installed apps on the device (User apps + curated System apps).
+- `udid` (string, required) — Device UDID
+- Returns: `{ "apps": [{ "bundleId", "name" }] }`
+
+### Photos
+
+#### `list_photos`
+List photos on the device camera roll with pagination.
+- `udid` (string, required) — Device UDID
+- `limit` (number, optional) — Number of photos to return (default: 50)
+- `cursor` (string, optional) — Pagination cursor from a previous response
+
+#### `download_photo`
+Download a photo from the device (returns base64 image).
+- `udid` (string, required) — Device UDID
+- `path` (string, required) — Photo path on device (from list_photos, must start with /DCIM/)
