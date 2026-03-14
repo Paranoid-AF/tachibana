@@ -14,8 +14,6 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - uses: extractions/setup-just@v3
-
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Install dependencies
