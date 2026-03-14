@@ -119,6 +119,13 @@ build-dist: build
       [ -d "${nm}/@img/sharp-libvips-${platform}" ] && cp -r "${nm}/@img/sharp-libvips-${platform}" "${sharp_dir}/" && break
     done
 
+    # ios-connect native addon (napi-rs loader + .node binding)
+    ic_dist="{{packages_dir}}/ios-connect/dist"
+    ic_staging="${staging}/ios-connect/dist"
+    mkdir -p "${ic_staging}"
+    cp "${ic_dist}/index.js" "${ic_staging}/"
+    cp "${ic_dist}/"*.node "${ic_staging}/"
+
     # WDA IPA (if available)
     ipa="{{packages_dir}}/ios-wda/ipa-build/WebDriverAgentRunner.ipa"
     if [ -f "$ipa" ]; then

@@ -10,7 +10,7 @@ import { adminAuthGuard } from './libs/auth-middleware.ts'
 import {
   buildHttpRequest,
   handleElysiaResponse,
-  handleElysiaStaticRoute,
+  serveStaticFile,
 } from './libs/http.ts'
 import { handleMcpRequest } from './routes/agent.ts'
 import { ensureElevated } from './libs/elevate.ts'
@@ -84,9 +84,6 @@ const main = async () => {
       },
       appType: 'spa',
     })
-  } else {
-    // Use static file server for production
-    handleElysiaStaticRoute(app, webDistPath)
   }
 
   server.on('request', async (req, res) => {
@@ -96,10 +93,15 @@ const main = async () => {
       await handleMcpRequest(req, res)
       return
     }
-    const url = new URL(pathname, baseUrl).toString()
-    if (vite && !pathname.startsWith('/api/')) {
-      vite.middlewares(req, res)
+    if (!pathname.startsWith('/api/')) {
+      // Static files: Vite in dev, direct file serving in production
+      if (vite) {
+        vite.middlewares(req, res)
+      } else {
+        serveStaticFile(res, webDistPath, pathname)
+      }
     } else {
+      const url = new URL(pathname, baseUrl).toString()
       app
         .handle(await buildHttpRequest(url, req))
         .then(handleElysiaResponse(req, res))

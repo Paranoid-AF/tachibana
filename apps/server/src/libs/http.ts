@@ -1,4 +1,3 @@
-import type { AnyElysia } from 'elysia'
 import http from 'node:http'
 import path from 'node:path'
 
@@ -52,36 +51,32 @@ export const handleElysiaResponse =
     res.end()
   }
 
-export const handleElysiaStaticRoute = (
-  app: AnyElysia,
-  webDistPath: string
+export const serveStaticFile = async (
+  res: http.ServerResponse,
+  webDistPath: string,
+  pathname: string
 ) => {
-  app.get('/*', async ({ request, set }) => {
-    const url = new URL(request.url)
-    const pathname = url.pathname
+  const resolved = path.resolve(webDistPath, '.' + pathname)
+  if (!resolved.startsWith(webDistPath)) {
+    res.writeHead(400).end()
+    return
+  }
 
-    const resolved = path.resolve(webDistPath, '.' + pathname)
-    if (!resolved.startsWith(webDistPath)) {
-      set.status = 400
-      return { status: 400, error: { message: 'Bad request' } }
-    }
+  const filePath = pathname === '/' ? '/index.html' : pathname
+  const file = Bun.file(path.join(webDistPath, filePath))
 
-    const filePath = pathname === '/' ? '/index.html' : pathname
-    const file = Bun.file(path.join(webDistPath, filePath))
+  if (!(await file.exists())) {
+    // SPA fallback
+    const index = Bun.file(path.join(webDistPath, 'index.html'))
+    res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-cache' })
+    res.end(await index.arrayBuffer().then(b => Buffer.from(b)))
+    return
+  }
 
-    if (!(await file.exists())) {
-      return new Response(Bun.file(path.join(webDistPath, 'index.html')), {
-        headers: { 'Cache-Control': 'no-cache' },
-      })
-    }
-
-    const isAsset = pathname.startsWith('/assets/')
-    return new Response(file, {
-      headers: {
-        'Cache-Control': isAsset
-          ? 'public, max-age=31536000, immutable'
-          : 'no-cache',
-      },
-    })
+  const isAsset = pathname.startsWith('/assets/')
+  res.writeHead(200, {
+    'Content-Type': file.type,
+    'Cache-Control': isAsset ? 'public, max-age=31536000, immutable' : 'no-cache',
   })
+  res.end(await file.arrayBuffer().then(b => Buffer.from(b)))
 }
