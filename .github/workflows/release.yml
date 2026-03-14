@@ -155,6 +155,7 @@ jobs:
             apps/server/src/index.ts \
             --outfile "apps/server/dist/tachibana${ext}" \
             --external vite \
+            --external sharp \
             --define 'process.env.NODE_ENV="production"'
 
       - name: Download sharp native binaries
