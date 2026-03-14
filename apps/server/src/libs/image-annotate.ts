@@ -1,15 +1,4 @@
-import path from 'node:path'
-import type SharpType from 'sharp'
-import { isCompiled, serverDir } from './runtime.ts'
-
-function loadSharp(): typeof SharpType {
-  if (isCompiled) {
-    return require(path.join(serverDir, 'node_modules', 'sharp'))
-  }
-  return require('sharp')
-}
-
-const sharp = loadSharp()
+import sharp from 'sharp'
 
 export interface AnnotatedCoordinate {
   full: string // base64 PNG — full screenshot with crosshair

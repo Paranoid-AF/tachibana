@@ -155,7 +155,16 @@ jobs:
             apps/server/src/index.ts \
             --outfile "apps/server/dist/tachibana${ext}" \
             --external vite \
-            --external sharp \
+            --external @img/sharp-darwin-arm64 --external @img/sharp-darwin-x64 \
+            --external @img/sharp-linux-arm --external @img/sharp-linux-arm64 --external @img/sharp-linux-x64 \
+            --external @img/sharp-linuxmusl-arm64 --external @img/sharp-linuxmusl-x64 \
+            --external @img/sharp-linux-ppc64 --external @img/sharp-linux-riscv64 --external @img/sharp-linux-s390x \
+            --external @img/sharp-win32-arm64 --external @img/sharp-win32-ia32 --external @img/sharp-win32-x64 \
+            --external @img/sharp-wasm32 \
+            --external @img/sharp-libvips-darwin-arm64 --external @img/sharp-libvips-darwin-x64 \
+            --external @img/sharp-libvips-linux-arm --external @img/sharp-libvips-linux-arm64 --external @img/sharp-libvips-linux-x64 \
+            --external @img/sharp-libvips-linuxmusl-arm64 --external @img/sharp-libvips-linuxmusl-x64 \
+            --external @img/sharp-libvips-linux-ppc64 --external @img/sharp-libvips-linux-riscv64 --external @img/sharp-libvips-linux-s390x \
             --define 'process.env.NODE_ENV="production"'
 
       - name: Download sharp native binaries
@@ -219,17 +228,8 @@ jobs:
           # Web frontend
           cp -r apps/web/dist/* "${staging}/web/"
 
-          # Sharp + its deps (marked --external in bun build)
-          # In this monorepo, sharp is in apps/server/node_modules/, not root
-          srv_nm="apps/server/node_modules"
-          for pkg in sharp detect-libc semver; do
-            [ -d "${srv_nm}/$pkg" ] && cp -r "${srv_nm}/$pkg" "${staging}/node_modules/"
-          done
+          # Sharp native bindings (marked --external in bun build, resolved from disk at runtime)
           mkdir -p "${staging}/node_modules/@img"
-          for dir in ${srv_nm}/@img/colour ${srv_nm}/@img/sharp-* ${srv_nm}/@img/sharp-libvips-*; do
-            [ -d "$dir" ] && cp -r "$dir" "${staging}/node_modules/@img/"
-          done
-          # Also copy platform-specific native bindings downloaded earlier
           for dir in node_modules/@img/sharp-* node_modules/@img/sharp-libvips-*; do
             [ -d "$dir" ] && cp -r "$dir" "${staging}/node_modules/@img/"
           done

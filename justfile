@@ -8,6 +8,9 @@ root_dir := replace(justfile_directory(), "\\", "/")
 apps_dir := root_dir / "apps"
 packages_dir := root_dir / "packages"
 
+# sharp native bindings must stay external so the compiled binary loads them from disk
+sharp_externals := "--external @img/sharp-darwin-arm64 --external @img/sharp-darwin-x64 --external @img/sharp-linux-arm --external @img/sharp-linux-arm64 --external @img/sharp-linux-x64 --external @img/sharp-linuxmusl-arm64 --external @img/sharp-linuxmusl-x64 --external @img/sharp-linux-ppc64 --external @img/sharp-linux-riscv64 --external @img/sharp-linux-s390x --external @img/sharp-win32-arm64 --external @img/sharp-win32-ia32 --external @img/sharp-win32-x64 --external @img/sharp-wasm32 --external @img/sharp-libvips-darwin-arm64 --external @img/sharp-libvips-darwin-x64 --external @img/sharp-libvips-linux-arm --external @img/sharp-libvips-linux-arm64 --external @img/sharp-libvips-linux-x64 --external @img/sharp-libvips-linuxmusl-arm64 --external @img/sharp-libvips-linuxmusl-x64 --external @img/sharp-libvips-linux-ppc64 --external @img/sharp-libvips-linux-riscv64 --external @img/sharp-libvips-linux-s390x"
+
 # Default target - show available commands
 default: list
 
@@ -40,7 +43,7 @@ build-web:
 # Build server binary (depends on web build)
 build: build-web typecheck
     @echo "→ Building server..."
-    cd {{apps_dir}}/server && {{bun}} build src/index.ts --compile --external vite --external sharp --outfile dist/tachibana
+    cd {{apps_dir}}/server && {{bun}} build src/index.ts --compile --external vite {{sharp_externals}} --outfile dist/tachibana
     @echo "✓ Server built"
 
 #############################################
