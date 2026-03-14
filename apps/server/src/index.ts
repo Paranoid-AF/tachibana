@@ -1,3 +1,4 @@
+import './libs/sharp-native.ts'
 import path from 'node:path'
 import http from 'node:http'
 

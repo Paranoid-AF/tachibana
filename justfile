@@ -8,8 +8,6 @@ root_dir := replace(justfile_directory(), "\\", "/")
 apps_dir := root_dir / "apps"
 packages_dir := root_dir / "packages"
 
-# sharp and its native bindings must stay external so the compiled binary loads them from disk
-sharp_externals := "--external sharp --external @img/sharp-darwin-arm64 --external @img/sharp-darwin-x64 --external @img/sharp-linux-arm --external @img/sharp-linux-arm64 --external @img/sharp-linux-x64 --external @img/sharp-linuxmusl-arm64 --external @img/sharp-linuxmusl-x64 --external @img/sharp-linux-ppc64 --external @img/sharp-linux-riscv64 --external @img/sharp-linux-s390x --external @img/sharp-win32-arm64 --external @img/sharp-win32-ia32 --external @img/sharp-win32-x64 --external @img/sharp-wasm32 --external @img/sharp-libvips-darwin-arm64 --external @img/sharp-libvips-darwin-x64 --external @img/sharp-libvips-linux-arm --external @img/sharp-libvips-linux-arm64 --external @img/sharp-libvips-linux-x64 --external @img/sharp-libvips-linuxmusl-arm64 --external @img/sharp-libvips-linuxmusl-x64 --external @img/sharp-libvips-linux-ppc64 --external @img/sharp-libvips-linux-riscv64 --external @img/sharp-libvips-linux-s390x"
 
 # Default target - show available commands
 default: list
@@ -43,7 +41,7 @@ build-web:
 # Build server binary (depends on web build)
 build: build-web typecheck
     @echo "→ Building server..."
-    cd {{apps_dir}}/server && {{bun}} build src/index.ts --compile --external vite {{sharp_externals}} --outfile dist/tachibana
+    cd {{apps_dir}}/server && {{bun}} build src/index.ts --compile --external vite --outfile dist/tachibana
     @echo "✓ Server built"
 
 #############################################
@@ -88,7 +86,7 @@ build-dist: build
     bun_cache="${root}/node_modules/.bun"
     staging="${root}/staging/tachibana"
     rm -rf "${staging}"
-    mkdir -p "${staging}/bin" "${staging}/drizzle" "${staging}/web" "${staging}/node_modules"
+    mkdir -p "${staging}/bin" "${staging}/drizzle" "${staging}/web"
 
     # Server binary
     cp "{{apps_dir}}/server/dist/tachibana" "${staging}/"
@@ -102,20 +100,23 @@ build-dist: build
     # Web frontend
     cp -r "{{apps_dir}}/web/dist/"* "${staging}/web/"
 
-    # Sharp + deps (resolved from disk at runtime)
-    for pkg in sharp detect-libc semver; do
-      [ -d "${srv_nm}/$pkg" ] && cp -r "${srv_nm}/$pkg" "${staging}/node_modules/"
+    # Sharp native binding + libvips (only native files needed; sharp JS is bundled)
+    platform="$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/x64/' | sed 's/aarch64/arm64/')"
+    sharp_dir="${staging}/sharp/@img"
+    mkdir -p "${sharp_dir}"
+    # Copy platform-specific @img/sharp-<platform> (contains .node binding)
+    for dir in "${bun_cache}"/@img+sharp-${platform}@*/node_modules/@img/sharp-${platform}; do
+      [ -d "$dir" ] && cp -r "$dir" "${sharp_dir}/" && break
     done
-    mkdir -p "${staging}/node_modules/@img"
-    # Copy @img packages from bun's internal cache
-    for dir in "${bun_cache}"/@img+sharp-*/; do
-      [ -d "$dir" ] && cp -r "$dir"/node_modules/@img/* "${staging}/node_modules/@img/"
-    done
-    # Also copy any @img packages from standard node_modules locations
     for nm in "${srv_nm}" "${root}/node_modules"; do
-      for dir in "${nm}"/@img/colour "${nm}"/@img/sharp-* "${nm}"/@img/sharp-libvips-*; do
-        [ -d "$dir" ] && cp -r "$dir" "${staging}/node_modules/@img/"
-      done
+      [ -d "${nm}/@img/sharp-${platform}" ] && cp -r "${nm}/@img/sharp-${platform}" "${sharp_dir}/" && break
+    done
+    # Copy platform-specific @img/sharp-libvips-<platform> (contains libvips dylib)
+    for dir in "${bun_cache}"/@img+sharp-libvips-${platform}@*/node_modules/@img/sharp-libvips-${platform}; do
+      [ -d "$dir" ] && cp -r "$dir" "${sharp_dir}/" && break
+    done
+    for nm in "${srv_nm}" "${root}/node_modules"; do
+      [ -d "${nm}/@img/sharp-libvips-${platform}" ] && cp -r "${nm}/@img/sharp-libvips-${platform}" "${sharp_dir}/" && break
     done
 
     # WDA IPA (if available)
