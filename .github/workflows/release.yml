@@ -122,7 +122,7 @@ jobs:
           CC: ${{ matrix.label == 'linux-arm64' && 'aarch64-linux-gnu-gcc' || '' }}
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.label == 'linux-arm64' && 'aarch64-linux-gnu-gcc' || '' }}
         run: |
-          bunx @napi-rs/cli build \
+          ./packages/ios-connect/node_modules/.bin/napi build \
             --platform --release \
             --target ${{ matrix.rust-target }} \
             --manifest-path packages/ios-connect/Cargo.toml \
