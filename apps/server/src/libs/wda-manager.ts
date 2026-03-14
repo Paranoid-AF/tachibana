@@ -15,6 +15,8 @@ const { WdaClient, WdaSession } = wdaClient
 
 const WDA_HTTP_PORT = 8100
 const WDA_MJPEG_PORT = 9100
+const MAX_RESTART_ATTEMPTS = 5
+const RESTART_BACKOFF_BASE_MS = 5_000 // 5s, 10s, 20s, 40s, 80s exponential
 
 type WdaState = 'idle' | 'preparing' | 'ready' | 'error'
 
@@ -30,6 +32,9 @@ interface WdaEntry {
   wdaSession?: InstanceType<typeof WdaSession>
   goIosProc?: ReturnType<typeof Bun.spawn>
   waiters: Array<(entry: WdaEntry) => void>
+  restartCount: number
+  lastRestartAt: number
+  restartInProgress: boolean
 }
 
 class WdaManager {
@@ -38,7 +43,13 @@ class WdaManager {
 
   private getOrCreate(udid: string): WdaEntry {
     if (!this.entries.has(udid)) {
-      this.entries.set(udid, { state: 'idle', waiters: [] })
+      this.entries.set(udid, {
+        state: 'idle',
+        waiters: [],
+        restartCount: 0,
+        lastRestartAt: 0,
+        restartInProgress: false,
+      })
     }
     return this.entries.get(udid)!
   }
@@ -52,12 +63,14 @@ class WdaManager {
     state: WdaState
     error?: string
     mainPort?: number
+    mjpegPort?: number
   } {
     const entry = this.entries.get(udid)
     return {
       state: entry?.state ?? 'idle',
       error: entry?.error,
       mainPort: entry?.mainPort,
+      mjpegPort: entry?.mjpegPort,
     }
   }
 
@@ -95,6 +108,65 @@ class WdaManager {
     entry.state = 'preparing'
     entry.error = undefined
     this._run(udid, entry).catch(() => {})
+  }
+
+  async restart(udid: string): Promise<void> {
+    const entry = this.entries.get(udid)
+    if (!entry) return
+    if (entry.restartInProgress) return
+
+    const log = (msg: string) => console.log(`[WDA ${udid.slice(-8)}] ${msg}`)
+
+    if (entry.restartCount >= MAX_RESTART_ATTEMPTS) {
+      log(`Max restart attempts (${MAX_RESTART_ATTEMPTS}) reached, giving up`)
+      entry.state = 'error'
+      entry.error = 'WDA exceeded maximum restart attempts'
+      this.flush(entry)
+      return
+    }
+
+    const backoffMs =
+      RESTART_BACKOFF_BASE_MS * Math.pow(2, entry.restartCount)
+    const elapsed = Date.now() - entry.lastRestartAt
+    if (entry.lastRestartAt > 0 && elapsed < backoffMs) {
+      log(`Restart backoff: ${backoffMs - elapsed}ms remaining, skipping`)
+      return
+    }
+
+    entry.restartInProgress = true
+    entry.restartCount++
+    entry.lastRestartAt = Date.now()
+
+    log(`Restarting WDA (attempt ${entry.restartCount}/${MAX_RESTART_ATTEMPTS})`)
+
+    try {
+      // Inline cleanup (don't use stop() — it deletes the entry from the map)
+      if (entry.wdaSession) await entry.wdaSession.destroy().catch(() => {})
+      if (entry.goIosProc) {
+        entry.goIosProc.kill()
+        entry.goIosProc = undefined
+      }
+      if (entry.mainPort !== undefined) await tunnel.stopTunnel(entry.mainPort)
+      if (entry.mjpegPort !== undefined)
+        await tunnel.stopTunnel(entry.mjpegPort)
+
+      entry.mainPort = undefined
+      entry.mjpegPort = undefined
+      entry.wdaSession = undefined
+      entry.state = 'idle'
+      entry.error = undefined
+      entry.restartInProgress = false
+
+      this.prepare(udid)
+    } catch (err) {
+      log(
+        `Restart cleanup failed: ${err instanceof Error ? err.message : String(err)}`
+      )
+      entry.restartInProgress = false
+      entry.state = 'error'
+      entry.error = 'Restart failed during cleanup'
+      this.flush(entry)
+    }
   }
 
   private async _run(udid: string, entry: WdaEntry): Promise<void> {
@@ -141,6 +213,19 @@ class WdaManager {
       entry.mjpegPort = result.mjpegPort
       entry.wdaSession = result.wdaSession
       entry.state = 'ready'
+      entry.restartCount = 0
+      entry.restartInProgress = false
+
+      // Watch for process death after WDA is ready
+      if (entry.goIosProc) {
+        entry.goIosProc.exited.then(code => {
+          if (entry.state === 'ready') {
+            log(`go-ios process exited unexpectedly with code ${code}`)
+            this.restart(udid)
+          }
+        })
+      }
+
       this.flush(entry)
     } catch (err) {
       log(`Error: ${err instanceof Error ? err.message : String(err)}`)
@@ -362,11 +447,29 @@ class WdaManager {
     return baseBundleId
   }
 
+  private async checkHealth(udid: string, entry: WdaEntry): Promise<void> {
+    if (entry.state !== 'ready' || !entry.wdaSession || entry.restartInProgress)
+      return
+
+    const healthy = await entry.wdaSession.isHealthy()
+    if (!healthy && entry.state === 'ready') {
+      console.log(
+        `[WDA ${udid.slice(-8)}] Health check failed, triggering restart`
+      )
+      this.restart(udid)
+    }
+  }
+
   startKeepAwake(): void {
     if (this.keepAwakeTimer) return
     this.keepAwakeTimer = setInterval(() => {
       for (const [udid, entry] of this.entries) {
         if (entry.state !== 'ready' || !entry.mainPort) continue
+
+        // Health check (runs for all ready entries)
+        this.checkHealth(udid, entry).catch(() => {})
+
+        // Keep-awake unlock (only if pref enabled)
         try {
           if (!getDevicePrefs(udid).alwaysAwake) continue
         } catch {

@@ -25,6 +25,26 @@ export async function ensureWdaPorts(
   let mainPort = entry.wdaState === 'ready' ? entry.mainPort : undefined
   let mjpegPort = entry.wdaState === 'ready' ? entry.mjpegPort : undefined
 
+  if (mainPort) {
+    // Quick validation: check if the WDA HTTP port is actually reachable
+    try {
+      const res = await fetch(`http://localhost:${mainPort}/status`, {
+        signal: AbortSignal.timeout(3_000),
+      })
+      if (!res.ok) throw new Error('non-ok status')
+    } catch {
+      // WDA is in broken "ready" state — trigger restart and wait
+      console.log(
+        `[ensureWdaPorts] WDA for ${udid.slice(-8)} is unresponsive, triggering restart`
+      )
+      await wdaManager.restart(udid)
+      await deviceManager.waitUntilReady(udid)
+      const refreshed = deviceManager.getDevice(udid)
+      mainPort = refreshed?.mainPort ?? wdaManager.getState(udid).mainPort
+      mjpegPort = refreshed?.mjpegPort
+    }
+  }
+
   if (!mainPort) {
     wdaManager.prepare(udid)
     await deviceManager.waitUntilReady(udid)
