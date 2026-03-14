@@ -12,14 +12,6 @@
         "typescript": "^5.0.0",
       },
     },
-    "apps/cli": {
-      "name": "@tbana/cli",
-      "version": "0.0.1",
-      "dependencies": {
-        "@tbana/ios-connect": "workspace:*",
-        "@tbana/ios-wda": "workspace:*",
-      },
-    },
     "apps/server": {
       "name": "@tbana/server",
       "version": "0.0.1",
@@ -648,8 +640,6 @@
     "@tanstack/query-core": ["@tanstack/query-core@5.90.20", "", {}, "sha512-OMD2HLpNouXEfZJWcKeVKUgQ5n+n3A2JFmBaScpNDUqSrQSjiveC7dKMe53uJUg1nDG16ttFPz2xfilz6i2uVg=="],
 
     "@tanstack/react-query": ["@tanstack/react-query@5.90.21", "", { "dependencies": { "@tanstack/query-core": "5.90.20" }, "peerDependencies": { "react": "^18 || ^19" } }, "sha512-0Lu6y5t+tvlTJMTO7oh5NSpJfpg/5D41LlThfepTixPYkJ0sE2Jj0m0f6yYqujBwIXlId87e234+MxG3D3g7kg=="],
-
-    "@tbana/cli": ["@tbana/cli@workspace:apps/cli"],
 
     "@tbana/ios-connect": ["@tbana/ios-connect@workspace:packages/ios-connect"],
 

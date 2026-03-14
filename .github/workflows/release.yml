@@ -33,7 +33,7 @@ jobs:
           path: packages/ios-wda/ipa-build/WebDriverAgentRunner.ipa
           retention-days: 7
 
-  # ─── Stage 2: Build server + CLI per platform ───────────────────────
+  # ─── Stage 2: Build server per platform ─────────────────────────────
   build:
     needs: build-wda
     strategy:
@@ -130,16 +130,6 @@ jobs:
             --external vite \
             --define 'process.env.NODE_ENV="production"'
 
-      - name: Build CLI binary
-        shell: bash
-        run: |
-          mkdir -p apps/cli/dist
-          ext="${{ matrix.ext }}"
-          bun build --compile \
-            --target ${{ matrix.bun-target }} \
-            apps/cli/src/index.ts \
-            --outfile "apps/cli/dist/tachibana${ext}"
-
       - name: Download go-ios and DDI
         run: bun run apps/server/scripts/install-go-ios.ts
 
@@ -159,9 +149,8 @@ jobs:
           staging="staging/tachibana-${label}"
           mkdir -p "${staging}/bin" "${staging}/drizzle" "${staging}/web"
 
-          # Server + CLI binaries
+          # Server binary
           cp "apps/server/dist/tachibana-server${ext}" "${staging}/"
-          cp "apps/cli/dist/tachibana${ext}" "${staging}/"
 
           # go-ios binary + DDI
           cp -r apps/server/bin/* "${staging}/bin/"
@@ -181,7 +170,7 @@ jobs:
 
           # Fix permissions on non-Windows
           if [ "${{ matrix.ext }}" = "" ]; then
-            chmod +x "${staging}/tachibana-server" "${staging}/tachibana" "${staging}/bin/ios" 2>/dev/null || true
+            chmod +x "${staging}/tachibana-server" "${staging}/bin/ios" 2>/dev/null || true
           fi
 
       - name: Create archive

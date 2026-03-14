@@ -20,11 +20,6 @@ dev:
     @echo "Starting server..."
     cd {{apps_dir}}/server && {{bun}} run dev
 
-# Run CLI in development mode
-dev-cli:
-    @echo "Starting CLI..."
-    cd {{apps_dir}}/cli && {{bun}} run --watch src/index.ts
-
 # Install all dependencies
 install: _check-native-deps
     @echo "Installing dependencies..."
@@ -48,12 +43,6 @@ build-server: build-web typecheck
     cd {{apps_dir}}/server && {{bun}} build src/index.ts --compile --outfile dist/tachibana-server
     @echo "✓ Server built"
 
-# Build CLI binary
-build-cli: typecheck
-    @echo "→ Building CLI..."
-    cd {{apps_dir}}/cli && {{bun}} build src/index.ts --compile --outfile dist/tachibana
-    @echo "✓ CLI built"
-
 #############################################
 # Type checking
 #############################################
@@ -69,7 +58,6 @@ typecheck: typecheck-deps
     @echo "  Type-checking apps..."
     cd {{apps_dir}}/server && {{bunx}} tsc --noEmit
     cd {{apps_dir}}/web && {{bunx}} tsc --noEmit
-    cd {{apps_dir}}/cli && {{bunx}} tsc --noEmit
     @echo "✓ All type checks passed!"
 
 #############################################
@@ -110,7 +98,6 @@ clean:
     @echo "Cleaning build artifacts..."
     rm -rf {{apps_dir}}/server/dist
     rm -rf {{apps_dir}}/web/dist
-    rm -rf {{apps_dir}}/cli/dist
     rm -rf {{packages_dir}}/ios-connect/dist
     rm -rf {{packages_dir}}/ios-wda/dist
     @echo "✓ Clean complete"
@@ -150,9 +137,7 @@ help:
     @echo ""
     @echo "Common commands:"
     @echo "  just dev              - Run server in dev mode (Vite integrated)"
-    @echo "  just dev-cli          - Run CLI in dev mode"
     @echo "  just build-server     - Build server binary (includes web build)"
-    @echo "  just build-cli        - Build CLI binary"
     @echo "  just build-web        - Build web frontend"
     @echo "  just typecheck        - Run all type checks"
     @echo "  just lint             - Run linter"
