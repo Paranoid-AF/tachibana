@@ -155,6 +155,7 @@ jobs:
             apps/server/src/index.ts \
             --outfile "apps/server/dist/tachibana-server${ext}" \
             --external vite \
+            --external sharp \
             --define 'process.env.NODE_ENV="production"'
 
       - name: Download sharp native binaries
@@ -218,10 +219,15 @@ jobs:
           # Web frontend
           cp -r apps/web/dist/* "${staging}/web/"
 
-          # Sharp native binaries (node_modules/@img/)
-          if [ -d "node_modules/@img" ]; then
-            cp -r node_modules/@img "${staging}/node_modules/"
-          fi
+          # Sharp + its deps (marked --external in bun build)
+          for pkg in sharp detect-libc semver; do
+            [ -d "node_modules/$pkg" ] && cp -r "node_modules/$pkg" "${staging}/node_modules/"
+          done
+          for scoped in @img/colour @img/sharp-* @img/sharp-libvips-*; do
+            for dir in node_modules/$scoped; do
+              [ -d "$dir" ] && mkdir -p "${staging}/node_modules/@img" && cp -r "$dir" "${staging}/node_modules/@img/"
+            done
+          done
 
           # WDA IPA (macOS only)
           if [[ "$label" == darwin-* ]]; then
@@ -351,6 +357,7 @@ jobs:
         run: |
           set -e
           VERSION="${RELEASE_VERSION#v}"
+          VERSION="${VERSION//-/\~}"
 
           # Set up rpmbuild tree
           mkdir -p ~/rpmbuild/{SOURCES,SPECS,BUILD,RPMS,SRPMS}
@@ -391,35 +398,15 @@ jobs:
           path: staging/
 
       - name: Install WiX v4
-        run: dotnet tool install --global wix
+        run: dotnet tool install --global wix --version 4.0.5
 
-      - name: Harvest files and build MSI
+      - name: Build MSI
         shell: pwsh
         run: |
           $version = "${{ env.RELEASE_VERSION }}".TrimStart('v')
-          $stagingDir = "staging"
-
-          # Harvest additional files (bin/, drizzle/, web/) into a fragment
-          wix heat dir "$stagingDir\bin" -cg HeatFiles -dr BinFolder `
-            -var "var.StagingDir\bin" -ag -sfrag -srd `
-            -out heat-bin.wxs
-
-          wix heat dir "$stagingDir\drizzle" -cg HeatDrizzle -dr DrizzleFolder `
-            -var "var.StagingDir\drizzle" -ag -sfrag -srd `
-            -out heat-drizzle.wxs
-
-          wix heat dir "$stagingDir\web" -cg HeatWeb -dr WebFolder `
-            -var "var.StagingDir\web" -ag -sfrag -srd `
-            -out heat-web.wxs
-
-          wix heat dir "$stagingDir\node_modules" -cg HeatNodeModules -dr NodeModulesFolder `
-            -var "var.StagingDir\node_modules" -ag -sfrag -srd `
-            -out heat-node-modules.wxs
-
-          # Build MSI
-          wix build packaging/wix/main.wxs heat-bin.wxs heat-drizzle.wxs heat-web.wxs heat-node-modules.wxs `
+          wix build packaging/wix/main.wxs `
             -d ProductVersion="$version" `
-            -d "StagingDir=$stagingDir" `
+            -d "StagingDir=staging" `
             -arch x64 `
             -out "tachibana-windows-x64.msi"
 
