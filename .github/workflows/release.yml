@@ -110,6 +110,15 @@ jobs:
         if: matrix.label == 'linux-arm64'
         run: |
           sudo dpkg --add-architecture arm64
+          # Add Ubuntu ports repo for arm64 packages (default mirrors only carry amd64)
+          sudo tee /etc/apt/sources.list.d/arm64-ports.list > /dev/null <<'EOF'
+          deb [arch=arm64] http://ports.ubuntu.com/ jammy main restricted universe
+          deb [arch=arm64] http://ports.ubuntu.com/ jammy-updates main restricted universe
+          deb [arch=arm64] http://ports.ubuntu.com/ jammy-security main restricted universe
+          EOF
+          # Restrict existing sources to amd64 only
+          sudo sed -i 's/^deb \[/&/' /etc/apt/sources.list
+          sudo sed -i '/^\s*deb /{/\[arch=/!s/deb /deb [arch=amd64] /}' /etc/apt/sources.list
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu libdbus-1-dev:arm64
 
