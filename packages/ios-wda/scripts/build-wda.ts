@@ -59,7 +59,7 @@ export async function buildWebDriverAgent(
       await $`find ~/Library/Developer/Xcode/DerivedData -path "*/ArchiveIntermediates/WebDriverAgentRunner/*/UninstalledProducts/iphoneos/*.app" -type d | head -1`.text()
 
     const appPath = findAppResult.trim()
-    if (!appPath || !(await Bun.file(appPath).exists())) {
+    if (!appPath) {
       throw new WdaBuildError(
         'Build product not found: .app not found in DerivedData'
       )
