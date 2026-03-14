@@ -9,57 +9,26 @@ import {
   updateTokenLastUsed,
 } from '../db/index.ts'
 
-const SERVICE = 'tachibana'
-const JWT_SECRET_NAME = 'jwt-secret'
+import { getSecret, setSecret } from './secrets.ts'
 
-// Bun.secrets typed the same way as in credentials.ts
-const secrets = (Bun as any).secrets as
-  | {
-      get(opts: { service: string; name: string }): Promise<string | null>
-      set(opts: { service: string; name: string; value: string }): Promise<void>
-      delete(opts: { service: string; name: string }): Promise<boolean>
-    }
-  | undefined
+const JWT_SECRET_NAME = 'jwt-secret'
 
 // ---------------------------------------------------------------------------
 // JWT secret — stored in OS keychain
 // ---------------------------------------------------------------------------
 
 export async function getOrCreateJwtSecret(): Promise<string> {
-  try {
-    const existing = await secrets?.get({
-      service: SERVICE,
-      name: JWT_SECRET_NAME,
-    })
-    if (existing) return existing
-  } catch {
-    // Bun.secrets unavailable — fall through to generate
-  }
+  const existing = await getSecret(JWT_SECRET_NAME)
+  if (existing) return existing
 
   const secret = randomBytes(64).toString('hex')
-  try {
-    await secrets?.set({
-      service: SERVICE,
-      name: JWT_SECRET_NAME,
-      value: secret,
-    })
-  } catch {
-    // Silently continue — secret will only live in memory
-  }
+  await setSecret(JWT_SECRET_NAME, secret)
   return secret
 }
 
 export async function regenerateJwtSecret(): Promise<string> {
   const secret = randomBytes(64).toString('hex')
-  try {
-    await secrets?.set({
-      service: SERVICE,
-      name: JWT_SECRET_NAME,
-      value: secret,
-    })
-  } catch {
-    // Silently continue
-  }
+  await setSecret(JWT_SECRET_NAME, secret)
   return secret
 }
 

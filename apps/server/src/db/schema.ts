@@ -16,18 +16,6 @@ export const devices = sqliteTable('devices', {
   prefAlwaysAwake: integer('pref_always_awake').notNull().default(1),
 })
 
-export const sessions = sqliteTable('sessions', {
-  id: integer('id')
-    .primaryKey()
-    .$default(() => 1),
-  email: text('email').notNull(),
-  token: text('token').notNull(),
-  duration: integer('duration').notNull(),
-  expiry: integer('expiry').notNull(),
-  adsid: text('adsid').notNull(),
-  updatedAt: integer('updated_at'),
-})
-
 export const deviceLogs = sqliteTable('device_logs', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   udid: text('udid').notNull(),
