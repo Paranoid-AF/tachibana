@@ -1,5 +1,6 @@
 import { $ } from 'bun'
 import { join } from 'node:path'
+import { stat } from 'node:fs/promises'
 import { WdaBuildError } from '../src/errors.ts'
 
 /**
@@ -43,8 +44,10 @@ export async function buildWebDriverAgent(
       throw new WdaBuildError('Archive build failed', stderr)
     }
 
-    // Verify archive exists
-    if (!(await Bun.file(archivePath).exists())) {
+    // Verify archive exists (.xcarchive is a directory bundle)
+    try {
+      await stat(archivePath)
+    } catch {
       throw new WdaBuildError('Archive build failed: .xcarchive not found')
     }
 
