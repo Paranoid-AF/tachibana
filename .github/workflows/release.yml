@@ -220,13 +220,18 @@ jobs:
           cp -r apps/web/dist/* "${staging}/web/"
 
           # Sharp + its deps (marked --external in bun build)
+          # In this monorepo, sharp is in apps/server/node_modules/, not root
+          srv_nm="apps/server/node_modules"
           for pkg in sharp detect-libc semver; do
-            [ -d "node_modules/$pkg" ] && cp -r "node_modules/$pkg" "${staging}/node_modules/"
+            [ -d "${srv_nm}/$pkg" ] && cp -r "${srv_nm}/$pkg" "${staging}/node_modules/"
           done
-          for scoped in @img/colour @img/sharp-* @img/sharp-libvips-*; do
-            for dir in node_modules/$scoped; do
-              [ -d "$dir" ] && mkdir -p "${staging}/node_modules/@img" && cp -r "$dir" "${staging}/node_modules/@img/"
-            done
+          mkdir -p "${staging}/node_modules/@img"
+          for dir in ${srv_nm}/@img/colour ${srv_nm}/@img/sharp-* ${srv_nm}/@img/sharp-libvips-*; do
+            [ -d "$dir" ] && cp -r "$dir" "${staging}/node_modules/@img/"
+          done
+          # Also copy platform-specific native bindings downloaded earlier
+          for dir in node_modules/@img/sharp-* node_modules/@img/sharp-libvips-*; do
+            [ -d "$dir" ] && cp -r "$dir" "${staging}/node_modules/@img/"
           done
 
           # WDA IPA (macOS only)
