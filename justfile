@@ -38,7 +38,7 @@ build-web:
     @echo "✓ Web built"
 
 # Build server binary (depends on web build)
-build-server: build-web typecheck
+build: build-web typecheck
     @echo "→ Building server..."
     cd {{apps_dir}}/server && {{bun}} build src/index.ts --compile --outfile dist/tachibana-server
     @echo "✓ Server built"
@@ -47,14 +47,11 @@ build-server: build-web typecheck
 # Type checking
 #############################################
 
-# Typecheck packages
-typecheck-deps:
+# Typecheck everything
+typecheck:
     @echo "  Type-checking packages..."
     cd {{packages_dir}}/ios-connect && {{bunx}} tsc --noEmit
     cd {{packages_dir}}/ios-wda && {{bunx}} tsc --noEmit
-
-# Typecheck everything
-typecheck: typecheck-deps
     @echo "  Type-checking apps..."
     cd {{apps_dir}}/server && {{bunx}} tsc --noEmit
     cd {{apps_dir}}/web && {{bunx}} tsc --noEmit
@@ -69,23 +66,13 @@ lint:
     @echo "Running linter..."
     {{bunx}} oxlint --import-plugin --tsconfig ./tsconfig.json .
 
-# Run linter with auto-fix
-lint-fix:
-    @echo "Running linter with auto-fix..."
-    {{bunx}} oxlint --import-plugin --tsconfig ./tsconfig.json --fix .
-
 # Format code
 format:
     @echo "Formatting code..."
     {{bunx}} oxfmt --write .
 
-# Check code formatting
-format-check:
-    @echo "Checking code formatting..."
-    {{bunx}} oxfmt --check .
-
 # Run all checks (lint + format)
-check: lint format-check
+check: lint typecheck format
     @echo ""
     @echo "✓ All checks passed!"
 
@@ -101,14 +88,6 @@ clean:
     rm -rf {{packages_dir}}/ios-connect/dist
     rm -rf {{packages_dir}}/ios-wda/dist
     @echo "✓ Clean complete"
-
-# Remove all build artifacts and node_modules
-clean-all: clean
-    @echo "Removing all dependencies..."
-    rm -rf node_modules
-    rm -rf {{apps_dir}}/*/node_modules
-    rm -rf {{packages_dir}}/*/node_modules
-    @echo "✓ Deep clean complete"
 
 #############################################
 # Internal helpers
@@ -137,12 +116,12 @@ help:
     @echo ""
     @echo "Common commands:"
     @echo "  just dev              - Run server in dev mode (Vite integrated)"
-    @echo "  just build-server     - Build server binary (includes web build)"
+    @echo "  just build     - Build server binary (includes web build)"
     @echo "  just build-web        - Build web frontend"
     @echo "  just typecheck        - Run all type checks"
     @echo "  just lint             - Run linter"
     @echo "  just format           - Format code"
-    @echo "  just check            - Run all checks"
+    @echo "  just check            - Run all checks (lint + typecheck + format)"
     @echo "  just clean            - Remove build artifacts"
     @echo ""
     @echo "Run 'just --list' to see all available commands"
