@@ -397,8 +397,8 @@ jobs:
           name: staging-windows-x64
           path: staging/
 
-      - name: Install WiX v4
-        run: dotnet tool install --global wix --version 4.0.5
+      - name: Install WiX
+        run: dotnet tool install --global wix
 
       - name: Build MSI
         shell: pwsh
