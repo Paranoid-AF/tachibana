@@ -1,0 +1,8 @@
+Package: tachibana
+Version: {{VERSION}}
+Architecture: {{ARCH}}
+Maintainer: Paranoid-AF
+Description: Multi-platform iOS device manipulation suite
+Depends: libusb-1.0-0
+Section: utils
+Priority: optional

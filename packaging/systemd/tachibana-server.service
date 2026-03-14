@@ -1,0 +1,17 @@
+[Unit]
+Description=Tachibana iOS Device Management Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/tachibana/tachibana-server
+WorkingDirectory=/opt/tachibana
+Restart=on-failure
+RestartSec=5
+User=root
+Group=root
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

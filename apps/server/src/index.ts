@@ -18,10 +18,15 @@ import { openDatabase, closeDatabase } from './db/index.ts'
 import type { ViteDevServer } from 'vite'
 
 const isDev = Bun.env.NODE_ENV === 'development'
-const __dirname = import.meta.dirname!
 
-const webDevPath = path.resolve(__dirname, '../../web')
-const webDistPath = path.resolve(__dirname, '../../web/dist')
+const isCompiled =
+  process.argv[0] === process.execPath &&
+  !process.execPath.includes('node_modules')
+
+const webDevPath = path.resolve(import.meta.dirname!, '../../web')
+const webDistPath = isCompiled
+  ? path.resolve(path.dirname(process.execPath), 'web')
+  : path.resolve(import.meta.dirname!, '../../web/dist')
 
 const _app = new Elysia({ prefix: '/api' })
   .onError(({ error, set, code }) => {

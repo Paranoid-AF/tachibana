@@ -1,13 +1,12 @@
 {
   "name": "@tbana/server",
-  "version": "0.0.1",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
   "scripts": {
     "postinstall": "bun scripts/install-go-ios.ts",
     "dev": "NODE_ENV=development bun run --watch src/index.ts",
-    "build": "bun build src/index.ts --compile --outfile dist/tachibana-server"
+    "build": "bun build src/index.ts --compile --external vite --outfile dist/tachibana-server"
   },
   "dependencies": {
     "@elysiajs/jwt": "^1.4.1",

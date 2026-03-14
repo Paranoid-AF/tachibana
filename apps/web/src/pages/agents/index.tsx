@@ -45,10 +45,13 @@ import {
   TableCell,
 } from '@/components/ui/table'
 
+import { version } from '../../../../../package.json'
 import skillTemplate from '../../../assets/snippets/agents/skill.md.mustache?raw'
 import mcpTemplate from '../../../assets/snippets/agents/mcp.json.mustache?raw'
 import agentSkillsLogo from '../../../assets/images/agents/agentskills-logo.png'
 import mcpLogo from '../../../assets/images/agents/mcp-logo.svg'
+
+const AGENT_SKILL_NAME = 'idevice'
 
 const EXPIRATION_OPTIONS = [
   { label: 'Never', value: 0 },
@@ -71,6 +74,7 @@ function renderTemplates(authToken: string) {
   const vars = {
     server_origin: window.location.origin,
     auth_token: authToken,
+    skill_name: AGENT_SKILL_NAME,
   }
   return {
     skillMd: Mustache.render(skillTemplate, vars),
@@ -78,8 +82,8 @@ function renderTemplates(authToken: string) {
   }
 }
 
-async function downloadSkillZip(agentName: string, skillMdContent: string) {
-  const safeName = `tachibana-${agentName.toLowerCase().replace(/[^a-z0-9-]/g, '-')}-1.0.0`
+async function downloadSkillZip(skillMdContent: string) {
+  const safeName = `${AGENT_SKILL_NAME}-${version}`
   const zip = new JSZip()
   zip.file(`${safeName}/SKILL.md`, skillMdContent)
   const blob = await zip.generateAsync({ type: 'blob' })
@@ -395,7 +399,7 @@ export function AgentsPage() {
                     onClick={() =>
                       revealedAgent &&
                       rendered &&
-                      downloadSkillZip(revealedAgent.name, rendered.skillMd)
+                      downloadSkillZip(rendered.skillMd)
                     }
                   >
                     <Download className="w-4 h-4 mr-2" />

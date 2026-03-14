@@ -1,4 +1,4 @@
-import { join, resolve } from 'path'
+import { join, resolve, dirname } from 'path'
 import { mkdirSync } from 'fs'
 import { Database } from 'bun:sqlite'
 import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite'
@@ -24,6 +24,12 @@ let sqlite: InstanceType<typeof Database> | null = null
 let db: BunSQLiteDatabase<typeof schema> | null = null
 
 function resolveMigrationsDir(): string {
+  const isCompiled =
+    process.argv[0] === process.execPath &&
+    !process.execPath.includes('node_modules')
+  if (isCompiled) {
+    return resolve(dirname(process.execPath), 'drizzle')
+  }
   return resolve(import.meta.dirname!, '../../drizzle')
 }
 

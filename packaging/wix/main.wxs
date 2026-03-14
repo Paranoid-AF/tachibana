@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="Tachibana"
+    Manufacturer="Paranoid-AF"
+    Version="$(var.ProductVersion)"
+    UpgradeCode="A1B2C3D4-E5F6-7890-ABCD-EF1234567890">
+
+    <MajorUpgrade
+      DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Tachibana">
+        <Directory Id="BinFolder" Name="bin">
+          <Directory Id="DdiFolder" Name="ddi">
+            <Directory Id="DdiFirmwareFolder" Name="Firmware" />
+          </Directory>
+        </Directory>
+        <Directory Id="DrizzleFolder" Name="drizzle">
+          <Directory Id="DrizzleMetaFolder" Name="meta" />
+        </Directory>
+        <Directory Id="WebFolder" Name="web" />
+      </Directory>
+    </StandardDirectory>
+
+    <ComponentGroup Id="ServerComponent" Directory="INSTALLFOLDER">
+      <Component Id="ServerExe" Guid="*">
+        <File Id="TachibanaServerExe" Source="$(var.StagingDir)\tachibana-server.exe" KeyPath="yes" />
+        <ServiceInstall
+          Id="TachibanaServiceInstall"
+          Name="TachibanaServer"
+          DisplayName="Tachibana Server"
+          Description="Tachibana iOS Device Management Server"
+          Start="auto"
+          Type="ownProcess"
+          ErrorControl="normal"
+          Account="LocalSystem" />
+        <ServiceControl
+          Id="TachibanaServiceControl"
+          Name="TachibanaServer"
+          Start="install"
+          Stop="both"
+          Remove="uninstall"
+          Wait="yes" />
+      </Component>
+      <Component Id="CliExe" Guid="*">
+        <File Id="TachibanaCliExe" Source="$(var.StagingDir)\tachibana.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- Harvested files from staging dir are referenced via HeatFiles component group -->
+    <Feature Id="Main" Title="Tachibana" Level="1">
+      <ComponentGroupRef Id="ServerComponent" />
+      <ComponentGroupRef Id="HeatFiles" />
+    </Feature>
+  </Package>
+</Wix>
