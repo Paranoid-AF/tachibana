@@ -14,7 +14,6 @@
     },
     "apps/server": {
       "name": "@tbana/server",
-      "version": "0.0.1",
       "dependencies": {
         "@elysiajs/jwt": "^1.4.1",
         "@modelcontextprotocol/sdk": "^1.12.1",
@@ -36,7 +35,6 @@
     },
     "apps/web": {
       "name": "@tbana/web",
-      "version": "0.0.1",
       "dependencies": {
         "@elysiajs/eden": "^1.4.2",
         "@radix-ui/react-dialog": "^1.1.15",
@@ -73,7 +71,6 @@
     },
     "packages/ios-connect": {
       "name": "@tbana/ios-connect",
-      "version": "0.0.1",
       "dependencies": {
         "bplist-parser": "^0.3.2",
         "jszip": "^3.10.1",
@@ -88,11 +85,13 @@
     },
     "packages/ios-wda": {
       "name": "@tbana/ios-wda",
-      "version": "0.0.1",
       "dependencies": {
         "appium-webdriveragent": "11.1.4",
       },
     },
+  },
+  "patchedDependencies": {
+    "sharp@0.34.5": "patches/sharp@0.34.5.patch",
   },
   "packages": {
     "@appium/base-driver": ["@appium/base-driver@10.2.0", "", { "dependencies": { "@appium/support": "^7.0.5", "@appium/types": "^1.2.0", "@colors/colors": "1.6.0", "async-lock": "1.4.1", "asyncbox": "6.0.1", "axios": "1.13.3", "bluebird": "3.7.2", "body-parser": "2.2.2", "express": "5.2.1", "fastest-levenshtein": "1.0.16", "http-status-codes": "2.3.0", "lodash": "4.17.23", "lru-cache": "11.2.5", "method-override": "3.0.0", "morgan": "1.10.1", "path-to-regexp": "8.3.0", "serve-favicon": "2.5.1", "type-fest": "5.4.1" }, "optionalDependencies": { "spdy": "4.0.2" } }, "sha512-PCjZVWP0J+uhcdvRVxVXGWrN3sxP5Ik7WkNDx/tYIeknlHnvboIfeXnuy0HS0DgNFeyP/U+4KDx6/ug7eTwPOQ=="],

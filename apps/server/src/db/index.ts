@@ -1,4 +1,4 @@
-import { join, resolve, dirname } from 'path'
+import { join, resolve } from 'path'
 import { mkdirSync } from 'fs'
 import { Database } from 'bun:sqlite'
 import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite'
@@ -6,9 +6,8 @@ import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { eq, desc, count } from 'drizzle-orm'
 
 import { getConfigDir } from '../libs/config.ts'
+import { isCompiled, serverDir } from '../libs/runtime.ts'
 import * as schema from './schema.ts'
-
-import type { StoredSession } from '@tbana/ios-connect'
 
 export interface DeviceMeta {
   name: string
@@ -24,11 +23,8 @@ let sqlite: InstanceType<typeof Database> | null = null
 let db: BunSQLiteDatabase<typeof schema> | null = null
 
 function resolveMigrationsDir(): string {
-  const isCompiled =
-    process.argv[0] === process.execPath &&
-    !process.execPath.includes('node_modules')
   if (isCompiled) {
-    return resolve(dirname(process.execPath), 'drizzle')
+    return resolve(serverDir, 'drizzle')
   }
   return resolve(import.meta.dirname!, '../../drizzle')
 }
@@ -193,57 +189,6 @@ export function setDevicePrefs(
   }
   if (Object.keys(set).length === 0) return
   d.update(schema.devices).set(set).where(eq(schema.devices.udid, udid)).run()
-}
-
-// ---------------------------------------------------------------------------
-// Session data
-// ---------------------------------------------------------------------------
-
-export function getSessionData(): StoredSession | undefined {
-  const d = getDb()
-  const row = d
-    .select({
-      email: schema.sessions.email,
-      token: schema.sessions.token,
-      duration: schema.sessions.duration,
-      expiry: schema.sessions.expiry,
-      adsid: schema.sessions.adsid,
-    })
-    .from(schema.sessions)
-    .where(eq(schema.sessions.id, 1))
-    .get()
-  return row ?? undefined
-}
-
-export function saveSessionData(data: StoredSession): void {
-  const d = getDb()
-  d.insert(schema.sessions)
-    .values({
-      id: 1,
-      email: data.email,
-      token: data.token,
-      duration: data.duration,
-      expiry: data.expiry,
-      adsid: data.adsid,
-      updatedAt: Date.now(),
-    })
-    .onConflictDoUpdate({
-      target: schema.sessions.id,
-      set: {
-        email: data.email,
-        token: data.token,
-        duration: data.duration,
-        expiry: data.expiry,
-        adsid: data.adsid,
-        updatedAt: Date.now(),
-      },
-    })
-    .run()
-}
-
-export function clearSessionData(): void {
-  const d = getDb()
-  d.delete(schema.sessions).where(eq(schema.sessions.id, 1)).run()
 }
 
 // ---------------------------------------------------------------------------

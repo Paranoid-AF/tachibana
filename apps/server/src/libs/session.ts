@@ -11,7 +11,7 @@ import {
   getSessionData,
   saveSessionData,
   clearSessionData,
-} from '../db/index.ts'
+} from './session-store.ts'
 
 let _initPromise: Promise<void> | null = null
 
@@ -21,7 +21,7 @@ function ensureInitialized(): Promise<void> {
     const dataDir = getConfigDir()
     await mkdir(dataDir, { recursive: true })
 
-    const restoredSession = getSessionData()
+    const restoredSession = await getSessionData()
 
     configureSession({ dataDir, restoredSession })
 
@@ -32,7 +32,7 @@ function ensureInitialized(): Promise<void> {
         console.warn(
           '[ios-connect] Session restore failed, clearing saved session'
         )
-        clearSessionData()
+        await clearSessionData()
       }
     }
   })()
@@ -48,7 +48,7 @@ export async function saveSession(session: NativeSession): Promise<void> {
   try {
     const data = await session.getSessionData()
     if (data) {
-      saveSessionData(data)
+      await saveSessionData(data)
     } else {
       console.warn(
         '[session] getSessionData() returned null, session will not be persisted'
@@ -60,6 +60,6 @@ export async function saveSession(session: NativeSession): Promise<void> {
 }
 
 export async function clearSession(): Promise<void> {
-  clearSessionData()
+  await clearSessionData()
   _initPromise = null
 }

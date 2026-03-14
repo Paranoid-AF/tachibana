@@ -1,0 +1,33 @@
+diff --git a/lib/sharp.js b/lib/sharp.js
+index 1081c9314de1b669b0744a931a3b6b570c9f6609..5bb57fc78434ad71f7ce160865d875be7d0bef2b 100644
+--- a/lib/sharp.js
++++ b/lib/sharp.js
+@@ -20,17 +20,21 @@ const paths = [
+ /* node:coverage disable */
+ 
+ let path, sharp;
++// Allow pre-loaded native binding (for Bun compiled binaries)
++sharp = globalThis.__sharp_native;
+ const errors = [];
+-for (path of paths) {
+-  try {
+-    sharp = require(path);
+-    break;
+-  } catch (err) {
+-    errors.push(err);
++if (!sharp) {
++  for (path of paths) {
++    try {
++      sharp = require(path);
++      break;
++    } catch (err) {
++      errors.push(err);
++    }
+   }
+ }
+ 
+-if (sharp && path.startsWith('@img/sharp-linux-x64') && !sharp._isUsingX64V2()) {
++if (sharp && path && path.startsWith('@img/sharp-linux-x64') && !sharp._isUsingX64V2()) {
+   const err = new Error('Prebuilt binaries for linux-x64 require v2 microarchitecture');
+   err.code = 'Unsupported CPU';
+   errors.push(err);

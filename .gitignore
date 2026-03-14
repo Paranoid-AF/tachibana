@@ -4,6 +4,7 @@ node_modules/
 # Build outputs
 dist/
 build/
+staging/
 
 # Downloaded binaries
 apps/server/bin/

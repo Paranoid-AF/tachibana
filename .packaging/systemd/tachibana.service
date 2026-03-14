@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/opt/tachibana/tachibana-server
+ExecStart=/opt/tachibana/tachibana
 WorkingDirectory=/opt/tachibana
 Restart=on-failure
 RestartSec=5

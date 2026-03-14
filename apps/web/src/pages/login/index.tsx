@@ -1,15 +1,28 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation } from 'wouter'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight } from 'lucide-react'
 
 import { adminLogin } from '@/lib/admin-auth-api'
+import { useAdminAuth } from '@/hooks/use-admin-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Spinner } from '@/components/ui/spinner'
 
 export function LoginPage() {
   const [, navigate] = useLocation()
   const queryClient = useQueryClient()
+
+  const { data: authStatus, isLoading: authLoading } = useAdminAuth()
+
+  useEffect(() => {
+    if (authLoading || !authStatus) return
+    if (!authStatus.passwordSet) {
+      navigate('/setup', { replace: true })
+    } else if (authStatus.loggedIn) {
+      navigate('/', { replace: true })
+    }
+  }, [authLoading, authStatus, navigate])
 
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -17,7 +30,10 @@ export function LoginPage() {
   const mutation = useMutation({
     mutationFn: () => adminLogin(password),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin/status'] })
+      queryClient.setQueryData(['admin/status'], {
+        passwordSet: true,
+        loggedIn: true,
+      })
       navigate('/', { replace: true })
     },
     onError: (err: Error) => {
@@ -29,6 +45,14 @@ export function LoginPage() {
     e.preventDefault()
     setError('')
     mutation.mutate()
+  }
+
+  if (authLoading || !authStatus?.passwordSet || authStatus?.loggedIn) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Spinner className="h-6 w-6" />
+      </div>
+    )
   }
 
   return (

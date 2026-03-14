@@ -13,21 +13,16 @@
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="Tachibana">
-        <Directory Id="BinFolder" Name="bin">
-          <Directory Id="DdiFolder" Name="ddi">
-            <Directory Id="DdiFirmwareFolder" Name="Firmware" />
-          </Directory>
-        </Directory>
-        <Directory Id="DrizzleFolder" Name="drizzle">
-          <Directory Id="DrizzleMetaFolder" Name="meta" />
-        </Directory>
+        <Directory Id="BinFolder" Name="bin" />
+        <Directory Id="DrizzleFolder" Name="drizzle" />
         <Directory Id="WebFolder" Name="web" />
+        <Directory Id="NodeModulesFolder" Name="node_modules" />
       </Directory>
     </StandardDirectory>
 
     <ComponentGroup Id="ServerComponent" Directory="INSTALLFOLDER">
       <Component Id="ServerExe" Guid="*">
-        <File Id="TachibanaServerExe" Source="$(var.StagingDir)\tachibana-server.exe" KeyPath="yes" />
+        <File Id="TachibanaServerExe" Source="$(var.StagingDir)\tachibana.exe" KeyPath="yes" />
         <ServiceInstall
           Id="TachibanaServiceInstall"
           Name="TachibanaServer"
@@ -45,15 +40,30 @@
           Remove="uninstall"
           Wait="yes" />
       </Component>
-      <Component Id="CliExe" Guid="*">
-        <File Id="TachibanaCliExe" Source="$(var.StagingDir)\tachibana.exe" KeyPath="yes" />
-      </Component>
     </ComponentGroup>
 
-    <!-- Harvested files from staging dir are referenced via HeatFiles component group -->
+    <ComponentGroup Id="BinFiles" Directory="BinFolder">
+      <Files Include="$(var.StagingDir)\bin\**" />
+    </ComponentGroup>
+
+    <ComponentGroup Id="DrizzleFiles" Directory="DrizzleFolder">
+      <Files Include="$(var.StagingDir)\drizzle\**" />
+    </ComponentGroup>
+
+    <ComponentGroup Id="WebFiles" Directory="WebFolder">
+      <Files Include="$(var.StagingDir)\web\**" />
+    </ComponentGroup>
+
+    <ComponentGroup Id="NodeModulesFiles" Directory="NodeModulesFolder">
+      <Files Include="$(var.StagingDir)\node_modules\**" />
+    </ComponentGroup>
+
     <Feature Id="Main" Title="Tachibana" Level="1">
       <ComponentGroupRef Id="ServerComponent" />
-      <ComponentGroupRef Id="HeatFiles" />
+      <ComponentGroupRef Id="BinFiles" />
+      <ComponentGroupRef Id="DrizzleFiles" />
+      <ComponentGroupRef Id="WebFiles" />
+      <ComponentGroupRef Id="NodeModulesFiles" />
     </Feature>
   </Package>
 </Wix>

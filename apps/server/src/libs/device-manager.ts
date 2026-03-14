@@ -196,6 +196,7 @@ class DeviceManager {
     entry.wdaState = wdaState.state
     entry.wdaError = wdaState.error
     entry.mainPort = wdaState.mainPort
+    entry.mjpegPort = wdaState.mjpegPort
   }
 
   private async cleanupDevice(udid: string): Promise<void> {

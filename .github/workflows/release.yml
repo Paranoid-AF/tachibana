@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   # On tag push: strip leading 'v' (e.g. v1.2.3 → 1.2.3).
   # On workflow_dispatch: use 0.0.0-dev so packages remain installable.
   RELEASE_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '0.0.0-dev' }}
@@ -49,26 +50,31 @@ jobs:
             runner: macos-15
             rust-target: aarch64-apple-darwin
             bun-target: bun-darwin-arm64
+            sharp-platform: darwin-arm64
             ext: ''
           - label: darwin-x64
-            runner: macos-13
+            runner: macos-15
             rust-target: x86_64-apple-darwin
             bun-target: bun-darwin-x64
+            sharp-platform: darwin-x64
             ext: ''
           - label: linux-x64
             runner: ubuntu-22.04
             rust-target: x86_64-unknown-linux-gnu
             bun-target: bun-linux-x64
+            sharp-platform: linux-x64
             ext: ''
           - label: linux-arm64
             runner: ubuntu-22.04
             rust-target: aarch64-unknown-linux-gnu
             bun-target: bun-linux-arm64
+            sharp-platform: linux-arm64
             ext: ''
           - label: windows-x64
             runner: windows-latest
             rust-target: x86_64-pc-windows-msvc
             bun-target: bun-windows-x64
+            sharp-platform: win32-x64
             ext: '.exe'
 
     runs-on: ${{ matrix.runner }}
@@ -102,7 +108,19 @@ jobs:
 
       - name: Install cross-compiler (Linux ARM64)
         if: matrix.label == 'linux-arm64'
-        run: sudo apt-get install -y gcc-aarch64-linux-gnu
+        run: |
+          sudo dpkg --add-architecture arm64
+          # Add Ubuntu ports repo for arm64 packages (default mirrors only carry amd64)
+          sudo tee /etc/apt/sources.list.d/arm64-ports.list > /dev/null <<'EOF'
+          deb [arch=arm64] http://ports.ubuntu.com/ jammy main restricted universe
+          deb [arch=arm64] http://ports.ubuntu.com/ jammy-updates main restricted universe
+          deb [arch=arm64] http://ports.ubuntu.com/ jammy-security main restricted universe
+          EOF
+          # Restrict existing sources to amd64 only
+          sudo sed -i 's/^deb \[/&/' /etc/apt/sources.list
+          sudo sed -i '/^\s*deb /{/\[arch=/!s/deb /deb [arch=amd64] /}' /etc/apt/sources.list
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu libdbus-1-dev:arm64
 
       - name: Install dependencies
         env:
@@ -115,8 +133,10 @@ jobs:
         env:
           CC: ${{ matrix.label == 'linux-arm64' && 'aarch64-linux-gnu-gcc' || '' }}
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.label == 'linux-arm64' && 'aarch64-linux-gnu-gcc' || '' }}
+          PKG_CONFIG_ALLOW_CROSS: ${{ matrix.label == 'linux-arm64' && '1' || '' }}
+          PKG_CONFIG_PATH: ${{ matrix.label == 'linux-arm64' && '/usr/lib/aarch64-linux-gnu/pkgconfig' || '' }}
         run: |
-          bunx @napi-rs/cli build \
+          ./packages/ios-connect/node_modules/.bin/napi build \
             --platform --release \
             --target ${{ matrix.rust-target }} \
             --manifest-path packages/ios-connect/Cargo.toml \
@@ -133,9 +153,39 @@ jobs:
           bun build --compile \
             --target ${{ matrix.bun-target }} \
             apps/server/src/index.ts \
-            --outfile "apps/server/dist/tachibana-server${ext}" \
+            --outfile "apps/server/dist/tachibana${ext}" \
             --external vite \
             --define 'process.env.NODE_ENV="production"'
+
+      - name: Download sharp native binaries
+        shell: bash
+        run: |
+          set -e
+          platform="${{ matrix.sharp-platform }}"
+          version=$(cd apps/server && bun -e "console.log(require('sharp/package.json').version)")
+
+          mkdir -p "node_modules/@img/sharp-${platform}" "node_modules/@img/sharp-libvips-${platform}"
+
+          # Download @img/sharp-<platform> (contains the .node binding)
+          tmpdir=$(mktemp -d)
+          curl -sL "https://registry.npmjs.org/@img/sharp-${platform}/-/sharp-${platform}-${version}.tgz" \
+            | tar xzf - -C "$tmpdir"
+          cp -r "$tmpdir/package"/* "node_modules/@img/sharp-${platform}/"
+          rm -rf "$tmpdir"
+
+          # Download @img/sharp-libvips-<platform> (contains the shared library)
+          libvips_pkg="@img/sharp-libvips-${platform}"
+          libvips_version=$(bun -e "
+            const p = JSON.parse(require('fs').readFileSync('node_modules/@img/sharp-${platform}/package.json','utf8'));
+            console.log(p.optionalDependencies?.['${libvips_pkg}'] ?? '');
+          ")
+          if [ -n "$libvips_version" ]; then
+            tmpdir=$(mktemp -d)
+            curl -sL "https://registry.npmjs.org/${libvips_pkg}/-/sharp-libvips-${platform}-${libvips_version}.tgz" \
+              | tar xzf - -C "$tmpdir"
+            cp -r "$tmpdir/package"/* "node_modules/@img/sharp-libvips-${platform}/"
+            rm -rf "$tmpdir"
+          fi
 
       - name: Download go-ios and DDI
         run: bun run apps/server/scripts/install-go-ios.ts
@@ -157,7 +207,7 @@ jobs:
           mkdir -p "${staging}/bin" "${staging}/drizzle" "${staging}/web"
 
           # Server binary
-          cp "apps/server/dist/tachibana-server${ext}" "${staging}/"
+          cp "apps/server/dist/tachibana${ext}" "${staging}/"
 
           # go-ios binary + DDI
           cp -r apps/server/bin/* "${staging}/bin/"
@@ -168,6 +218,20 @@ jobs:
           # Web frontend
           cp -r apps/web/dist/* "${staging}/web/"
 
+          # Sharp native binding + libvips (JS code is bundled; only native files needed)
+          platform="${{ matrix.sharp-platform }}"
+          mkdir -p "${staging}/sharp/@img"
+          cp -r "node_modules/@img/sharp-${platform}" "${staging}/sharp/@img/"
+          [ -d "node_modules/@img/sharp-libvips-${platform}" ] && \
+            cp -r "node_modules/@img/sharp-libvips-${platform}" "${staging}/sharp/@img/"
+
+          # ios-connect native addon (napi-rs loader + .node binding)
+          ic_dist="packages/ios-connect/dist"
+          ic_staging="${staging}/ios-connect/dist"
+          mkdir -p "${ic_staging}"
+          cp "${ic_dist}/index.js" "${ic_staging}/"
+          cp "${ic_dist}/"*.node "${ic_staging}/"
+
           # WDA IPA (macOS only)
           if [[ "$label" == darwin-* ]]; then
             mkdir -p "${staging}/assets"
@@ -177,7 +241,7 @@ jobs:
 
           # Fix permissions on non-Windows
           if [ "${{ matrix.ext }}" = "" ]; then
-            chmod +x "${staging}/tachibana-server" "${staging}/bin/ios" 2>/dev/null || true
+            chmod +x "${staging}/tachibana" "${staging}/bin/ios" 2>/dev/null || true
           fi
 
       - name: Create archive
@@ -244,16 +308,16 @@ jobs:
           cp -r staging/* "${ROOT}/opt/tachibana/"
 
           # Copy systemd service
-          cp packaging/systemd/tachibana-server.service "${ROOT}/etc/systemd/system/"
+          cp .packaging/systemd/tachibana.service "${ROOT}/etc/systemd/system/"
 
           # Generate control file
           sed -e "s/{{VERSION}}/${VERSION}/" \
               -e "s/{{ARCH}}/${{ matrix.arch }}/" \
-              packaging/deb/control.template > "${ROOT}/DEBIAN/control"
+              .packaging/deb/control.template > "${ROOT}/DEBIAN/control"
 
           # Copy maintainer scripts
-          cp packaging/deb/postinst "${ROOT}/DEBIAN/"
-          cp packaging/deb/prerm "${ROOT}/DEBIAN/"
+          cp .packaging/deb/postinst "${ROOT}/DEBIAN/"
+          cp .packaging/deb/prerm "${ROOT}/DEBIAN/"
           chmod 755 "${ROOT}/DEBIAN/postinst" "${ROOT}/DEBIAN/prerm"
 
           # Build deb
@@ -296,20 +360,21 @@ jobs:
         run: |
           set -e
           VERSION="${RELEASE_VERSION#v}"
+          VERSION="${VERSION//-/\~}"
 
           # Set up rpmbuild tree
           mkdir -p ~/rpmbuild/{SOURCES,SPECS,BUILD,RPMS,SRPMS}
 
           # Copy staging files and systemd unit into SOURCES
           cp -r staging ~/rpmbuild/SOURCES/staging
-          cp packaging/systemd/tachibana-server.service ~/rpmbuild/SOURCES/
+          cp .packaging/systemd/tachibana.service ~/rpmbuild/SOURCES/
 
           # Build RPM
           rpmbuild -bb \
             --define "_version ${VERSION}" \
             --define "_arch ${{ matrix.arch }}" \
             --target ${{ matrix.arch }} \
-            packaging/rpm/tachibana-server.spec
+            .packaging/rpm/tachibana.spec
 
           # Copy output
           find ~/rpmbuild/RPMS -name '*.rpm' -exec cp {} . \;
@@ -335,32 +400,16 @@ jobs:
           name: staging-windows-x64
           path: staging/
 
-      - name: Install WiX v4
+      - name: Install WiX
         run: dotnet tool install --global wix
 
-      - name: Harvest files and build MSI
+      - name: Build MSI
         shell: pwsh
         run: |
           $version = "${{ env.RELEASE_VERSION }}".TrimStart('v')
-          $stagingDir = "staging"
-
-          # Harvest additional files (bin/, drizzle/, web/) into a fragment
-          wix heat dir "$stagingDir\bin" -cg HeatFiles -dr BinFolder `
-            -var "var.StagingDir\bin" -ag -sfrag -srd `
-            -out heat-bin.wxs
-
-          wix heat dir "$stagingDir\drizzle" -cg HeatDrizzle -dr DrizzleFolder `
-            -var "var.StagingDir\drizzle" -ag -sfrag -srd `
-            -out heat-drizzle.wxs
-
-          wix heat dir "$stagingDir\web" -cg HeatWeb -dr WebFolder `
-            -var "var.StagingDir\web" -ag -sfrag -srd `
-            -out heat-web.wxs
-
-          # Build MSI
-          wix build packaging/wix/main.wxs heat-bin.wxs heat-drizzle.wxs heat-web.wxs `
+          wix build .packaging/wix/main.wxs `
             -d ProductVersion="$version" `
-            -d "StagingDir=$stagingDir" `
+            -d "StagingDir=$PWD/staging" `
             -arch x64 `
             -out "tachibana-windows-x64.msi"
 
@@ -437,13 +486,13 @@ jobs:
             ### Linux (deb)
             ```bash
             sudo dpkg -i tachibana_*.deb
-            sudo systemctl start tachibana-server
+            sudo systemctl start tachibana
             ```
 
             ### Linux (rpm)
             ```bash
             sudo rpm -i tachibana-*.rpm
-            sudo systemctl start tachibana-server
+            sudo systemctl start tachibana
             ```
 
             ### Windows
@@ -466,7 +515,7 @@ jobs:
           sed -e "s/{{VERSION}}/${VERSION}/g" \
               -e "s/{{SHA256_DARWIN_ARM64}}/${SHA_ARM64}/" \
               -e "s/{{SHA256_DARWIN_X64}}/${SHA_X64}/" \
-              ../packaging/homebrew/tachibana.rb.template > Formula/tachibana.rb
+              ../.packaging/homebrew/tachibana.rb.template > Formula/tachibana.rb
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

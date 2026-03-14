@@ -1,5 +1,6 @@
 import { $ } from 'bun'
 import { join } from 'node:path'
+import { stat } from 'node:fs/promises'
 import { WdaBuildError } from '../src/errors.ts'
 
 /**
@@ -43,8 +44,10 @@ export async function buildWebDriverAgent(
       throw new WdaBuildError('Archive build failed', stderr)
     }
 
-    // Verify archive exists
-    if (!(await Bun.file(archivePath).exists())) {
+    // Verify archive exists (.xcarchive is a directory bundle)
+    try {
+      await stat(archivePath)
+    } catch {
       throw new WdaBuildError('Archive build failed: .xcarchive not found')
     }
 
@@ -56,7 +59,7 @@ export async function buildWebDriverAgent(
       await $`find ~/Library/Developer/Xcode/DerivedData -path "*/ArchiveIntermediates/WebDriverAgentRunner/*/UninstalledProducts/iphoneos/*.app" -type d | head -1`.text()
 
     const appPath = findAppResult.trim()
-    if (!appPath || !(await Bun.file(appPath).exists())) {
+    if (!appPath) {
       throw new WdaBuildError(
         'Build product not found: .app not found in DerivedData'
       )

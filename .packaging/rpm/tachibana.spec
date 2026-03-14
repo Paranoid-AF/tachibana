@@ -8,6 +8,10 @@ URL:            https://github.com/Paranoid-AF/tachibana
 AutoReqProv:    no
 Requires:       libusb1
 
+# Binaries are pre-built; disable strip (host strip cannot process cross-arch ELFs)
+%global __strip /bin/true
+%global debug_package %{nil}
+
 %description
 Tachibana is a multi-platform iOS device manipulation suite providing
 a server for device management and a CLI for ADB-style iDevice control.
@@ -16,17 +20,17 @@ a server for device management and a CLI for ADB-style iDevice control.
 mkdir -p %{buildroot}/opt/tachibana
 cp -a %{_sourcedir}/staging/* %{buildroot}/opt/tachibana/
 mkdir -p %{buildroot}/etc/systemd/system
-cp %{_sourcedir}/tachibana-server.service %{buildroot}/etc/systemd/system/
+cp %{_sourcedir}/tachibana.service %{buildroot}/etc/systemd/system/
 
 %files
 /opt/tachibana
-/etc/systemd/system/tachibana-server.service
+/etc/systemd/system/tachibana.service
 
 %post
-%systemd_post tachibana-server.service
+%systemd_post tachibana.service
 
 %preun
-%systemd_preun tachibana-server.service
+%systemd_preun tachibana.service
 
 %postun
-%systemd_postun_with_restart tachibana-server.service
+%systemd_postun_with_restart tachibana.service

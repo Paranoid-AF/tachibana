@@ -43,6 +43,13 @@
       "when": 1773883200000,
       "tag": "0005_flowery_frog_thor",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1773482048923,
+      "tag": "0006_wise_riptide",
+      "breakpoints": true
     }
   ]
 }

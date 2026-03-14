@@ -5,8 +5,7 @@
   "main": "./src/index.ts",
   "scripts": {
     "postinstall": "bun scripts/install-go-ios.ts",
-    "dev": "NODE_ENV=development bun run --watch src/index.ts",
-    "build": "bun build src/index.ts --compile --external vite --outfile dist/tachibana-server"
+    "dev": "NODE_ENV=development bun run --watch src/index.ts"
   },
   "dependencies": {
     "@elysiajs/jwt": "^1.4.1",

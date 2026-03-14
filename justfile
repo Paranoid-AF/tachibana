@@ -8,6 +8,7 @@ root_dir := replace(justfile_directory(), "\\", "/")
 apps_dir := root_dir / "apps"
 packages_dir := root_dir / "packages"
 
+
 # Default target - show available commands
 default: list
 
@@ -40,7 +41,7 @@ build-web:
 # Build server binary (depends on web build)
 build: build-web typecheck
     @echo "→ Building server..."
-    cd {{apps_dir}}/server && {{bun}} build src/index.ts --compile --external vite --outfile dist/tachibana-server
+    cd {{apps_dir}}/server && {{bun}} build src/index.ts --compile --external vite --outfile dist/tachibana
     @echo "✓ Server built"
 
 #############################################
@@ -76,6 +77,68 @@ check: lint typecheck format
     @echo ""
     @echo "✓ All checks passed!"
 
+# Build a distributable staging directory (emulates CI build locally)
+build-dist: build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{root_dir}}"
+    srv_nm="{{apps_dir}}/server/node_modules"
+    bun_cache="${root}/node_modules/.bun"
+    staging="${root}/staging/tachibana"
+    rm -rf "${staging}"
+    mkdir -p "${staging}/bin" "${staging}/drizzle" "${staging}/web"
+
+    # Server binary
+    cp "{{apps_dir}}/server/dist/tachibana" "${staging}/"
+
+    # go-ios binary + DDI
+    [ -d "{{apps_dir}}/server/bin" ] && cp -r "{{apps_dir}}/server/bin/"* "${staging}/bin/"
+
+    # Drizzle migrations
+    cp -r "{{apps_dir}}/server/drizzle/"* "${staging}/drizzle/"
+
+    # Web frontend
+    cp -r "{{apps_dir}}/web/dist/"* "${staging}/web/"
+
+    # Sharp native binding + libvips (only native files needed; sharp JS is bundled)
+    platform="$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/x86_64/x64/' | sed 's/aarch64/arm64/')"
+    sharp_dir="${staging}/sharp/@img"
+    mkdir -p "${sharp_dir}"
+    # Copy platform-specific @img/sharp-<platform> (contains .node binding)
+    for dir in "${bun_cache}"/@img+sharp-${platform}@*/node_modules/@img/sharp-${platform}; do
+      [ -d "$dir" ] && cp -r "$dir" "${sharp_dir}/" && break
+    done
+    for nm in "${srv_nm}" "${root}/node_modules"; do
+      [ -d "${nm}/@img/sharp-${platform}" ] && cp -r "${nm}/@img/sharp-${platform}" "${sharp_dir}/" && break
+    done
+    # Copy platform-specific @img/sharp-libvips-<platform> (contains libvips dylib)
+    for dir in "${bun_cache}"/@img+sharp-libvips-${platform}@*/node_modules/@img/sharp-libvips-${platform}; do
+      [ -d "$dir" ] && cp -r "$dir" "${sharp_dir}/" && break
+    done
+    for nm in "${srv_nm}" "${root}/node_modules"; do
+      [ -d "${nm}/@img/sharp-libvips-${platform}" ] && cp -r "${nm}/@img/sharp-libvips-${platform}" "${sharp_dir}/" && break
+    done
+
+    # ios-connect native addon (napi-rs loader + .node binding)
+    ic_dist="{{packages_dir}}/ios-connect/dist"
+    ic_staging="${staging}/ios-connect/dist"
+    mkdir -p "${ic_staging}"
+    cp "${ic_dist}/index.js" "${ic_staging}/"
+    cp "${ic_dist}/"*.node "${ic_staging}/"
+
+    # WDA IPA (if available)
+    ipa="{{packages_dir}}/ios-wda/ipa-build/WebDriverAgentRunner.ipa"
+    if [ -f "$ipa" ]; then
+      mkdir -p "${staging}/assets"
+      cp "$ipa" "${staging}/assets/"
+    fi
+
+    chmod +x "${staging}/tachibana" 2>/dev/null || true
+    chmod +x "${staging}/bin/ios" 2>/dev/null || true
+
+    echo "✓ Staging directory ready at: ${staging}"
+    echo "  Run with: ${staging}/tachibana"
+
 #############################################
 # Cleanup
 #############################################
@@ -87,6 +150,7 @@ clean:
     rm -rf {{apps_dir}}/web/dist
     rm -rf {{packages_dir}}/ios-connect/dist
     rm -rf {{packages_dir}}/ios-wda/dist
+    rm -rf {{root_dir}}/staging
     @echo "✓ Clean complete"
 
 #############################################
@@ -116,7 +180,8 @@ help:
     @echo ""
     @echo "Common commands:"
     @echo "  just dev              - Run server in dev mode (Vite integrated)"
-    @echo "  just build     - Build server binary (includes web build)"
+    @echo "  just build            - Build server binary (includes web build)"
+    @echo "  just build-dist       - Build distributable staging directory"
     @echo "  just build-web        - Build web frontend"
     @echo "  just typecheck        - Run all type checks"
     @echo "  just lint             - Run linter"
