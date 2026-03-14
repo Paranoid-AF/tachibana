@@ -94,11 +94,15 @@ jobs:
           key: cargo-${{ matrix.label }}-${{ hashFiles('packages/ios-connect/Cargo.lock') }}
           restore-keys: cargo-${{ matrix.label }}-
 
-      - name: Install cross-compiler (Linux ARM64)
-        if: matrix.label == 'linux-arm64'
+      - name: Install system dependencies (Linux)
+        if: startsWith(matrix.label, 'linux')
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
+          sudo apt-get install -y libdbus-1-dev pkg-config
+
+      - name: Install cross-compiler (Linux ARM64)
+        if: matrix.label == 'linux-arm64'
+        run: sudo apt-get install -y gcc-aarch64-linux-gnu
 
       - name: Install dependencies
         env:
