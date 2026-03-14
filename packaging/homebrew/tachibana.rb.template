@@ -1,0 +1,41 @@
+class Tachibana < Formula
+  desc "Multi-platform iOS device manipulation suite"
+  homepage "https://github.com/Paranoid-AF/tachibana"
+  version "{{VERSION}}"
+  license :cannot_represent
+
+  on_macos do
+    if Hardware::CPU.arm?
+      url "https://github.com/Paranoid-AF/tachibana/releases/download/v{{VERSION}}/tachibana-darwin-arm64.tar.gz"
+      sha256 "{{SHA256_DARWIN_ARM64}}"
+    else
+      url "https://github.com/Paranoid-AF/tachibana/releases/download/v{{VERSION}}/tachibana-darwin-x64.tar.gz"
+      sha256 "{{SHA256_DARWIN_X64}}"
+    end
+  end
+
+  def install
+    bin.install "tachibana-server"
+    bin.install "tachibana"
+    prefix.install "bin"
+    prefix.install "drizzle"
+    prefix.install "web"
+    if File.directory?("assets")
+      prefix.install "assets"
+    end
+  end
+
+  service do
+    run [opt_bin/"tachibana-server"]
+    working_dir opt_prefix
+    keep_alive true
+    require_root true
+    environment_variables NODE_ENV: "production"
+    log_path var/"log/tachibana/server.log"
+    error_log_path var/"log/tachibana/server.log"
+  end
+
+  test do
+    assert_match "tachibana", shell_output("#{bin}/tachibana --help 2>&1", 1)
+  end
+end
