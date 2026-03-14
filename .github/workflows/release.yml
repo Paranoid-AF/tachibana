@@ -108,7 +108,10 @@ jobs:
 
       - name: Install cross-compiler (Linux ARM64)
         if: matrix.label == 'linux-arm64'
-        run: sudo apt-get install -y gcc-aarch64-linux-gnu
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu libdbus-1-dev:arm64
 
       - name: Install dependencies
         env:
@@ -121,6 +124,8 @@ jobs:
         env:
           CC: ${{ matrix.label == 'linux-arm64' && 'aarch64-linux-gnu-gcc' || '' }}
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.label == 'linux-arm64' && 'aarch64-linux-gnu-gcc' || '' }}
+          PKG_CONFIG_ALLOW_CROSS: ${{ matrix.label == 'linux-arm64' && '1' || '' }}
+          PKG_CONFIG_PATH: ${{ matrix.label == 'linux-arm64' && '/usr/lib/aarch64-linux-gnu/pkgconfig' || '' }}
         run: |
           ./packages/ios-connect/node_modules/.bin/napi build \
             --platform --release \
