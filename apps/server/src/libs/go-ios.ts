@@ -1,12 +1,5 @@
-import { join, dirname } from 'node:path'
-
-const isCompiled =
-  process.argv[0] === process.execPath &&
-  !process.execPath.includes('node_modules')
-
-const serverDir = isCompiled
-  ? dirname(process.execPath)
-  : join(import.meta.dirname!, '..', '..')
+import { join } from 'node:path'
+import { serverDir } from './runtime.ts'
 
 /** Resolve the go-ios `ios` binary from apps/server/bin/. */
 async function resolveIosBinary(): Promise<string> {

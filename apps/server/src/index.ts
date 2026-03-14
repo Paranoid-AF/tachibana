@@ -15,17 +15,14 @@ import { handleMcpRequest } from './routes/agent.ts'
 import { ensureElevated } from './libs/elevate.ts'
 import { deviceManager } from './libs/device-manager.ts'
 import { openDatabase, closeDatabase } from './db/index.ts'
+import { isCompiled, serverDir } from './libs/runtime.ts'
 import type { ViteDevServer } from 'vite'
 
 const isDev = Bun.env.NODE_ENV === 'development'
 
-const isCompiled =
-  process.argv[0] === process.execPath &&
-  !process.execPath.includes('node_modules')
-
 const webDevPath = path.resolve(import.meta.dirname!, '../../web')
 const webDistPath = isCompiled
-  ? path.resolve(path.dirname(process.execPath), 'web')
+  ? path.resolve(serverDir, 'web')
   : path.resolve(import.meta.dirname!, '../../web/dist')
 
 const _app = new Elysia({ prefix: '/api' })

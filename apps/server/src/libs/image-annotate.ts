@@ -1,12 +1,10 @@
 import path from 'node:path'
 import type SharpType from 'sharp'
+import { isCompiled, serverDir } from './runtime.ts'
 
 function loadSharp(): typeof SharpType {
-  const isCompiled =
-    process.argv[0] === process.execPath &&
-    !process.execPath.includes('node_modules')
   if (isCompiled) {
-    return require(path.join(path.dirname(process.execPath), 'node_modules', 'sharp'))
+    return require(path.join(serverDir, 'node_modules', 'sharp'))
   }
   return require('sharp')
 }

@@ -6,6 +6,7 @@ import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { eq, desc, count } from 'drizzle-orm'
 
 import { getConfigDir } from '../libs/config.ts'
+import { isCompiled, serverDir } from '../libs/runtime.ts'
 import * as schema from './schema.ts'
 
 import type { StoredSession } from '@tbana/ios-connect'
@@ -24,11 +25,8 @@ let sqlite: InstanceType<typeof Database> | null = null
 let db: BunSQLiteDatabase<typeof schema> | null = null
 
 function resolveMigrationsDir(): string {
-  const isCompiled =
-    process.argv[0] === process.execPath &&
-    !process.execPath.includes('node_modules')
   if (isCompiled) {
-    return resolve(dirname(process.execPath), 'drizzle')
+    return resolve(serverDir, 'drizzle')
   }
   return resolve(import.meta.dirname!, '../../drizzle')
 }
