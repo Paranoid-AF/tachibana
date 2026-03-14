@@ -155,6 +155,7 @@ jobs:
             apps/server/src/index.ts \
             --outfile "apps/server/dist/tachibana${ext}" \
             --external vite \
+            --external sharp \
             --external @img/sharp-darwin-arm64 --external @img/sharp-darwin-x64 \
             --external @img/sharp-linux-arm --external @img/sharp-linux-arm64 --external @img/sharp-linux-x64 \
             --external @img/sharp-linuxmusl-arm64 --external @img/sharp-linuxmusl-x64 \
@@ -228,8 +229,16 @@ jobs:
           # Web frontend
           cp -r apps/web/dist/* "${staging}/web/"
 
-          # Sharp native bindings (marked --external in bun build, resolved from disk at runtime)
+          # Sharp + native bindings (marked --external in bun build, resolved from disk at runtime)
+          srv_nm="apps/server/node_modules"
+          for pkg in sharp detect-libc semver; do
+            [ -d "${srv_nm}/$pkg" ] && cp -r "${srv_nm}/$pkg" "${staging}/node_modules/"
+          done
           mkdir -p "${staging}/node_modules/@img"
+          for dir in ${srv_nm}/@img/colour ${srv_nm}/@img/sharp-* ${srv_nm}/@img/sharp-libvips-*; do
+            [ -d "$dir" ] && cp -r "$dir" "${staging}/node_modules/@img/"
+          done
+          # Also copy platform-specific native bindings downloaded earlier
           for dir in node_modules/@img/sharp-* node_modules/@img/sharp-libvips-*; do
             [ -d "$dir" ] && cp -r "$dir" "${staging}/node_modules/@img/"
           done

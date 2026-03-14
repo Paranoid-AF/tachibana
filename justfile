@@ -8,8 +8,8 @@ root_dir := replace(justfile_directory(), "\\", "/")
 apps_dir := root_dir / "apps"
 packages_dir := root_dir / "packages"
 
-# sharp native bindings must stay external so the compiled binary loads them from disk
-sharp_externals := "--external @img/sharp-darwin-arm64 --external @img/sharp-darwin-x64 --external @img/sharp-linux-arm --external @img/sharp-linux-arm64 --external @img/sharp-linux-x64 --external @img/sharp-linuxmusl-arm64 --external @img/sharp-linuxmusl-x64 --external @img/sharp-linux-ppc64 --external @img/sharp-linux-riscv64 --external @img/sharp-linux-s390x --external @img/sharp-win32-arm64 --external @img/sharp-win32-ia32 --external @img/sharp-win32-x64 --external @img/sharp-wasm32 --external @img/sharp-libvips-darwin-arm64 --external @img/sharp-libvips-darwin-x64 --external @img/sharp-libvips-linux-arm --external @img/sharp-libvips-linux-arm64 --external @img/sharp-libvips-linux-x64 --external @img/sharp-libvips-linuxmusl-arm64 --external @img/sharp-libvips-linuxmusl-x64 --external @img/sharp-libvips-linux-ppc64 --external @img/sharp-libvips-linux-riscv64 --external @img/sharp-libvips-linux-s390x"
+# sharp and its native bindings must stay external so the compiled binary loads them from disk
+sharp_externals := "--external sharp --external @img/sharp-darwin-arm64 --external @img/sharp-darwin-x64 --external @img/sharp-linux-arm --external @img/sharp-linux-arm64 --external @img/sharp-linux-x64 --external @img/sharp-linuxmusl-arm64 --external @img/sharp-linuxmusl-x64 --external @img/sharp-linux-ppc64 --external @img/sharp-linux-riscv64 --external @img/sharp-linux-s390x --external @img/sharp-win32-arm64 --external @img/sharp-win32-ia32 --external @img/sharp-win32-x64 --external @img/sharp-wasm32 --external @img/sharp-libvips-darwin-arm64 --external @img/sharp-libvips-darwin-x64 --external @img/sharp-libvips-linux-arm --external @img/sharp-libvips-linux-arm64 --external @img/sharp-libvips-linux-x64 --external @img/sharp-libvips-linuxmusl-arm64 --external @img/sharp-libvips-linuxmusl-x64 --external @img/sharp-libvips-linux-ppc64 --external @img/sharp-libvips-linux-riscv64 --external @img/sharp-libvips-linux-s390x"
 
 # Default target - show available commands
 default: list
@@ -79,6 +79,58 @@ check: lint typecheck format
     @echo ""
     @echo "✓ All checks passed!"
 
+# Build a distributable staging directory (emulates CI build locally)
+build-dist: build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    root="{{root_dir}}"
+    srv_nm="{{apps_dir}}/server/node_modules"
+    bun_cache="${root}/node_modules/.bun"
+    staging="${root}/staging/tachibana"
+    rm -rf "${staging}"
+    mkdir -p "${staging}/bin" "${staging}/drizzle" "${staging}/web" "${staging}/node_modules"
+
+    # Server binary
+    cp "{{apps_dir}}/server/dist/tachibana" "${staging}/"
+
+    # go-ios binary + DDI
+    [ -d "{{apps_dir}}/server/bin" ] && cp -r "{{apps_dir}}/server/bin/"* "${staging}/bin/"
+
+    # Drizzle migrations
+    cp -r "{{apps_dir}}/server/drizzle/"* "${staging}/drizzle/"
+
+    # Web frontend
+    cp -r "{{apps_dir}}/web/dist/"* "${staging}/web/"
+
+    # Sharp + deps (resolved from disk at runtime)
+    for pkg in sharp detect-libc semver; do
+      [ -d "${srv_nm}/$pkg" ] && cp -r "${srv_nm}/$pkg" "${staging}/node_modules/"
+    done
+    mkdir -p "${staging}/node_modules/@img"
+    # Copy @img packages from bun's internal cache
+    for dir in "${bun_cache}"/@img+sharp-*/; do
+      [ -d "$dir" ] && cp -r "$dir"/node_modules/@img/* "${staging}/node_modules/@img/"
+    done
+    # Also copy any @img packages from standard node_modules locations
+    for nm in "${srv_nm}" "${root}/node_modules"; do
+      for dir in "${nm}"/@img/colour "${nm}"/@img/sharp-* "${nm}"/@img/sharp-libvips-*; do
+        [ -d "$dir" ] && cp -r "$dir" "${staging}/node_modules/@img/"
+      done
+    done
+
+    # WDA IPA (if available)
+    ipa="{{packages_dir}}/ios-wda/ipa-build/WebDriverAgentRunner.ipa"
+    if [ -f "$ipa" ]; then
+      mkdir -p "${staging}/assets"
+      cp "$ipa" "${staging}/assets/"
+    fi
+
+    chmod +x "${staging}/tachibana" 2>/dev/null || true
+    chmod +x "${staging}/bin/ios" 2>/dev/null || true
+
+    echo "✓ Staging directory ready at: ${staging}"
+    echo "  Run with: ${staging}/tachibana"
+
 #############################################
 # Cleanup
 #############################################
@@ -90,6 +142,7 @@ clean:
     rm -rf {{apps_dir}}/web/dist
     rm -rf {{packages_dir}}/ios-connect/dist
     rm -rf {{packages_dir}}/ios-wda/dist
+    rm -rf {{root_dir}}/staging
     @echo "✓ Clean complete"
 
 #############################################
@@ -119,7 +172,8 @@ help:
     @echo ""
     @echo "Common commands:"
     @echo "  just dev              - Run server in dev mode (Vite integrated)"
-    @echo "  just build     - Build server binary (includes web build)"
+    @echo "  just build            - Build server binary (includes web build)"
+    @echo "  just build-dist       - Build distributable staging directory"
     @echo "  just build-web        - Build web frontend"
     @echo "  just typecheck        - Run all type checks"
     @echo "  just lint             - Run linter"
