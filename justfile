@@ -40,7 +40,7 @@ build-web:
 # Build server binary (depends on web build)
 build: build-web typecheck
     @echo "→ Building server..."
-    cd {{apps_dir}}/server && {{bun}} build src/index.ts --compile --outfile dist/tachibana-server
+    cd {{apps_dir}}/server && {{bun}} build src/index.ts --compile --external vite --outfile dist/tachibana-server
     @echo "✓ Server built"
 
 #############################################
