@@ -5,6 +5,11 @@ on:
     tags: ['v*']
   workflow_dispatch:
 
+env:
+  # On tag push: strip leading 'v' (e.g. v1.2.3 → 1.2.3).
+  # On workflow_dispatch: use 0.0.0-dev so packages remain installable.
+  RELEASE_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '0.0.0-dev' }}
+
 permissions:
   contents: write
 
@@ -222,7 +227,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${RELEASE_VERSION#v}"
           PKG="tachibana_${VERSION}_${{ matrix.arch }}"
           ROOT="build-deb/${PKG}"
 
@@ -286,7 +291,7 @@ jobs:
         shell: bash
         run: |
           set -e
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${RELEASE_VERSION#v}"
 
           # Set up rpmbuild tree
           mkdir -p ~/rpmbuild/{SOURCES,SPECS,BUILD,RPMS,SRPMS}
@@ -332,7 +337,7 @@ jobs:
       - name: Harvest files and build MSI
         shell: pwsh
         run: |
-          $version = "${{ github.ref_name }}".TrimStart('v')
+          $version = "${{ env.RELEASE_VERSION }}".TrimStart('v')
           $stagingDir = "staging"
 
           # Harvest additional files (bin/, drizzle/, web/) into a fragment
@@ -446,7 +451,7 @@ jobs:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           set -e
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${RELEASE_VERSION#v}"
 
           SHA_ARM64=$(sha256sum "artifacts/tachibana-darwin-arm64.tar.gz" | awk '{print $1}')
           SHA_X64=$(sha256sum "artifacts/tachibana-darwin-x64.tar.gz" | awk '{print $1}')
