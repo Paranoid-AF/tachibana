@@ -14,7 +14,6 @@
     },
     "apps/server": {
       "name": "@tbana/server",
-      "version": "0.0.1",
       "dependencies": {
         "@elysiajs/jwt": "^1.4.1",
         "@modelcontextprotocol/sdk": "^1.12.1",
@@ -36,7 +35,6 @@
     },
     "apps/web": {
       "name": "@tbana/web",
-      "version": "0.0.1",
       "dependencies": {
         "@elysiajs/eden": "^1.4.2",
         "@radix-ui/react-dialog": "^1.1.15",
@@ -73,7 +71,6 @@
     },
     "packages/ios-connect": {
       "name": "@tbana/ios-connect",
-      "version": "0.0.1",
       "dependencies": {
         "bplist-parser": "^0.3.2",
         "jszip": "^3.10.1",
@@ -88,7 +85,6 @@
     },
     "packages/ios-wda": {
       "name": "@tbana/ios-wda",
-      "version": "0.0.1",
       "dependencies": {
         "appium-webdriveragent": "11.1.4",
       },
