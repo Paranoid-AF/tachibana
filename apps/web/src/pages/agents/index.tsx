@@ -45,7 +45,7 @@ import {
   TableCell,
 } from '@/components/ui/table'
 
-import { version } from '../../../package.json'
+import { version } from '../../../../../package.json'
 import skillTemplate from '../../../assets/snippets/agents/skill.md.mustache?raw'
 import mcpTemplate from '../../../assets/snippets/agents/mcp.json.mustache?raw'
 import agentSkillsLogo from '../../../assets/images/agents/agentskills-logo.png'
