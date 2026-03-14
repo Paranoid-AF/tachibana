@@ -13,7 +13,7 @@ jobs:
   build-wda:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: oven-sh/setup-bun@v2
 
@@ -27,7 +27,7 @@ jobs:
         run: bun run packages/ios-wda/scripts/postinstall.ts
 
       - name: Upload WDA IPA
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wda-ipa
           path: packages/ios-wda/ipa-build/WebDriverAgentRunner.ipa
@@ -69,11 +69,11 @@ jobs:
     runs-on: ${{ matrix.runner }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: oven-sh/setup-bun@v2
 
-      - uses: extractions/setup-just@v2
+      - uses: extractions/setup-just@v3
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -81,7 +81,7 @@ jobs:
           targets: ${{ matrix.rust-target }}
 
       - name: Cache Cargo
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry/index/
@@ -145,7 +145,7 @@ jobs:
 
       - name: Download WDA IPA
         if: startsWith(matrix.label, 'darwin')
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: wda-ipa
           path: packages/ios-wda/ipa-build/
@@ -196,7 +196,7 @@ jobs:
           fi
 
       - name: Upload dist artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist-${{ matrix.label }}
           path: tachibana-${{ matrix.label }}.${{ startsWith(matrix.label, 'windows') && 'zip' || 'tar.gz' }}
@@ -204,7 +204,7 @@ jobs:
 
       - name: Upload staging artifact (Linux + Windows only)
         if: startsWith(matrix.label, 'linux') || startsWith(matrix.label, 'windows')
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: staging-${{ matrix.label }}
           path: staging/tachibana-${{ matrix.label }}/
@@ -223,10 +223,10 @@ jobs:
             arch: arm64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download staging
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: staging-${{ matrix.label }}
           path: staging/
@@ -265,7 +265,7 @@ jobs:
           mv "build-deb/${PKG}.deb" .
 
       - name: Upload .deb
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: deb-${{ matrix.label }}
           path: '*.deb'
@@ -284,13 +284,13 @@ jobs:
             arch: aarch64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install rpmbuild
         run: sudo apt-get update && sudo apt-get install -y rpm
 
       - name: Download staging
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: staging-${{ matrix.label }}
           path: staging/
@@ -319,7 +319,7 @@ jobs:
           find ~/rpmbuild/RPMS -name '*.rpm' -exec cp {} . \;
 
       - name: Upload .rpm
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rpm-${{ matrix.label }}
           path: '*.rpm'
@@ -331,10 +331,10 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download staging
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: staging-windows-x64
           path: staging/
@@ -369,7 +369,7 @@ jobs:
             -out "tachibana-windows-x64.msi"
 
       - name: Upload MSI
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: msi
           path: '*.msi'
@@ -382,31 +382,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download all dist artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: dist-*
           merge-multiple: true
           path: artifacts/
 
       - name: Download deb artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: deb-*
           merge-multiple: true
           path: artifacts/
 
       - name: Download rpm artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: rpm-*
           merge-multiple: true
           path: artifacts/
 
       - name: Download MSI artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: msi
           path: artifacts/

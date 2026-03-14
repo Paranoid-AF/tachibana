@@ -43,8 +43,19 @@ if (!ghPlatform) {
   process.exit(0)
 }
 
-const binName = process.platform === 'win32' ? 'ios.exe' : 'ios'
-const destPath = join(binDir, binName)
+/** Canonical name we install to (runtime code always resolves `bin/ios`). */
+const destName = process.platform === 'win32' ? 'ios.exe' : 'ios'
+const destPath = join(binDir, destName)
+
+/** Name inside the zip — Linux ships arch-specific binaries (ios-amd64 / ios-arm64). */
+function zipEntryName(): string {
+  if (process.platform === 'win32') return 'ios.exe'
+  if (process.platform === 'linux') {
+    const goArch = process.arch === 'x64' ? 'amd64' : process.arch
+    return `ios-${goArch}`
+  }
+  return 'ios'
+}
 
 await mkdir(binDir, { recursive: true })
 
@@ -65,14 +76,15 @@ if (await Bun.file(destPath).exists()) {
   }
   const zipData = new Uint8Array(await res.arrayBuffer())
 
-  const extracted = await extractFileFromZip(zipData, binName)
+  const entryName = zipEntryName()
+  const extracted = await extractFileFromZip(zipData, entryName)
   if (extracted) {
     await Bun.write(destPath, extracted)
   }
 
   if (!(await Bun.file(destPath).exists())) {
     console.error(
-      `[go-ios] Binary not found after extraction. Expected "${binName}" in zip.`
+      `[go-ios] Binary not found after extraction. Expected "${entryName}" in zip.`
     )
     process.exit(1)
   }
@@ -81,7 +93,7 @@ if (await Bun.file(destPath).exists()) {
     await chmod(destPath, 0o755)
   }
 
-  console.log(`[go-ios] Installed ${binName} to ${binDir}`)
+  console.log(`[go-ios] Installed ${entryName} as ${destName} to ${binDir}`)
 }
 
 // ── wintun.dll (Windows only) ───────────────────────────────────────────
