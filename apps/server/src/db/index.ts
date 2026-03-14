@@ -1,4 +1,4 @@
-import { join, resolve, dirname } from 'path'
+import { join, resolve } from 'path'
 import { mkdirSync } from 'fs'
 import { Database } from 'bun:sqlite'
 import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite'
