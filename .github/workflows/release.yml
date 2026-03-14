@@ -319,16 +319,16 @@ jobs:
           cp -r staging/* "${ROOT}/opt/tachibana/"
 
           # Copy systemd service
-          cp packaging/systemd/tachibana.service "${ROOT}/etc/systemd/system/"
+          cp .packaging/systemd/tachibana.service "${ROOT}/etc/systemd/system/"
 
           # Generate control file
           sed -e "s/{{VERSION}}/${VERSION}/" \
               -e "s/{{ARCH}}/${{ matrix.arch }}/" \
-              packaging/deb/control.template > "${ROOT}/DEBIAN/control"
+              .packaging/deb/control.template > "${ROOT}/DEBIAN/control"
 
           # Copy maintainer scripts
-          cp packaging/deb/postinst "${ROOT}/DEBIAN/"
-          cp packaging/deb/prerm "${ROOT}/DEBIAN/"
+          cp .packaging/deb/postinst "${ROOT}/DEBIAN/"
+          cp .packaging/deb/prerm "${ROOT}/DEBIAN/"
           chmod 755 "${ROOT}/DEBIAN/postinst" "${ROOT}/DEBIAN/prerm"
 
           # Build deb
@@ -378,14 +378,14 @@ jobs:
 
           # Copy staging files and systemd unit into SOURCES
           cp -r staging ~/rpmbuild/SOURCES/staging
-          cp packaging/systemd/tachibana.service ~/rpmbuild/SOURCES/
+          cp .packaging/systemd/tachibana.service ~/rpmbuild/SOURCES/
 
           # Build RPM
           rpmbuild -bb \
             --define "_version ${VERSION}" \
             --define "_arch ${{ matrix.arch }}" \
             --target ${{ matrix.arch }} \
-            packaging/rpm/tachibana.spec
+            .packaging/rpm/tachibana.spec
 
           # Copy output
           find ~/rpmbuild/RPMS -name '*.rpm' -exec cp {} . \;
@@ -418,7 +418,7 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ env.RELEASE_VERSION }}".TrimStart('v')
-          wix build packaging/wix/main.wxs `
+          wix build .packaging/wix/main.wxs `
             -d ProductVersion="$version" `
             -d "StagingDir=$PWD/staging" `
             -arch x64 `
@@ -526,7 +526,7 @@ jobs:
           sed -e "s/{{VERSION}}/${VERSION}/g" \
               -e "s/{{SHA256_DARWIN_ARM64}}/${SHA_ARM64}/" \
               -e "s/{{SHA256_DARWIN_X64}}/${SHA_X64}/" \
-              ../packaging/homebrew/tachibana.rb.template > Formula/tachibana.rb
+              ../.packaging/homebrew/tachibana.rb.template > Formula/tachibana.rb
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
