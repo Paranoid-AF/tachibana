@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
-if systemctl is-active --quiet tachibana-server.service; then
-    systemctl stop tachibana-server.service
+if systemctl is-active --quiet tachibana.service; then
+    systemctl stop tachibana.service
 fi
-systemctl disable tachibana-server.service || true
+systemctl disable tachibana.service || true
 systemctl daemon-reload

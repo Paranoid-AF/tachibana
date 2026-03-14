@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-chmod +x /opt/tachibana/tachibana-server /opt/tachibana/tachibana /opt/tachibana/bin/ios
+chmod +x /opt/tachibana/tachibana /opt/tachibana/bin/ios
 systemctl daemon-reload
-systemctl enable tachibana-server.service
-echo "Tachibana installed. Start with: sudo systemctl start tachibana-server"
+systemctl enable tachibana.service
+echo "Tachibana installed. Start with: sudo systemctl start tachibana"

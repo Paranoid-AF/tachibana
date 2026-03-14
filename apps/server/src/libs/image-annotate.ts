@@ -1,4 +1,17 @@
-import sharp from 'sharp'
+import path from 'node:path'
+import type SharpType from 'sharp'
+
+function loadSharp(): typeof SharpType {
+  const isCompiled =
+    process.argv[0] === process.execPath &&
+    !process.execPath.includes('node_modules')
+  if (isCompiled) {
+    return require(path.join(path.dirname(process.execPath), 'node_modules', 'sharp'))
+  }
+  return require('sharp')
+}
+
+const sharp = loadSharp()
 
 export interface AnnotatedCoordinate {
   full: string // base64 PNG — full screenshot with crosshair

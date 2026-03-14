@@ -22,7 +22,7 @@
 
     <ComponentGroup Id="ServerComponent" Directory="INSTALLFOLDER">
       <Component Id="ServerExe" Guid="*">
-        <File Id="TachibanaServerExe" Source="$(var.StagingDir)\tachibana-server.exe" KeyPath="yes" />
+        <File Id="TachibanaServerExe" Source="$(var.StagingDir)\tachibana.exe" KeyPath="yes" />
         <ServiceInstall
           Id="TachibanaServiceInstall"
           Name="TachibanaServer"
@@ -39,9 +39,6 @@
           Stop="both"
           Remove="uninstall"
           Wait="yes" />
-      </Component>
-      <Component Id="CliExe" Guid="*">
-        <File Id="TachibanaCliExe" Source="$(var.StagingDir)\tachibana.exe" KeyPath="yes" />
       </Component>
     </ComponentGroup>
 
