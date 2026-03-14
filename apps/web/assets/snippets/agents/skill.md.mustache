@@ -55,7 +55,7 @@ List all connected iOS devices with their status.
 - Returns: `{ "devices": [{ "udid", "connected", "linked", "tunnelReady", "wdaState", "mainPort?", "mjpegPort?" }] }`
 
 #### `get_device_prefs`
-Get preferences for a device.
+Get preferences for a device (e.g. alwaysAwake setting).
 - `udid` (string, required) — Device UDID
 
 #### `set_device_prefs`
@@ -161,6 +161,6 @@ List photos on the device camera roll with pagination.
 - `cursor` (string, optional) — Pagination cursor from a previous response
 
 #### `download_photo`
-Download a photo from the device (returns base64 image).
+Download a photo from the device and return it as base64.
 - `udid` (string, required) — Device UDID
 - `path` (string, required) — Photo path on device (from list_photos, must start with /DCIM/)
