@@ -29,7 +29,10 @@ export function SetupPage() {
   const mutation = useMutation({
     mutationFn: () => adminSetup(password),
     onSuccess: () => {
-      queryClient.setQueryData(['admin/status'], { passwordSet: true, loggedIn: true })
+      queryClient.setQueryData(['admin/status'], {
+        passwordSet: true,
+        loggedIn: true,
+      })
       navigate('/', { replace: true })
     },
     onError: (err: Error) => {

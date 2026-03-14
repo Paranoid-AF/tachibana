@@ -125,8 +125,7 @@ class WdaManager {
       return
     }
 
-    const backoffMs =
-      RESTART_BACKOFF_BASE_MS * Math.pow(2, entry.restartCount)
+    const backoffMs = RESTART_BACKOFF_BASE_MS * Math.pow(2, entry.restartCount)
     const elapsed = Date.now() - entry.lastRestartAt
     if (entry.lastRestartAt > 0 && elapsed < backoffMs) {
       log(`Restart backoff: ${backoffMs - elapsed}ms remaining, skipping`)
@@ -137,7 +136,9 @@ class WdaManager {
     entry.restartCount++
     entry.lastRestartAt = Date.now()
 
-    log(`Restarting WDA (attempt ${entry.restartCount}/${MAX_RESTART_ATTEMPTS})`)
+    log(
+      `Restarting WDA (attempt ${entry.restartCount}/${MAX_RESTART_ATTEMPTS})`
+    )
 
     try {
       // Inline cleanup (don't use stop() — it deletes the entry from the map)

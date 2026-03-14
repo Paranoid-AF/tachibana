@@ -68,7 +68,10 @@ export const serveStaticFile = async (
   if (!(await file.exists())) {
     // SPA fallback
     const index = Bun.file(path.join(webDistPath, 'index.html'))
-    res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-cache' })
+    res.writeHead(200, {
+      'Content-Type': 'text/html',
+      'Cache-Control': 'no-cache',
+    })
     res.end(await index.arrayBuffer().then(b => Buffer.from(b)))
     return
   }
@@ -76,7 +79,9 @@ export const serveStaticFile = async (
   const isAsset = pathname.startsWith('/assets/')
   res.writeHead(200, {
     'Content-Type': file.type,
-    'Cache-Control': isAsset ? 'public, max-age=31536000, immutable' : 'no-cache',
+    'Cache-Control': isAsset
+      ? 'public, max-age=31536000, immutable'
+      : 'no-cache',
   })
   res.end(await file.arrayBuffer().then(b => Buffer.from(b)))
 }

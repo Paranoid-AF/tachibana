@@ -29,7 +29,10 @@ export function SecurityPage() {
     mutationFn: () => adminChangePassword(currentPassword, newPassword),
     onSuccess: () => {
       setOpen(false)
-      queryClient.setQueryData(['admin/status'], { passwordSet: true, loggedIn: false })
+      queryClient.setQueryData(['admin/status'], {
+        passwordSet: true,
+        loggedIn: false,
+      })
       navigate('/login', { replace: true })
     },
     onError: (err: Error) => {
