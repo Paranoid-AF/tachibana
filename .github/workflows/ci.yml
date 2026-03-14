@@ -16,9 +16,10 @@ jobs:
 
       - uses: extractions/setup-just@v3
 
+      - uses: dtolnay/rust-toolchain@stable
+
       - name: Install dependencies
         env:
-          SKIP_NAPI_BUILD: '1'
           SKIP_WDA_BUILD: '1'
         run: bun install
 
