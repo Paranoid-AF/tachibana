@@ -22,6 +22,7 @@
           <Directory Id="DrizzleMetaFolder" Name="meta" />
         </Directory>
         <Directory Id="WebFolder" Name="web" />
+        <Directory Id="NodeModulesFolder" Name="node_modules" />
       </Directory>
     </StandardDirectory>
 
@@ -54,6 +55,7 @@
     <Feature Id="Main" Title="Tachibana" Level="1">
       <ComponentGroupRef Id="ServerComponent" />
       <ComponentGroupRef Id="HeatFiles" />
+      <ComponentGroupRef Id="HeatNodeModules" />
     </Feature>
   </Package>
 </Wix>

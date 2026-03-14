@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   # On tag push: strip leading 'v' (e.g. v1.2.3 → 1.2.3).
   # On workflow_dispatch: use 0.0.0-dev so packages remain installable.
   RELEASE_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '0.0.0-dev' }}
@@ -397,8 +398,12 @@ jobs:
             -var "var.StagingDir\web" -ag -sfrag -srd `
             -out heat-web.wxs
 
+          wix heat dir "$stagingDir\node_modules" -cg HeatNodeModules -dr NodeModulesFolder `
+            -var "var.StagingDir\node_modules" -ag -sfrag -srd `
+            -out heat-node-modules.wxs
+
           # Build MSI
-          wix build packaging/wix/main.wxs heat-bin.wxs heat-drizzle.wxs heat-web.wxs `
+          wix build packaging/wix/main.wxs heat-bin.wxs heat-drizzle.wxs heat-web.wxs heat-node-modules.wxs `
             -d ProductVersion="$version" `
             -d "StagingDir=$stagingDir" `
             -arch x64 `
