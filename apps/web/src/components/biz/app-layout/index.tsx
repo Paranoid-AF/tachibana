@@ -1,7 +1,9 @@
 import { type ReactNode, useState, useEffect } from 'react'
 import { useLocation } from 'wouter'
-import { KeyRound, Shield, type LucideIcon } from 'lucide-react'
+import { KeyRound, Settings, type LucideIcon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
+import { version } from '../../../../../../package.json'
 import { cn } from '@/lib/utils'
 import { DeviceList } from './device-list'
 import { AccountPanel } from './account-panel'
@@ -55,6 +57,7 @@ const agents = [
 ]
 
 function GradientNavLink() {
+  const { t } = useTranslation()
   const [location, navigate] = useLocation()
   const active = location === '/agents'
   const [agentIndex, setAgentIndex] = useState(0)
@@ -128,12 +131,12 @@ function GradientNavLink() {
                 : 'animate-gradient-flow bg-gradient-to-r from-purple-500 via-pink-500 via-orange-400 to-purple-500 bg-[length:200%_auto] bg-clip-text text-transparent'
             )}
           >
-            MCP &amp; Skills
+            {t('layout.mcpSkills')}
           </span>
           <div className="relative h-4">
             {active ? (
               <span className="absolute inset-0 text-xs opacity-80 whitespace-nowrap truncate">
-                Works with agents
+                {t('layout.worksWithAgents')}
               </span>
             ) : (
               agents.map((a, i) => (
@@ -144,7 +147,7 @@ function GradientNavLink() {
                     i === agentIndex ? 'opacity-100' : 'opacity-0'
                   )}
                 >
-                  Works with {a.name}
+                  {t('layout.worksWith', { name: a.name })}
                 </span>
               ))
             )}
@@ -156,6 +159,8 @@ function GradientNavLink() {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
+  const { t } = useTranslation()
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       {/* Left sidebar */}
@@ -164,8 +169,12 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="flex items-center gap-3 mb-1">
           <div className="w-10 h-10 rounded-lg border-2 border-border shrink-0" />
           <div>
-            <div className="font-semibold text-sm leading-tight">Tachibana</div>
-            <div className="text-xs text-muted-foreground">Web UI · v0.1.0</div>
+            <div className="font-semibold text-sm leading-tight">
+              {t('layout.appName')}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {t('layout.version', { version })}
+            </div>
           </div>
         </div>
 
@@ -173,8 +182,8 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         <nav className="flex flex-col gap-1">
           <GradientNavLink />
-          <NavLink href="/security" icon={Shield}>
-            Security
+          <NavLink href="/settings" icon={Settings}>
+            {t('layout.settings')}
           </NavLink>
         </nav>
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { MonitorX } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
 
 import { Spinner } from '@/components/ui/spinner'
 import Autoplay from 'embla-carousel-autoplay'
@@ -68,13 +69,15 @@ function GuidePage({
   description: React.ReactNode
   children: React.ReactNode
 }) {
+  const { t } = useTranslation()
+
   return (
     <CarouselItem>
       <div className="text-xs text-muted-foreground border rounded-md overflow-hidden text-left">
         <div className="relative @container">{children}</div>
         <div className="px-3 py-2">
           <span className="font-medium text-foreground">
-            Step {step}: {title}
+            {t('deviceScreen.step', { step, title })}
           </span>
           <p className="mt-1">{description}</p>
         </div>
@@ -84,7 +87,10 @@ function GuidePage({
 }
 
 function SetupHints({ email }: { email?: string }) {
+  const { t } = useTranslation()
   const autoplay = useRef(Autoplay({ delay: 4000, stopOnInteraction: false }))
+
+  const displayEmail = email ?? t('deviceScreen.trustCertificate.defaultEmail')
 
   return (
     <Carousel
@@ -97,12 +103,13 @@ function SetupHints({ email }: { email?: string }) {
       <CarouselContent>
         <GuidePage
           step={1}
-          title="Trust developer certificate"
+          title={t('deviceScreen.trustCertificate.title')}
           description={
-            <>
-              In <strong>Settings → General → VPN & Device Management</strong>,
-              trust <strong>{email ?? 'your Apple account'}</strong>.
-            </>
+            <Trans
+              i18nKey="deviceScreen.trustCertificate.description"
+              values={{ email: displayEmail }}
+              components={{ strong: <strong /> }}
+            />
           }
         >
           <img
@@ -122,12 +129,12 @@ function SetupHints({ email }: { email?: string }) {
 
         <GuidePage
           step={2}
-          title="Enable Developer Mode"
+          title={t('deviceScreen.developerMode.title')}
           description={
-            <>
-              In <strong>Settings → Privacy & Security → Developer Mode</strong>
-              , turn on Developer Mode and restart when prompted.
-            </>
+            <Trans
+              i18nKey="deviceScreen.developerMode.description"
+              components={{ strong: <strong /> }}
+            />
           }
         >
           <img
@@ -143,6 +150,7 @@ function SetupHints({ email }: { email?: string }) {
 }
 
 export function DeviceScreen({ udid, email }: DeviceScreenProps) {
+  const { t } = useTranslation()
   const [state, setState] = useState<ScreenState>('preparing')
   const [key, setKey] = useState(0)
   const [windowSize, setWindowSize] = useState<WindowSize | null>(null)
@@ -170,23 +178,27 @@ export function DeviceScreen({ udid, email }: DeviceScreenProps) {
   }, [udid, state])
 
   const errorDescription =
-    wdaError ?? 'Could not start screen. Make sure the device is connected.'
+    wdaError ?? t('deviceScreen.defaultError')
 
   return (
     <div className="flex-1 flex overflow-hidden relative overscroll-contain">
       {state !== 'ready' && (
         <DeviceNotice
           icon={state === 'error' ? MonitorX : Spinner}
-          title={state === 'error' ? 'Screen unavailable' : 'Preparing device…'}
+          title={
+            state === 'error'
+              ? t('deviceScreen.unavailable')
+              : t('deviceScreen.preparing')
+          }
           description={
             state === 'error'
               ? errorDescription
-              : "If it's first time using this device, you need to follow steps below to set it up."
+              : t('deviceScreen.firstTimeHint')
           }
         >
           {state === 'error' && (
             <Button size="sm" onClick={retry}>
-              Retry
+              {t('deviceScreen.retry')}
             </Button>
           )}
           <SetupHints email={email} />

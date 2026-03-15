@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import type { DeviceListResponseItem } from '@/types'
@@ -17,6 +18,8 @@ export function DeviceRow({
   isSelected,
   onClick,
 }: DeviceRowProps) {
+  const { t } = useTranslation()
+
   return (
     <div
       className={cn(
@@ -38,7 +41,9 @@ export function DeviceRow({
             isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground'
           )}
         >
-          {device.connected ? 'Connected' : 'Disconnected'}
+          {device.connected
+            ? t('deviceList.connected')
+            : t('deviceList.disconnected')}
         </div>
       </div>
 
@@ -53,7 +58,7 @@ export function DeviceRow({
           }}
           disabled={isLinking}
         >
-          {isLinking ? 'Linking' : 'Link'}
+          {isLinking ? t('deviceList.linking') : t('deviceList.link')}
         </Button>
       ) : null}
     </div>

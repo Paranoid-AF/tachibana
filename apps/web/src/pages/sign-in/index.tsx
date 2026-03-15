@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLocation } from 'wouter'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight, Lock } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { useSession } from '@/hooks/use-session'
 
@@ -18,6 +19,7 @@ import { Input } from '@/components/ui/input'
 import { startSignIn, submitTwoFa } from './libs/auth-api'
 
 export function SignInPage() {
+  const { t } = useTranslation()
   const [, navigate] = useLocation()
   const queryClient = useQueryClient()
 
@@ -85,9 +87,9 @@ export function SignInPage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-lg">
           <div className="rounded-2xl border border-border p-10 relative">
-            <h1 className="text-3xl font-bold mb-3">Sign in Apple Account</h1>
+            <h1 className="text-3xl font-bold mb-3">{t('signIn.title')}</h1>
             <p className="text-sm text-muted-foreground mb-8">
-              Required to manipulate devices.
+              {t('signIn.description')}
             </p>
 
             <form onSubmit={handleSignIn}>
@@ -95,7 +97,7 @@ export function SignInPage() {
                 <div className="flex-1 rounded-xl border border-input overflow-hidden divide-y divide-border">
                   <Input
                     type="email"
-                    placeholder="Email"
+                    placeholder={t('signIn.email')}
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     className="rounded-none border-0 shadow-none focus-visible:ring-0 px-4 py-3 h-auto"
@@ -104,7 +106,7 @@ export function SignInPage() {
                   />
                   <Input
                     type="password"
-                    placeholder="Password"
+                    placeholder={t('common.password')}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
                     className="rounded-none border-0 shadow-none focus-visible:ring-0 px-4 py-3 h-auto"
@@ -124,14 +126,16 @@ export function SignInPage() {
                   className="rounded-xl shrink-0"
                   disabled={signinMutation.isPending}
                 >
-                  {signinMutation.isPending ? 'Signing in...' : 'Sign in'}
+                  {signinMutation.isPending
+                    ? t('signIn.signingIn')
+                    : t('signIn.submit')}
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </div>
             </form>
 
             <p className="text-xs text-muted-foreground mt-12">
-              Any account would work, it is not affiliated with iCloud.
+              {t('signIn.accountNote')}
             </p>
             <a
               href="https://account.apple.com/account"
@@ -139,14 +143,13 @@ export function SignInPage() {
               rel="noopener noreferrer"
               className="text-primary underline-offset-4 hover:underline text-xs"
             >
-              Create a new one &raquo;
+              {t('signIn.createAccount')}
             </a>
 
             <div className="flex items-start gap-2 mt-8 pt-8 border-t border-border">
               <Lock className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
               <p className="text-xs text-muted-foreground">
-                Credentials are only shared with Apple and stored on your host
-                device. You can sign out at any time to clear them.
+                {t('signIn.privacyNote')}
               </p>
             </div>
 
@@ -162,11 +165,13 @@ export function SignInPage() {
             >
               <DialogContent className="sm:max-w-sm">
                 <DialogHeader>
-                  <DialogTitle>Two-factor authentication</DialogTitle>
+                  <DialogTitle>{t('signIn.twoFa.title')}</DialogTitle>
                   <DialogDescription>
                     {twoFaType
-                      ? `Enter the verification code sent via ${twoFaType}.`
-                      : 'Enter your 6-digit verification code.'}
+                      ? t('signIn.twoFa.descriptionWithType', {
+                          type: twoFaType,
+                        })
+                      : t('signIn.twoFa.description')}
                   </DialogDescription>
                 </DialogHeader>
 
@@ -195,7 +200,9 @@ export function SignInPage() {
                     type="submit"
                     disabled={twoFaMutation.isPending || twoFaCode.length < 6}
                   >
-                    {twoFaMutation.isPending ? 'Verifying...' : 'Verify'}
+                    {twoFaMutation.isPending
+                      ? t('signIn.twoFa.verifying')
+                      : t('signIn.twoFa.verify')}
                   </Button>
                 </form>
               </DialogContent>

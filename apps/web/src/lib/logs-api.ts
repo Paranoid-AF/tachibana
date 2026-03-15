@@ -2,6 +2,7 @@ export interface DeviceLog {
   id: number
   udid: string
   authId: number | null
+  authName: string | null
   source: string // 'web' | 'agent' | 'mcp'
   action: string
   params: string | null

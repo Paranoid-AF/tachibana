@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { format, formatDistanceToNow } from 'date-fns'
+import { format, formatDistanceToNow, milliseconds } from 'date-fns'
+import { useTranslation } from 'react-i18next'
+import { useDateLocale } from '@/hooks/use-date-locale'
 import {
   Copy,
   Download,
@@ -54,20 +56,26 @@ import mcpLogo from '../../../assets/images/agents/mcp-logo.svg'
 const AGENT_SKILL_NAME = 'idevice'
 
 const EXPIRATION_OPTIONS = [
-  { label: 'Never', value: 0 },
-  { label: '7 days', value: 7 * 24 * 60 * 60 * 1000 },
-  { label: '30 days', value: 30 * 24 * 60 * 60 * 1000 },
-  { label: '90 days', value: 90 * 24 * 60 * 60 * 1000 },
+  { labelKey: 'agents.createDialog.expirationNever', value: 0 },
+  { labelKey: 'agents.createDialog.expiration7days', value: milliseconds({ days: 7 }) },
+  { labelKey: 'agents.createDialog.expiration30days', value: milliseconds({ days: 30 }) },
+  { labelKey: 'agents.createDialog.expiration90days', value: milliseconds({ days: 90 }) },
 ]
 
-function formatDate(ms: number | null): string {
-  if (!ms) return 'Never'
-  return format(ms, 'MMM d, yyyy')
-}
+function useFormatDate() {
+  const { t } = useTranslation()
+  const dateLocale = useDateLocale()
 
-function formatRelativeDate(ms: number | null): string {
-  if (!ms) return 'Never'
-  return formatDistanceToNow(ms, { addSuffix: true })
+  return {
+    formatDate(ms: number | null): string {
+      if (!ms) return t('agents.never')
+      return format(ms, 'MMM d, yyyy', { locale: dateLocale })
+    },
+    formatRelativeDate(ms: number | null): string {
+      if (!ms) return t('agents.never')
+      return formatDistanceToNow(ms, { addSuffix: true, locale: dateLocale })
+    },
+  }
 }
 
 async function fetchToolsDocs(): Promise<string> {
@@ -105,6 +113,8 @@ async function downloadSkillZip(skillMdContent: string) {
 }
 
 export function AgentsPage() {
+  const { t } = useTranslation()
+  const { formatDate, formatRelativeDate } = useFormatDate()
   const queryClient = useQueryClient()
 
   const { data: tokens = [] } = useQuery<TokenRow[]>({
@@ -188,27 +198,27 @@ export function AgentsPage() {
       <div className="flex-1 p-8 overflow-y-auto">
         <div className="max-w-4xl">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-2xl font-bold">MCP &amp; Skills</h1>
+            <h1 className="text-2xl font-bold">{t('agents.title')}</h1>
             <Button onClick={() => setCreateOpen(true)}>
               <Plus className="w-4 h-4" />
-              Register
+              {t('agents.register')}
             </Button>
           </div>
           <p className="text-sm text-muted-foreground mb-6">
-            Enable access for your favorite LLM agents.
+            {t('agents.description')}
           </p>
 
           {tokens.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">
-              No agent yet. Register one to get started.
+              {t('agents.noAgents')}
             </p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Agent Name</TableHead>
-                  <TableHead>Expires</TableHead>
-                  <TableHead>Last Used</TableHead>
+                  <TableHead>{t('agents.agentName')}</TableHead>
+                  <TableHead>{t('agents.expires')}</TableHead>
+                  <TableHead>{t('agents.lastUsed')}</TableHead>
                   <TableHead className="w-12" />
                 </TableRow>
               </TableHeader>
@@ -244,14 +254,14 @@ export function AgentsPage() {
                             }}
                           >
                             <Pencil className="w-4 h-4 mr-2" />
-                            Rename
+                            {t('agents.rename')}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
                             onClick={() => deleteMutation.mutate(token.id)}
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
+                            {t('agents.delete')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -274,9 +284,9 @@ export function AgentsPage() {
           >
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Rename agent</DialogTitle>
+                <DialogTitle>{t('agents.renameDialog.title')}</DialogTitle>
                 <DialogDescription>
-                  Enter a new name for this agent.
+                  {t('agents.renameDialog.description')}
                 </DialogDescription>
               </DialogHeader>
 
@@ -293,7 +303,7 @@ export function AgentsPage() {
                 className="flex flex-col gap-4"
               >
                 <Input
-                  placeholder="Token name"
+                  placeholder={t('agents.renameDialog.placeholder')}
                   value={renameName}
                   onChange={e => setRenameName(e.target.value)}
                   required
@@ -307,7 +317,9 @@ export function AgentsPage() {
                       renameName === renameToken?.name
                     }
                   >
-                    {renameMutation.isPending ? 'Saving...' : 'Save'}
+                    {renameMutation.isPending
+                      ? t('agents.renameDialog.saving')
+                      : t('agents.renameDialog.save')}
                   </Button>
                 </DialogFooter>
               </form>
@@ -330,15 +342,15 @@ export function AgentsPage() {
           >
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Register your agent</DialogTitle>
+                <DialogTitle>{t('agents.createDialog.title')}</DialogTitle>
                 <DialogDescription>
-                  Next, you will be taken to setup your agent.
+                  {t('agents.createDialog.description')}
                 </DialogDescription>
               </DialogHeader>
 
               <form onSubmit={handleCreate} className="flex flex-col gap-4">
                 <Input
-                  placeholder="Agent name"
+                  placeholder={t('agents.createDialog.placeholder')}
                   value={tokenName}
                   onChange={e => setTokenName(e.target.value)}
                   required
@@ -347,7 +359,7 @@ export function AgentsPage() {
 
                 <div>
                   <label className="text-sm font-medium mb-1.5 block">
-                    Expiration
+                    {t('agents.createDialog.expiration')}
                   </label>
                   <select
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -356,7 +368,7 @@ export function AgentsPage() {
                   >
                     {EXPIRATION_OPTIONS.map(opt => (
                       <option key={opt.value} value={opt.value}>
-                        {opt.label}
+                        {t(opt.labelKey)}
                       </option>
                     ))}
                   </select>
@@ -366,7 +378,9 @@ export function AgentsPage() {
 
                 <DialogFooter>
                   <Button type="submit" disabled={createMutation.isPending}>
-                    {createMutation.isPending ? 'Registering...' : 'Register'}
+                    {createMutation.isPending
+                      ? t('agents.createDialog.registering')
+                      : t('agents.createDialog.register')}
                   </Button>
                 </DialogFooter>
               </form>
@@ -385,10 +399,9 @@ export function AgentsPage() {
           >
             <DialogContent className="sm:max-w-3xl">
               <DialogHeader>
-                <DialogTitle>Setup your agent</DialogTitle>
+                <DialogTitle>{t('agents.setupDialog.title')}</DialogTitle>
                 <DialogDescription>
-                  This window includes your secret key &mdash; it will only be
-                  shown once. Keep it open until finishing the setup.
+                  {t('agents.setupDialog.description')}
                 </DialogDescription>
               </DialogHeader>
 
@@ -401,11 +414,12 @@ export function AgentsPage() {
                       alt="AgentSkills"
                       className="w-6 h-6"
                     />
-                    <span className="font-semibold">AgentSkill</span>
+                    <span className="font-semibold">
+                      {t('agents.setupDialog.agentSkill')}
+                    </span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Works with OpenClaw and more latest agents, providing atomic
-                    operations over devices.
+                    {t('agents.setupDialog.agentSkillDescription')}
                   </p>
                   <Button
                     variant="outline"
@@ -417,11 +431,10 @@ export function AgentsPage() {
                     }
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    Download ZIP
+                    {t('agents.setupDialog.downloadZip')}
                   </Button>
                   <p className="text-xs text-muted-foreground">
-                    Search the web if you don&apos;t know what to do with your
-                    agent.
+                    {t('agents.setupDialog.agentSkillHint')}
                   </p>
                 </div>
 
@@ -429,10 +442,12 @@ export function AgentsPage() {
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center gap-2">
                     <img src={mcpLogo} alt="MCP" className="w-6 h-6" />
-                    <span className="font-semibold">MCP</span>
+                    <span className="font-semibold">
+                      {t('agents.setupDialog.mcp')}
+                    </span>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Add this JSON snippet to your MCP client configuration.
+                    {t('agents.setupDialog.mcpDescription')}
                   </p>
                   <div className="relative">
                     <pre className="rounded-md bg-muted px-3 py-2 text-xs font-mono overflow-x-auto whitespace-pre">
@@ -451,7 +466,7 @@ export function AgentsPage() {
                   </div>
                   {copiedItem === 'mcp' && (
                     <p className="text-xs text-muted-foreground">
-                      Copied to clipboard
+                      {t('agents.setupDialog.copied')}
                     </p>
                   )}
                 </div>
@@ -460,7 +475,7 @@ export function AgentsPage() {
               {/* Raw token section */}
               <div className="border-t pt-4 mt-2">
                 <p className="text-sm text-muted-foreground mb-2">
-                  Or save the token for later...
+                  {t('agents.setupDialog.saveToken')}
                 </p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 rounded-md bg-muted px-3 py-2 text-xs font-mono break-all">
@@ -480,7 +495,7 @@ export function AgentsPage() {
                 </div>
                 {copiedItem === 'token' && (
                   <p className="text-sm text-muted-foreground mt-1">
-                    Copied to clipboard
+                    {t('agents.setupDialog.copied')}
                   </p>
                 )}
               </div>

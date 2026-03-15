@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -19,21 +20,22 @@ export function AuthRequiredDialog({
   onClose,
   onSignIn,
 }: AuthRequiredDialogProps) {
+  const { t } = useTranslation()
+
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Apple Account required</DialogTitle>
+          <DialogTitle>{t('authRequired.title')}</DialogTitle>
           <DialogDescription>
-            You need to sign in with an Apple Account to link a device to the
-            developer portal.
+            {t('authRequired.description')}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
-          <Button onClick={onSignIn}>Sign in</Button>
+          <Button onClick={onSignIn}>{t('common.signIn')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

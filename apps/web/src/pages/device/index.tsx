@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useLocation, useParams } from 'wouter'
 import { PlugZap, Link2, CircleAlert } from 'lucide-react'
 import { Group, Panel, Separator } from 'react-resizable-panels'
+import { useTranslation } from 'react-i18next'
 
 import { useSession } from '@/hooks/use-session'
 import { useDevices } from '@/hooks/use-devices'
@@ -14,6 +15,7 @@ import { DeviceScreen } from './components/device-screen'
 import { ControlPanel } from './components/control-panel'
 
 export function DevicePage() {
+  const { t } = useTranslation()
   const [, navigate] = useLocation()
   const { udid } = useParams<{ udid: string }>()
 
@@ -43,31 +45,35 @@ export function DevicePage() {
     screenContent = (
       <DeviceNotice
         icon={CircleAlert}
-        title="Device not found"
-        description="This device is not registered. Make sure it's connected and linked."
+        title={t('device.notFound.title')}
+        description={t('device.notFound.description')}
       />
     )
   } else if (!device.connected) {
     screenContent = (
       <DeviceNotice
         icon={PlugZap}
-        title="Device disconnected"
-        description={`Connect ${device.name} via USB to continue.`}
+        title={t('device.disconnected.title')}
+        description={t('device.disconnected.description', {
+          deviceName: device.name,
+        })}
       />
     )
   } else if (!device.linked) {
     screenContent = (
       <DeviceNotice
         icon={Link2}
-        title="Device not linked"
-        description={`${device.name} needs to be linked before use.`}
+        title={t('device.notLinked.title')}
+        description={t('device.notLinked.description', {
+          deviceName: device.name,
+        })}
       >
         <Button
           size="sm"
           onClick={() => handleLink(device, sessionInfo.loggedIn)}
           disabled={isPending}
         >
-          Link
+          {t('common.link')}
         </Button>
       </DeviceNotice>
     )

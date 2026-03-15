@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { formatDistanceToNow, format } from 'date-fns'
+import { formatDistanceToNow, format, fromUnixTime } from 'date-fns'
+import { useTranslation } from 'react-i18next'
+import { useDateLocale } from '@/hooks/use-date-locale'
 import {
   ArrowUpToLine,
   ChevronLeft,
@@ -60,11 +62,101 @@ const SOURCE_COLORS: Record<string, string> = {
   mcp: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',
 }
 
+function formatParamsSummary(action: string, params: string | null): string {
+  if (!params) return ''
+  try {
+    const p = JSON.parse(params)
+
+    // Helper: extract coordinates from WDA actions payload
+    const extractWdaCoords = (): { x: number; y: number } | null => {
+      const act = p?.actions?.[0]?.actions
+      if (!Array.isArray(act)) return null
+      const move = act.find(
+        (a: Record<string, unknown>) => a.type === 'pointerMove'
+      )
+      if (move)
+        return {
+          x: Math.round(move.x as number),
+          y: Math.round(move.y as number),
+        }
+      return null
+    }
+
+    switch (action) {
+      case 'tap':
+      case 'double_tap': {
+        if (p.x != null && p.y != null)
+          return `(${Math.round(p.x)}, ${Math.round(p.y)})`
+        const c = extractWdaCoords()
+        return c ? `(${c.x}, ${c.y})` : ''
+      }
+      case 'drag': {
+        if (p.fromX != null)
+          return `(${Math.round(p.fromX)},${Math.round(p.fromY)}) → (${Math.round(p.toX)},${Math.round(p.toY)})`
+        // WDA payload: look for multiple pointerMove actions
+        const acts = p?.actions?.[0]?.actions
+        if (Array.isArray(acts)) {
+          const moves = acts.filter(
+            (a: Record<string, unknown>) => a.type === 'pointerMove'
+          )
+          if (moves.length >= 2) {
+            const f = moves[0],
+              t = moves[moves.length - 1]
+            return `(${Math.round(f.x as number)},${Math.round(f.y as number)}) → (${Math.round(t.x as number)},${Math.round(t.y as number)})`
+          }
+        }
+        return ''
+      }
+      case 'touch_and_hold': {
+        if (p.x != null && p.y != null) {
+          const dur = p.duration != null ? ` ${p.duration}s` : ''
+          return `(${Math.round(p.x)}, ${Math.round(p.y)})${dur}`
+        }
+        return ''
+      }
+      case 'type_text': {
+        let text = ''
+        if (typeof p.text === 'string') text = p.text
+        else if (Array.isArray(p.value)) text = p.value.join('')
+        if (!text) return ''
+        return text.length > 20 ? `"${text.slice(0, 20)}..."` : `"${text}"`
+      }
+      case 'launch_app':
+      case 'terminate_app':
+        return p.bundleId ?? ''
+      case 'execute_device_control':
+        return p.device_control_token
+          ? p.device_control_token.slice(0, 8) + '...'
+          : ''
+      case 'set_device_prefs':
+        if (p.alwaysAwake != null) return `awake=${p.alwaysAwake}`
+        return ''
+      case 'link_device':
+        return p.name ?? ''
+      default: {
+        // Generic fallback: show first few key=value pairs
+        const entries = Object.entries(p).filter(([k]) => k !== 'udid')
+        if (entries.length === 0) return ''
+        return entries
+          .slice(0, 3)
+          .map(
+            ([k, v]) => `${k}=${typeof v === 'object' ? JSON.stringify(v) : v}`
+          )
+          .join(' ')
+      }
+    }
+  } catch {
+    return ''
+  }
+}
+
 interface ControlPanelProps {
   udid: string
 }
 
 export function ControlPanel({ udid }: ControlPanelProps) {
+  const { t } = useTranslation()
+  const dateLocale = useDateLocale()
   const [appsOpen, setAppsOpen] = useState(false)
   const [apps, setApps] = useState<AppInfo[]>([])
   const [appsLoading, setAppsLoading] = useState(false)
@@ -227,24 +319,33 @@ export function ControlPanel({ udid }: ControlPanelProps) {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b">
         <span className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-muted-foreground">
-          CONTROL
+          {t('controlPanel.control')}
           <span className="relative group">
             <CircleHelp className="h-3.5 w-3.5 cursor-help text-muted-foreground/60" />
             <div className="absolute left-0 top-full mt-1.5 z-50 hidden group-hover:block w-52 rounded-md border bg-popover p-3 text-xs font-normal tracking-normal text-popover-foreground shadow-md">
-              <p className="font-medium mb-1.5">Screen controls</p>
+              <p className="font-medium mb-1.5">
+                {t('controlPanel.screenControls')}
+              </p>
               <ul className="space-y-1 text-muted-foreground">
                 <li>
-                  <kbd className="font-mono">Click</kbd> — Tap
+                  <kbd className="font-mono">{t('controlPanel.click')}</kbd> —{' '}
+                  {t('controlPanel.clickTap')}
                 </li>
                 <li>
-                  <kbd className="font-mono">Double click</kbd> — Double tap
+                  <kbd className="font-mono">
+                    {t('controlPanel.doubleClick')}
+                  </kbd>{' '}
+                  — {t('controlPanel.doubleClickTap')}
                 </li>
                 <li>
-                  <kbd className="font-mono">Click + drag</kbd> — Swipe
+                  <kbd className="font-mono">{t('controlPanel.clickDrag')}</kbd>{' '}
+                  — {t('controlPanel.clickDragSwipe')}
                 </li>
                 <li>
-                  <kbd className="font-mono">Right click</kbd> — Touch &amp;
-                  hold
+                  <kbd className="font-mono">
+                    {t('controlPanel.rightClick')}
+                  </kbd>{' '}
+                  — {t('controlPanel.rightClickHold')}
                 </li>
               </ul>
             </div>
@@ -261,7 +362,7 @@ export function ControlPanel({ udid }: ControlPanelProps) {
             }}
           >
             <LayoutGrid className="h-3.5 w-3.5" />
-            Apps
+            {t('controlPanel.apps')}
           </Button>
           <Button
             variant={photosOpen ? 'default' : 'ghost'}
@@ -273,7 +374,7 @@ export function ControlPanel({ udid }: ControlPanelProps) {
             }}
           >
             <ImageIcon className="h-3.5 w-3.5" />
-            Photos
+            {t('controlPanel.photos')}
           </Button>
         </div>
       </div>
@@ -285,14 +386,14 @@ export function ControlPanel({ udid }: ControlPanelProps) {
           size="icon"
           className="h-8 w-8 shrink-0"
           onClick={handleHome}
-          title="Home"
+          title={t('controlPanel.home')}
         >
           <Home className="h-4 w-4" />
         </Button>
         <Input
           ref={inputRef}
           className="h-8 text-sm"
-          placeholder="Type here to send keys to device..."
+          placeholder={t('controlPanel.typeHint')}
           onKeyDown={handleKeyDown}
         />
         <Button
@@ -300,7 +401,7 @@ export function ControlPanel({ udid }: ControlPanelProps) {
           size="icon"
           className="h-8 w-8 shrink-0"
           onClick={handleLockToggle}
-          title={locked ? 'Unlock' : 'Lock'}
+          title={locked ? t('controlPanel.unlock') : t('controlPanel.lock')}
         >
           {locked ? (
             <Lock className="h-4 w-4" />
@@ -314,7 +415,7 @@ export function ControlPanel({ udid }: ControlPanelProps) {
             onCheckedChange={handleAlwaysAwakeToggle}
             className="scale-75 origin-left"
           />
-          Always Awake
+          {t('controlPanel.alwaysAwake')}
         </label>
       </div>
 
@@ -327,7 +428,7 @@ export function ControlPanel({ udid }: ControlPanelProps) {
               {appsLoading && apps.length === 0 && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground py-4 justify-center">
                   <Spinner className="h-4 w-4" />
-                  Loading apps...
+                  {t('controlPanel.loadingApps')}
                 </div>
               )}
               <div className="grid grid-cols-[repeat(auto-fill,minmax(72px,1fr))] gap-3">
@@ -379,13 +480,13 @@ export function ControlPanel({ udid }: ControlPanelProps) {
                       <DropdownMenuItem
                         onSelect={() => handleLaunch(app.bundleId)}
                       >
-                        Launch App
+                        {t('controlPanel.launchApp')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive focus:text-destructive"
                         onSelect={() => handleKillAndLaunch(app.bundleId)}
                       >
-                        Kill and Launch App
+                        {t('controlPanel.killAndLaunch')}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -405,12 +506,12 @@ export function ControlPanel({ udid }: ControlPanelProps) {
               {photosLoading && photosList.length === 0 && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground py-4 justify-center">
                   <Spinner className="h-4 w-4" />
-                  Loading photos...
+                  {t('controlPanel.loadingPhotos')}
                 </div>
               )}
               {!photosLoading && photosList.length === 0 && (
                 <div className="text-xs text-muted-foreground py-4 text-center">
-                  No photos found
+                  {t('controlPanel.noPhotos')}
                 </div>
               )}
               <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-1.5">
@@ -422,7 +523,7 @@ export function ControlPanel({ udid }: ControlPanelProps) {
                   const extLower =
                     photo.path.split('.').pop()?.toLowerCase() ?? ''
                   const dateTimeStr = format(
-                    new Date(photo.modified * 1000),
+                    fromUnixTime(photo.modified),
                     'yyyyMMdd-HHmmss'
                   )
                   const downloadName = `idevice-photo-${dateTimeStr}.${extLower}`
@@ -443,7 +544,7 @@ export function ControlPanel({ udid }: ControlPanelProps) {
                           href={photoUrl}
                           download={downloadName}
                           className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white rounded-md p-1"
-                          title="Download"
+                          title={t('controlPanel.download')}
                           onClick={e => e.stopPropagation()}
                         >
                           <Download className="h-3.5 w-3.5" />
@@ -461,7 +562,13 @@ export function ControlPanel({ udid }: ControlPanelProps) {
                       }
                     >
                       <span className="text-[10px] text-muted-foreground">
-                        {format(new Date(photo.modified * 1000), 'MMM d, yyyy')}
+                        {format(
+                          fromUnixTime(photo.modified),
+                          'MMM d, yyyy',
+                          {
+                            locale: dateLocale,
+                          }
+                        )}
                       </span>
                       <span className="text-[10px] text-muted-foreground">
                         {photo.size < 1024 * 1024
@@ -487,10 +594,10 @@ export function ControlPanel({ udid }: ControlPanelProps) {
                     {photosLoading ? (
                       <>
                         <Spinner className="h-3.5 w-3.5 mr-1.5" />
-                        Loading...
+                        {t('common.loading', 'Loading...')}
                       </>
                     ) : (
-                      'Load More'
+                      t('controlPanel.loadMore')
                     )}
                   </Button>
                 </div>
@@ -501,20 +608,20 @@ export function ControlPanel({ udid }: ControlPanelProps) {
       )}
 
       {/* LOGS section */}
-      <div className={appsOpen || photosOpen ? '' : 'flex-1 flex flex-col'}>
-        <div className="flex items-center justify-between px-4 py-2 border-t">
-          <span className="flex items-center gap-4 text-xs font-semibold tracking-wider text-muted-foreground">
-            LOGS
-            <label className="flex items-center font-normal tracking-normal cursor-pointer select-none">
-              <Switch
-                checked={logsAutoRefresh}
-                onCheckedChange={setLogsAutoRefresh}
-                className="scale-75 origin-left"
-              />
-              Auto Refresh
-            </label>
-          </span>
-          {(appsOpen || photosOpen) && (
+      {(appsOpen || photosOpen) && (
+        <div>
+          <div className="flex items-center justify-between px-4 py-2 border-t">
+            <span className="flex items-center gap-4 text-xs font-semibold tracking-wider text-muted-foreground">
+              {t('controlPanel.logs')}
+              <label className="flex items-center font-normal tracking-normal cursor-pointer select-none">
+                <Switch
+                  checked={logsAutoRefresh}
+                  onCheckedChange={setLogsAutoRefresh}
+                  className="scale-75 origin-left"
+                />
+                {t('controlPanel.autoRefresh')}
+              </label>
+            </span>
             <Button
               variant="ghost"
               size="icon"
@@ -523,94 +630,125 @@ export function ControlPanel({ udid }: ControlPanelProps) {
                 setAppsOpen(false)
                 setPhotosOpen(false)
               }}
-              title="Close panel"
+              title={t('controlPanel.closePanel')}
             >
               <ArrowUpToLine className="h-3.5 w-3.5" />
             </Button>
-          )}
+          </div>
         </div>
-        {!(appsOpen || photosOpen) && (
+      )}
+      {!(appsOpen || photosOpen) && (
+        <div className="flex-1 flex flex-col">
+          <div className="flex items-center justify-between px-4 py-2 border-t">
+            <span className="flex items-center gap-4 text-xs font-semibold tracking-wider text-muted-foreground">
+              {t('controlPanel.logs')}
+              <label className="flex items-center font-normal tracking-normal cursor-pointer select-none">
+                <Switch
+                  checked={logsAutoRefresh}
+                  onCheckedChange={setLogsAutoRefresh}
+                  className="scale-75 origin-left"
+                />
+                {t('controlPanel.autoRefresh')}
+              </label>
+            </span>
+          </div>
           <ScrollArea className="flex-1 min-h-0">
             <div className="px-2">
               {logs.length === 0 && (
                 <div className="text-xs text-muted-foreground py-4 text-center">
-                  No logs yet
+                  {t('controlPanel.noLogs')}
                 </div>
               )}
-              {logs.map((log: DeviceLog) => (
-                <div
-                  key={log.id}
-                  className="flex items-center gap-2 px-2 py-1.5 text-xs border-b border-border/50 last:border-b-0"
-                  title={
-                    log.status === 'failed' && log.error
-                      ? `Error: ${log.error}`
-                      : undefined
-                  }
-                >
-                  <span className="text-muted-foreground shrink-0 w-24 text-right tabular-nums">
-                    {formatDistanceToNow(log.createdAt, { addSuffix: true })}
-                  </span>
-                  <span
-                    className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${SOURCE_COLORS[log.source] ?? 'bg-muted text-muted-foreground'}`}
+              {logs.map((log: DeviceLog) => {
+                const paramSummary = formatParamsSummary(log.action, log.params)
+                return (
+                  <div
+                    key={log.id}
+                    className="flex items-center gap-2 px-2 py-1.5 text-xs border-b border-border/50 last:border-b-0"
+                    title={
+                      log.status === 'failed' && log.error
+                        ? `Error: ${log.error}`
+                        : (log.params ?? undefined)
+                    }
                   >
-                    {log.source}
-                  </span>
-                  <span className="font-mono truncate flex-1">{log.action}</span>
-                  <span
-                    className={`shrink-0 h-2 w-2 rounded-full ${
-                      log.status === 'success'
-                        ? 'bg-green-500'
-                        : log.status === 'processing'
-                          ? 'bg-yellow-500 animate-pulse'
-                          : 'bg-red-500'
-                    }`}
-                    title={log.status}
-                  />
-                </div>
-              ))}
+                    <span className="text-muted-foreground shrink-0 w-24 text-right tabular-nums">
+                      {formatDistanceToNow(log.createdAt, {
+                        addSuffix: true,
+                        locale: dateLocale,
+                      })}
+                    </span>
+                    <span
+                      className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${SOURCE_COLORS[log.source] ?? 'bg-muted text-muted-foreground'}`}
+                    >
+                      {log.source}
+                      {log.authName ? `:${log.authName}` : ''}
+                    </span>
+                    <span className="font-mono truncate">{log.action}</span>
+                    {paramSummary && (
+                      <span
+                        className="text-muted-foreground truncate max-w-[140px]"
+                        title={paramSummary}
+                      >
+                        {paramSummary}
+                      </span>
+                    )}
+                    <span className="ml-auto" />
+                    <span
+                      className={`shrink-0 h-2 w-2 rounded-full ${
+                        log.status === 'success'
+                          ? 'bg-green-500'
+                          : log.status === 'processing'
+                            ? 'bg-yellow-500 animate-pulse'
+                            : 'bg-red-500'
+                      }`}
+                      title={log.status}
+                    />
+                  </div>
+                )
+              })}
             </div>
           </ScrollArea>
-        )}
-        {!(appsOpen || photosOpen) && logsTotal > 0 && (
-          <div className="flex items-center justify-between px-4 py-1.5 border-t text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Input
-                type="number"
-                min={1}
-                max={logsTotalPages}
-                value={logsPage}
-                onChange={handleLogsPageInput}
-                className="h-6 w-10 text-center text-xs px-1 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              />
-              <span>/ {logsTotalPages}</span>
+          {logsTotal > 0 && (
+            <div className="flex items-center justify-between px-4 py-1.5 border-t text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Input
+                  type="number"
+                  min={1}
+                  max={logsTotalPages}
+                  value={logsPage}
+                  onChange={handleLogsPageInput}
+                  className="h-6 w-10 text-center text-xs px-1 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                />
+                <span>/ {logsTotalPages}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  disabled={logsPage <= 1}
+                  onClick={() => setLogsPage(p => Math.max(1, p - 1))}
+                  title={t('controlPanel.previousPage')}
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  disabled={logsPage >= logsTotalPages}
+                  onClick={() =>
+                    setLogsPage(p => Math.min(logsTotalPages, p + 1))
+                  }
+                  title={t('controlPanel.nextPage')}
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                disabled={logsPage <= 1}
-                onClick={() => setLogsPage(p => Math.max(1, p - 1))}
-                title="Previous page"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                disabled={logsPage >= logsTotalPages}
-                onClick={() =>
-                  setLogsPage(p => Math.min(logsTotalPages, p + 1))
-                }
-                title="Next page"
-              >
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

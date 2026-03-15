@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useLocation } from 'wouter'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 
 import { adminChangePassword } from '@/lib/admin-auth-api'
+import { translateError } from '@/lib/i18n'
 import { AppLayout } from '@/components/biz/app-layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,8 +16,20 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
-export function SecurityPage() {
+const LANGUAGES = [
+  { code: 'en-US', label: 'English' },
+  { code: 'zh-CN', label: '简体中文' },
+] as const
+
+export function SettingsPage() {
+  const { t, i18n } = useTranslation()
   const [, navigate] = useLocation()
   const queryClient = useQueryClient()
 
@@ -45,11 +59,11 @@ export function SecurityPage() {
     setError('')
 
     if (newPassword.length < 8) {
-      setError('New password must be at least 8 characters.')
+      setError(t('settings.password.newPasswordMinLength'))
       return
     }
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.')
+      setError(t('settings.password.passwordsMismatch'))
       return
     }
 
@@ -68,31 +82,39 @@ export function SecurityPage() {
     }
   }
 
+  const currentLangLabel =
+    LANGUAGES.find(l => l.code === i18n.language)?.label ?? 'English'
+
   return (
     <AppLayout>
       <div className="flex-1 p-8 overflow-y-auto">
         <div className="max-w-2xl">
-          <h1 className="text-2xl font-bold mb-2">Admin Password</h1>
+          <h1 className="text-2xl font-bold mb-2">
+            {t('settings.password.title')}
+          </h1>
           <p className="text-sm text-muted-foreground mb-6">
-            Reset your admin password. This will log you out of other sessions.
-            MCP &amp; Skills Clients are kept intact.
+            {t('settings.password.description')}
           </p>
 
-          <Button onClick={() => setOpen(true)}>Change</Button>
+          <Button onClick={() => setOpen(true)}>
+            {t('settings.password.change')}
+          </Button>
 
           <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>Change admin password</DialogTitle>
+                <DialogTitle>
+                  {t('settings.password.dialogTitle')}
+                </DialogTitle>
                 <DialogDescription>
-                  All existing sessions will be invalidated.
+                  {t('settings.password.dialogDescription')}
                 </DialogDescription>
               </DialogHeader>
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <Input
                   type="password"
-                  placeholder="Current password"
+                  placeholder={t('settings.password.currentPassword')}
                   value={currentPassword}
                   onChange={e => setCurrentPassword(e.target.value)}
                   required
@@ -100,7 +122,7 @@ export function SecurityPage() {
                 />
                 <Input
                   type="password"
-                  placeholder="New password"
+                  placeholder={t('settings.password.newPassword')}
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
                   required
@@ -108,23 +130,60 @@ export function SecurityPage() {
                 />
                 <Input
                   type="password"
-                  placeholder="Confirm new password"
+                  placeholder={t('settings.password.confirmNewPassword')}
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   required
                   autoComplete="new-password"
                 />
 
-                {error && <p className="text-sm text-destructive">{error}</p>}
+                {error && (
+                  <p className="text-sm text-destructive">
+                    {translateError(error)}
+                  </p>
+                )}
 
                 <DialogFooter>
                   <Button type="submit" disabled={mutation.isPending}>
-                    {mutation.isPending ? 'Changing...' : 'Change password'}
+                    {mutation.isPending
+                      ? t('settings.password.changing')
+                      : t('settings.password.changePassword')}
                   </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
+
+          {/* Language section */}
+          <div className="mt-10">
+            <h2 className="text-2xl font-bold mb-2">
+              {t('settings.language.title')}
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              {t('settings.language.description')}
+            </p>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-56 justify-between">
+                  {currentLangLabel}
+                  <span className="text-muted-foreground">&#9662;</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                {LANGUAGES.map(lang => (
+                  <DropdownMenuItem
+                    key={lang.code}
+                    onClick={() => i18n.changeLanguage(lang.code)}
+                    className={
+                      i18n.language === lang.code ? 'font-semibold' : ''
+                    }
+                  >
+                    {lang.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </div>
     </AppLayout>

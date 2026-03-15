@@ -2,14 +2,18 @@ import { useEffect, useState } from 'react'
 import { useLocation } from 'wouter'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { adminSetup } from '@/lib/admin-auth-api'
+import { translateError } from '@/lib/i18n'
 import { useAdminAuth } from '@/hooks/use-admin-auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
+import { LanguageSwitcher } from '@/components/biz/language-switcher'
 
 export function SetupPage() {
+  const { t } = useTranslation()
   const [, navigate] = useLocation()
   const queryClient = useQueryClient()
 
@@ -45,11 +49,11 @@ export function SetupPage() {
     setError('')
 
     if (password.length < 8) {
-      setError('Password must be at least 8 characters.')
+      setError(t('setup.passwordMinLength'))
       return
     }
     if (password !== confirmPassword) {
-      setError('Passwords do not match.')
+      setError(t('setup.passwordsMismatch'))
       return
     }
 
@@ -65,19 +69,22 @@ export function SetupPage() {
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-background p-8">
+    <div className="flex h-screen items-center justify-center bg-background p-8 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher />
+      </div>
       <div className="w-full max-w-lg">
         <div className="rounded-2xl border border-border p-10">
-          <h1 className="text-3xl font-bold mb-3">Set up admin password</h1>
+          <h1 className="text-3xl font-bold mb-3">{t('setup.title')}</h1>
           <p className="text-sm text-muted-foreground mb-8">
-            Choose a password to protect your Tachibana instance.
+            {t('setup.description')}
           </p>
 
           <form onSubmit={handleSubmit}>
             <div className="rounded-xl border border-input overflow-hidden divide-y divide-border">
               <Input
                 type="password"
-                placeholder="Password"
+                placeholder={t('common.password')}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="rounded-none border-0 shadow-none focus-visible:ring-0 px-4 py-3 h-auto"
@@ -87,7 +94,7 @@ export function SetupPage() {
               />
               <Input
                 type="password"
-                placeholder="Confirm password"
+                placeholder={t('setup.confirmPassword')}
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 className="rounded-none border-0 shadow-none focus-visible:ring-0 px-4 py-3 h-auto"
@@ -96,7 +103,11 @@ export function SetupPage() {
               />
             </div>
 
-            {error && <p className="text-sm text-destructive mt-3">{error}</p>}
+            {error && (
+              <p className="text-sm text-destructive mt-3">
+                {translateError(error)}
+              </p>
+            )}
 
             <div className="flex items-center justify-center mt-3">
               <Button
@@ -104,7 +115,7 @@ export function SetupPage() {
                 className="rounded-xl"
                 disabled={mutation.isPending}
               >
-                {mutation.isPending ? 'Setting up...' : 'Continue'}
+                {mutation.isPending ? t('setup.settingUp') : t('setup.submit')}
                 <ArrowRight className="w-5 h-5" />
               </Button>
             </div>

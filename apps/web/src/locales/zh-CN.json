@@ -1,0 +1,223 @@
+{
+  "common": {
+    "cancel": "取消",
+    "password": "密码",
+    "signIn": "登录",
+    "link": "关联",
+    "ok": "确定"
+  },
+  "login": {
+    "title": "欢迎回来",
+    "description": "输入管理员密码以继续。",
+    "loggingIn": "正在登录...",
+    "submit": "登录"
+  },
+  "setup": {
+    "title": "设置管理员密码",
+    "description": "用一个密码来保护您的 Tachibana 实例。",
+    "confirmPassword": "确认密码",
+    "passwordMinLength": "密码至少需要 8 个字符。",
+    "passwordsMismatch": "两次密码不一致。",
+    "settingUp": "正在设置...",
+    "submit": "继续"
+  },
+  "settings": {
+    "password": {
+      "title": "管理员密码",
+      "description": "重置管理员密码。此操作将登出其它 Web UI 会话。MCP 和 Skills 客户端不受影响。",
+      "change": "修改",
+      "dialogTitle": "修改管理员密码",
+      "dialogDescription": "所有现有会话将被登出。",
+      "currentPassword": "当前密码",
+      "newPassword": "新密码",
+      "confirmNewPassword": "确认新密码",
+      "newPasswordMinLength": "新密码至少需要 8 个字符。",
+      "passwordsMismatch": "两次密码不一致。",
+      "changing": "正在修改...",
+      "changePassword": "修改密码"
+    },
+    "language": {
+      "title": "语言",
+      "description": "选择 Web UI 的显示语言。"
+    }
+  },
+  "linkDevice": {
+    "title": "关联 iPhone 或 iPad",
+    "usbInstruction": "首先，通过 USB 数据线连接 iPhone 或 iPad。",
+    "chooseDevice": "然后，选择要关联的设备",
+    "noDevices": "没有通过 USB 连接的设备。",
+    "connected": "已连接",
+    "linked": "已关联",
+    "linking": "正在关联...",
+    "done": "完成"
+  },
+  "signIn": {
+    "title": "登录 Apple 账户",
+    "description": "控制设备需要登录。",
+    "email": "邮箱",
+    "signingIn": "正在登录...",
+    "submit": "登录",
+    "accountNote": "任何账户都可以使用，与 iCloud 无关。",
+    "createAccount": "创建新账户 »",
+    "privacyNote": "凭据仅与 Apple 共享，并安全地存储在您的主机设备上。您可以随时登出以清除它们。",
+    "twoFa": {
+      "title": "双重认证",
+      "descriptionWithType": "输入通过 {{type}} 发送的验证码。",
+      "description": "输入 6 位验证码。",
+      "verifying": "正在验证...",
+      "verify": "验证"
+    }
+  },
+  "device": {
+    "notFound": {
+      "title": "未找到设备",
+      "description": "此设备未注册。请确保设备已连接并关联。"
+    },
+    "disconnected": {
+      "title": "设备已断开",
+      "description": "通过 USB 连接 {{deviceName}} 以继续。"
+    },
+    "notLinked": {
+      "title": "设备未关联",
+      "description": "{{deviceName}} 需要先关联才能使用。"
+    }
+  },
+  "deviceScreen": {
+    "unavailable": "屏幕不可用",
+    "preparing": "正在准备设备...",
+    "defaultError": "无法启动屏幕。请确保设备已连接。",
+    "firstTimeHint": "如果这是首次使用此设备，您需要按照以下步骤进行设置。",
+    "retry": "重试",
+    "step": "步骤 {{step}}: {{title}}",
+    "trustCertificate": {
+      "title": "信任开发者证书",
+      "description": "在<strong>设置 → 通用 → VPN 与设备管理</strong>中，信任 <strong>{{email}}</strong>。",
+      "defaultEmail": "您的 Apple 账户"
+    },
+    "developerMode": {
+      "title": "启用开发者模式",
+      "description": "在<strong>设置 → 隐私与安全性 → 开发者模式</strong>中，打开开发者模式并在提示时重启。"
+    }
+  },
+  "controlPanel": {
+    "control": "控制",
+    "screenControls": "屏幕控制",
+    "click": "点击",
+    "clickTap": "点按",
+    "doubleClick": "双击",
+    "doubleClickTap": "双击点按",
+    "clickDrag": "点击 + 拖拽",
+    "clickDragSwipe": "滑动",
+    "rightClick": "右键点击",
+    "rightClickHold": "长按",
+    "apps": "应用",
+    "photos": "照片",
+    "home": "主屏幕",
+    "typeHint": "在此输入以向设备发送按键...",
+    "unlock": "解锁",
+    "lock": "锁定",
+    "alwaysAwake": "保持唤醒",
+    "loadingApps": "正在加载应用...",
+    "launchApp": "启动应用",
+    "killAndLaunch": "终止并重新启动",
+    "loadingPhotos": "正在加载照片...",
+    "noPhotos": "未找到照片",
+    "download": "下载",
+    "loadMore": "加载更多",
+    "logs": "日志",
+    "autoRefresh": "自动刷新",
+    "closePanel": "关闭面板",
+    "noLogs": "暂无日志",
+    "previousPage": "上一页",
+    "nextPage": "下一页"
+  },
+  "agents": {
+    "title": "MCP 和 Skills",
+    "register": "注册",
+    "description": "为您的 LLM Agent 启用访问权限。",
+    "noAgents": "尚无 Agent，注册一个以开始使用。",
+    "agentName": "Agent 名称",
+    "expires": "过期时间",
+    "lastUsed": "最近使用",
+    "never": "从不",
+    "rename": "重命名",
+    "delete": "删除",
+    "renameDialog": {
+      "title": "重命名 Agent",
+      "description": "输入此 Agent 的新名称。",
+      "placeholder": "Token 名称",
+      "saving": "正在保存...",
+      "save": "保存"
+    },
+    "createDialog": {
+      "title": "注册您的 Agent",
+      "description": "接下来，您将进行 Agent 的设置。",
+      "placeholder": "Agent 名称",
+      "expiration": "过期时间",
+      "expirationNever": "永不过期",
+      "expiration7days": "7 天",
+      "expiration30days": "30 天",
+      "expiration90days": "90 天",
+      "registering": "正在注册...",
+      "register": "注册"
+    },
+    "setupDialog": {
+      "title": "设置您的 Agent",
+      "description": "此窗口包含您的密钥——只会显示一次。请在完成设置前保持窗口打开。",
+      "agentSkill": "AgentSkill",
+      "agentSkillDescription": "支持 OpenClaw 等最新 Agent，提供设备的原子操作。",
+      "downloadZip": "下载 ZIP",
+      "agentSkillHint": "如果您不知道如何在 Agent 使用，请在网上搜索。",
+      "mcp": "MCP",
+      "mcpDescription": "将此 JSON 代码片段添加到您的 MCP 客户端配置中。",
+      "copied": "已复制到剪贴板",
+      "saveToken": "或保存 Token 以备后用..."
+    }
+  },
+  "layout": {
+    "appName": "Tachibana",
+    "version": "Web UI · v{{version}}",
+    "mcpSkills": "MCP 和 Skills",
+    "worksWithAgents": "支持各类 Agent",
+    "worksWith": "支持 {{name}}",
+    "settings": "设置"
+  },
+  "account": {
+    "appleAccount": "Apple 账户",
+    "signOut": "退出登录",
+    "signedInAs": "已登录"
+  },
+  "deviceList": {
+    "devices": "设备",
+    "noDevices": "未找到设备。",
+    "linked": "已关联",
+    "notLinked": "未关联",
+    "connected": "已连接",
+    "disconnected": "已断开",
+    "linking": "正在关联",
+    "link": "关联"
+  },
+  "authRequired": {
+    "title": "需要 Apple 账户",
+    "description": "您需要登录 Apple 账户才能将设备关联到开发者门户。"
+  },
+  "linkError": {
+    "title": "关联设备失败"
+  },
+  "trustModal": {
+    "title": "信任此电脑",
+    "description": "解锁 <strong>{{deviceName}}</strong> 并在设备提示时点击<strong>信任</strong>。",
+    "waiting": "正在等待信任确认..."
+  },
+  "errors": {
+    "setupFailed": "设置失败",
+    "loginFailed": "登录失败",
+    "logoutFailed": "登出失败",
+    "passwordChangeFailed": "密码修改失败",
+    "fetchTokensFailed": "获取 Token 失败",
+    "createTokenFailed": "创建 Token 失败",
+    "renameTokenFailed": "重命名 Token 失败",
+    "deleteTokenFailed": "删除 Token 失败",
+    "invalidPassword": "密码错误"
+  }
+}

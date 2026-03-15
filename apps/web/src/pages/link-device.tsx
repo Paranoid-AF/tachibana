@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from 'react'
 import { useLocation } from 'wouter'
 import { Usb } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { useSession } from '@/hooks/use-session'
 import { useDevices } from '@/hooks/use-devices'
@@ -14,6 +15,7 @@ import { AppLayout } from '@/components/biz/app-layout'
 import { Button } from '@/components/ui/button'
 
 export function LinkDevicePage() {
+  const { t } = useTranslation()
   const [, navigate] = useLocation()
 
   const { data: sessionInfo, isLoading: sessionLoading } = useSession()
@@ -49,7 +51,7 @@ export function LinkDevicePage() {
           <div className="w-full max-w-lg">
             <div className="rounded-2xl border border-border p-10">
               <h1 className="text-2xl font-bold mb-8">
-                Link an iPhone or iPad
+                {t('linkDevice.title')}
               </h1>
 
               {/* USB instruction */}
@@ -58,19 +60,19 @@ export function LinkDevicePage() {
                   <Usb className="w-7 h-7" />
                 </div>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  First, connect an iPhone or iPad via USB cable.
+                  {t('linkDevice.usbInstruction')}
                 </p>
               </div>
 
               <p className="text-sm font-medium mb-3">
-                Then, choose a device to link
+                {t('linkDevice.chooseDevice')}
               </p>
 
               {/* Connected unlinked devices */}
               <div className="rounded-xl border border-border divide-y divide-border mb-6">
                 {!devices.length ? (
                   <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-                    No devices connected via USB.
+                    {t('linkDevice.noDevices')}
                   </div>
                 ) : (
                   devices.map(device => (
@@ -83,12 +85,12 @@ export function LinkDevicePage() {
                           {device.name}
                         </div>
                         <div className="text-[11px] text-muted-foreground font-mono">
-                          Connected
+                          {t('linkDevice.connected')}
                         </div>
                       </div>
                       {device.linked ? (
                         <span className="text-xs text-muted-foreground font-medium shrink-0 px-3">
-                          Linked
+                          {t('linkDevice.linked')}
                         </span>
                       ) : (
                         <Button
@@ -101,8 +103,8 @@ export function LinkDevicePage() {
                           disabled={isPending && pendingUdid === device.udid}
                         >
                           {isPending && pendingUdid === device.udid
-                            ? 'Linking…'
-                            : 'Link'}
+                            ? t('linkDevice.linking')
+                            : t('common.link')}
                         </Button>
                       )}
                     </div>
@@ -115,7 +117,7 @@ export function LinkDevicePage() {
                 onClick={handleDone}
                 disabled={!firstAvailableDevice}
               >
-                Done
+                {t('linkDevice.done')}
               </Button>
             </div>
           </div>

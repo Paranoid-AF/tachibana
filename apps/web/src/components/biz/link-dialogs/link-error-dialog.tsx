@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,15 +15,17 @@ interface LinkErrorDialogProps {
 }
 
 export function LinkErrorDialog({ error, onClose }: LinkErrorDialogProps) {
+  const { t } = useTranslation()
+
   return (
     <Dialog open={error !== null} onOpenChange={o => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Failed to link device</DialogTitle>
+          <DialogTitle>{t('linkError.title')}</DialogTitle>
           <DialogDescription>{error}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button onClick={onClose}>OK</Button>
+          <Button onClick={onClose}>{t('common.ok')}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

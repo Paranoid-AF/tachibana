@@ -1,3 +1,4 @@
+import { Trans, useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import {
@@ -16,23 +17,28 @@ interface TrustModalProps {
 }
 
 export function TrustModal({ open, deviceName, onClose }: TrustModalProps) {
+  const { t } = useTranslation()
+
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Trust this computer</DialogTitle>
+          <DialogTitle>{t('trustModal.title')}</DialogTitle>
           <DialogDescription>
-            Unlock <strong>{deviceName}</strong> and tap <strong>Trust</strong>{' '}
-            when prompted on the device.
+            <Trans
+              i18nKey="trustModal.description"
+              values={{ deviceName }}
+              components={{ strong: <strong /> }}
+            />
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
           <Spinner className="shrink-0" />
-          Waiting for trust confirmation…
+          {t('trustModal.waiting')}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
         </DialogFooter>
       </DialogContent>

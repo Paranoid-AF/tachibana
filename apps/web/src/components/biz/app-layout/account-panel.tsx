@@ -1,6 +1,7 @@
 import { useLocation } from 'wouter'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ellipsis } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Spinner } from '@/components/ui/spinner'
 
@@ -20,6 +21,7 @@ async function signOut() {
 }
 
 export function AccountPanel() {
+  const { t } = useTranslation()
   const [location, navigate] = useLocation()
   const queryClient = useQueryClient()
 
@@ -47,7 +49,7 @@ export function AccountPanel() {
     return (
       <div className="rounded-xl border border-border p-3">
         <div className="text-xs font-medium uppercase tracking-wide text-foreground mb-2">
-          Apple Account
+          {t('account.appleAccount')}
         </div>
         <Button
           variant="outline"
@@ -55,7 +57,7 @@ export function AccountPanel() {
           className="w-full text-xs"
           onClick={() => navigate('/signin')}
         >
-          Sign in
+          {t('common.signIn')}
         </Button>
       </div>
     )
@@ -65,7 +67,7 @@ export function AccountPanel() {
     <div className="rounded-xl border border-border p-3">
       <div className="flex items-center justify-between mb-1">
         <div className="text-xs font-medium uppercase tracking-wide text-foreground">
-          Apple Account
+          {t('account.appleAccount')}
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -78,12 +80,12 @@ export function AccountPanel() {
               className="text-destructive focus:text-destructive"
               onClick={() => signOutMutation.mutate()}
             >
-              Sign out
+              {t('account.signOut')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="text-xs text-muted-foreground">Signed in as</div>
+      <div className="text-xs text-muted-foreground">{t('account.signedInAs')}</div>
       <div className="text-sm font-medium truncate">{sessionInfo.email}</div>
     </div>
   )

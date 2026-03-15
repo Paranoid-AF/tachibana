@@ -1,4 +1,5 @@
 import { useLocation } from 'wouter'
+import { useTranslation } from 'react-i18next'
 
 import { useSession } from '@/hooks/use-session'
 import { useDevices } from '@/hooks/use-devices'
@@ -12,6 +13,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { DeviceRow } from './device-row'
 
 export function DeviceList() {
+  const { t } = useTranslation()
   const [location, navigate] = useLocation()
 
   const selectedUdid = location.startsWith('/device/')
@@ -37,7 +39,7 @@ export function DeviceList() {
     <>
       <div className="rounded-xl border border-border p-3 flex flex-col gap-1">
         <div className="text-xs font-medium uppercase tracking-wide text-foreground mb-1 px-1">
-          Devices
+          {t('deviceList.devices')}
         </div>
 
         {devicesLoading ? (
@@ -48,13 +50,13 @@ export function DeviceList() {
           <>
             {!devices.length && (
               <p className="text-xs text-muted-foreground px-1 py-2">
-                No devices found.
+                {t('deviceList.noDevices')}
               </p>
             )}
 
             {showSubtitles && (
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-1 mt-1">
-                Linked
+                {t('deviceList.linked')}
               </div>
             )}
 
@@ -73,7 +75,7 @@ export function DeviceList() {
 
             {showSubtitles && (
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-1 mt-1">
-                Not linked
+                {t('deviceList.notLinked')}
               </div>
             )}
 
