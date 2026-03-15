@@ -123,8 +123,13 @@ const main = async () => {
   deviceManager.start()
 }
 
-await ensureElevated()
-openDatabase()
-main().catch(console.error)
+try {
+  await ensureElevated()
+  openDatabase()
+  await main()
+} catch (err) {
+  console.error(err)
+  process.exit(1)
+}
 
 export type { DeviceListResponseItem } from './routes/devices.ts'
