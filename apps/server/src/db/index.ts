@@ -412,7 +412,10 @@ export function getDeviceLogs(
   udid: string,
   page: number,
   pageSize: number
-): { logs: (typeof schema.deviceLogs.$inferSelect & { authName: string | null })[]; total: number } {
+): {
+  logs: (typeof schema.deviceLogs.$inferSelect & { authName: string | null })[]
+  total: number
+} {
   const d = getDb()
   const offset = (page - 1) * pageSize
 

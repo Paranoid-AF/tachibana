@@ -57,9 +57,18 @@ const AGENT_SKILL_NAME = 'idevice'
 
 const EXPIRATION_OPTIONS = [
   { labelKey: 'agents.createDialog.expirationNever', value: 0 },
-  { labelKey: 'agents.createDialog.expiration7days', value: milliseconds({ days: 7 }) },
-  { labelKey: 'agents.createDialog.expiration30days', value: milliseconds({ days: 30 }) },
-  { labelKey: 'agents.createDialog.expiration90days', value: milliseconds({ days: 90 }) },
+  {
+    labelKey: 'agents.createDialog.expiration7days',
+    value: milliseconds({ days: 7 }),
+  },
+  {
+    labelKey: 'agents.createDialog.expiration30days',
+    value: milliseconds({ days: 30 }),
+  },
+  {
+    labelKey: 'agents.createDialog.expiration90days',
+    value: milliseconds({ days: 90 }),
+  },
 ]
 
 function useFormatDate() {

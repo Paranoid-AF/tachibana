@@ -562,13 +562,9 @@ export function ControlPanel({ udid }: ControlPanelProps) {
                       }
                     >
                       <span className="text-[10px] text-muted-foreground">
-                        {format(
-                          fromUnixTime(photo.modified),
-                          'MMM d, yyyy',
-                          {
-                            locale: dateLocale,
-                          }
-                        )}
+                        {format(fromUnixTime(photo.modified), 'MMM d, yyyy', {
+                          locale: dateLocale,
+                        })}
                       </span>
                       <span className="text-[10px] text-muted-foreground">
                         {photo.size < 1024 * 1024

@@ -34,8 +34,22 @@ export interface ToolDefinition {
 type PendingAction =
   | { type: 'tap'; udid: string; x: number; y: number }
   | { type: 'double_tap'; udid: string; x: number; y: number }
-  | { type: 'touch_and_hold'; udid: string; x: number; y: number; duration: number }
-  | { type: 'drag'; udid: string; fromX: number; fromY: number; toX: number; toY: number; duration: number }
+  | {
+      type: 'touch_and_hold'
+      udid: string
+      x: number
+      y: number
+      duration: number
+    }
+  | {
+      type: 'drag'
+      udid: string
+      fromX: number
+      fromY: number
+      toX: number
+      toY: number
+      duration: number
+    }
 
 const pendingActions = new Map<string, PendingAction>()
 
@@ -104,7 +118,11 @@ async function previewAction(
     ) as Promise<string>,
   ])
 
-  const annotatedImages = await annotateScreenshot(base64, coordinates, windowSize)
+  const annotatedImages = await annotateScreenshot(
+    base64,
+    coordinates,
+    windowSize
+  )
 
   const token = randomUUID()
   pendingActions.set(token, action)
@@ -193,7 +211,9 @@ const GetDeviceControlSizeSchema = z.object({
 })
 
 const ExecuteDeviceControlSchema = z.object({
-  device_control_token: z.string().describe('Token from a prior tap/double_tap/touch_and_hold/drag call'),
+  device_control_token: z
+    .string()
+    .describe('Token from a prior tap/double_tap/touch_and_hold/drag call'),
 })
 
 const TakeScreenshotSchema = z.object({
@@ -379,7 +399,13 @@ const touchAndHold: ToolDefinition = {
     'Preview a long-press at a coordinate on the device screen. Returns annotated screenshots and a device_control_token. Call execute_device_control with the token to perform the actual long-press.',
   inputSchema: TouchAndHoldSchema,
   handler: async ({ udid, x, y, duration }) => {
-    return previewAction(udid, [{ x, y }], { type: 'touch_and_hold', udid, x, y, duration })
+    return previewAction(udid, [{ x, y }], {
+      type: 'touch_and_hold',
+      udid,
+      x,
+      y,
+      duration,
+    })
   },
 }
 
@@ -392,7 +418,10 @@ const drag: ToolDefinition = {
   handler: async ({ udid, fromX, fromY, toX, toY, duration }) => {
     return previewAction(
       udid,
-      [{ x: fromX, y: fromY }, { x: toX, y: toY }],
+      [
+        { x: fromX, y: fromY },
+        { x: toX, y: toY },
+      ],
       { type: 'drag', udid, fromX, fromY, toX, toY, duration }
     )
   },
@@ -668,18 +697,28 @@ const executeDeviceControl: ToolDefinition = {
         break
 
       case 'double_tap':
-        await wdaFetch(mainPort, 'POST', `/session/${sessionId}/wda/doubleTap`, {
-          x: Math.round(action.x),
-          y: Math.round(action.y),
-        })
+        await wdaFetch(
+          mainPort,
+          'POST',
+          `/session/${sessionId}/wda/doubleTap`,
+          {
+            x: Math.round(action.x),
+            y: Math.round(action.y),
+          }
+        )
         break
 
       case 'touch_and_hold':
-        await wdaFetch(mainPort, 'POST', `/session/${sessionId}/wda/touchAndHold`, {
-          x: Math.round(action.x),
-          y: Math.round(action.y),
-          duration: action.duration,
-        })
+        await wdaFetch(
+          mainPort,
+          'POST',
+          `/session/${sessionId}/wda/touchAndHold`,
+          {
+            x: Math.round(action.x),
+            y: Math.round(action.y),
+            duration: action.duration,
+          }
+        )
         break
 
       case 'drag':

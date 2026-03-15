@@ -1,30 +1,37 @@
+/* eslint-disable no-named-as-default-member */
+
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 import enUS from '../locales/en-US.json'
 import zhCN from '../locales/zh-CN.json'
 
+i18n.on('languageChanged', lng => {
+  document.documentElement.lang = lng
+})
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
-  .init({
-    resources: {
-      'en-US': { translation: enUS },
-      'zh-CN': { translation: zhCN },
+  .init(
+    {
+      resources: {
+        'en-US': { translation: enUS },
+        'zh-CN': { translation: zhCN },
+      },
+      fallbackLng: 'en-US',
+      supportedLngs: ['en-US', 'zh-CN'],
+      interpolation: { escapeValue: false },
+      detection: {
+        order: ['localStorage', 'navigator'],
+        caches: ['localStorage'],
+        lookupLocalStorage: 'tachibana-lang',
+      },
     },
-    fallbackLng: 'en-US',
-    supportedLngs: ['en-US', 'zh-CN'],
-    interpolation: { escapeValue: false },
-    detection: {
-      order: ['localStorage', 'navigator'],
-      caches: ['localStorage'],
-      lookupLocalStorage: 'tachibana-lang',
-    },
-  })
-
-i18n.on('languageChanged', (lng) => {
-  document.documentElement.lang = lng
-})
+    () => {
+      document.documentElement.lang = i18n.language
+    }
+  )
 
 const ERROR_MAP: Record<string, string> = {
   'Setup failed': 'errors.setupFailed',

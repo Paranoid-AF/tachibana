@@ -177,8 +177,7 @@ export function DeviceScreen({ udid, email }: DeviceScreenProps) {
     }
   }, [udid, state])
 
-  const errorDescription =
-    wdaError ?? t('deviceScreen.defaultError')
+  const errorDescription = wdaError ?? t('deviceScreen.defaultError')
 
   return (
     <div className="flex-1 flex overflow-hidden relative overscroll-contain">

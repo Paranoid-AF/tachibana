@@ -13,7 +13,11 @@ const LANGUAGES = [
   { code: 'zh-CN', label: '简体中文' },
 ] as const
 
-export function LanguageSwitcher({ variant = 'ghost' }: { variant?: 'ghost' | 'outline' }) {
+export function LanguageSwitcher({
+  variant = 'ghost',
+}: {
+  variant?: 'ghost' | 'outline'
+}) {
   const { i18n } = useTranslation()
 
   return (

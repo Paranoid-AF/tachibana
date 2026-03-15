@@ -27,9 +27,7 @@ export function AuthRequiredDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('authRequired.title')}</DialogTitle>
-          <DialogDescription>
-            {t('authRequired.description')}
-          </DialogDescription>
+          <DialogDescription>{t('authRequired.description')}</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>

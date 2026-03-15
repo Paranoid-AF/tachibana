@@ -85,7 +85,9 @@ export function AccountPanel() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="text-xs text-muted-foreground">{t('account.signedInAs')}</div>
+      <div className="text-xs text-muted-foreground">
+        {t('account.signedInAs')}
+      </div>
       <div className="text-sm font-medium truncate">{sessionInfo.email}</div>
     </div>
   )

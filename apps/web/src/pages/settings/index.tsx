@@ -103,9 +103,7 @@ export function SettingsPage() {
           <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>
-                  {t('settings.password.dialogTitle')}
-                </DialogTitle>
+                <DialogTitle>{t('settings.password.dialogTitle')}</DialogTitle>
                 <DialogDescription>
                   {t('settings.password.dialogDescription')}
                 </DialogDescription>
