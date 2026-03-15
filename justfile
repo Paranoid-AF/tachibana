@@ -7,6 +7,7 @@ bunx := "bunx"
 root_dir := replace(justfile_directory(), "\\", "/")
 apps_dir := root_dir / "apps"
 packages_dir := root_dir / "packages"
+windows_icon := if os() == "windows" { "--windows-icon=" + root_dir / ".packaging/icon.ico" } else { "" }
 
 
 # Default target - show available commands
@@ -41,7 +42,7 @@ build-web:
 # Build server binary (depends on web build)
 build: build-web typecheck
     @echo "→ Building server..."
-    cd {{apps_dir}}/server && {{bun}} build src/index.ts --compile --external vite --outfile dist/tachibana
+    cd {{apps_dir}}/server && {{bun}} build src/index.ts --compile --external vite {{windows_icon}} --outfile dist/tachibana
     @echo "✓ Server built"
 
 #############################################

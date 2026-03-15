@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { DeviceList } from './device-list'
 import { AccountPanel } from './account-panel'
 
+import appIcon from '../../../../assets/images/app-icon.svg'
 import openclawIcon from '../../../../assets/images/agents/openclaw-icon.svg'
 import chatwiseIcon from '../../../../assets/images/agents/chatwise-icon.png'
 import githubCopilotIcon from '../../../../assets/images/agents/githubcopilot-icon.svg'
@@ -167,7 +168,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <aside className="w-72 shrink-0 flex flex-col gap-3 p-4 overflow-y-auto">
         {/* Logo + app name */}
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 rounded-lg border-2 border-border shrink-0" />
+          <img src={appIcon} alt="Tachibana" className="w-10 h-10 shrink-0" />
           <div>
             <div className="font-semibold text-sm leading-tight">
               {t('layout.appName')}
