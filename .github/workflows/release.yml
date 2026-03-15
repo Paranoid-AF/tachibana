@@ -410,13 +410,16 @@ jobs:
           Copy-Item ".packaging/winsw/tachibana-service.xml" "staging/"
 
       - name: Install WiX
-        run: dotnet tool install --global wix
+        run: |
+          dotnet tool install --global wix
+          wix extension add WixToolset.Util.wixext
 
       - name: Build MSI
         shell: pwsh
         run: |
           $version = "${{ env.RELEASE_VERSION }}".TrimStart('v')
           wix build .packaging/wix/main.wxs `
+            -ext WixToolset.Util.wixext `
             -d ProductVersion="$version" `
             -d "StagingDir=$PWD/staging" `
             -arch x64 `

@@ -76,6 +76,18 @@
       <Files Include="$(var.StagingDir)\assets\**" />
     </ComponentGroup>
 
+    <!-- Open browser on first install (not upgrade) -->
+    <Property Id="WixShellExecTarget" Value="http://localhost:17962/" />
+    <CustomAction Id="LaunchBrowser"
+      DllEntry="WixShellExec"
+      Impersonate="yes"
+      BinaryRef="Wix4UtilCA_X86" />
+    <InstallExecuteSequence>
+      <Custom Action="LaunchBrowser" After="InstallFinalize">
+        NOT Installed AND NOT WIX_UPGRADE_DETECTED
+      </Custom>
+    </InstallExecuteSequence>
+
     <Feature Id="Main" Title="Tachibana" Level="1">
       <ComponentGroupRef Id="ServerComponent" />
       <ComponentGroupRef Id="BinFiles" />

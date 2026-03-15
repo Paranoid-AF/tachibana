@@ -27,14 +27,8 @@ export async function resolveWdaIpa(): Promise<WdaResolution> {
     }
   }
 
-  // 3. Detect if running from a compiled binary
-  // In compiled mode, process.argv[0] === process.execPath and it's not in node_modules
-  const isCompiled =
-    process.argv[0] === process.execPath &&
-    !process.execPath.includes('node_modules')
-
-  if (isCompiled) {
-    // Look for IPA in assets/ sibling to the compiled server
+  // 3. Look for IPA in assets/ sibling to the executable
+  {
     const serverDir = dirname(process.execPath)
     const bundledPath = join(serverDir, 'assets', 'WebDriverAgentRunner.ipa')
     if (await Bun.file(bundledPath).exists()) {
