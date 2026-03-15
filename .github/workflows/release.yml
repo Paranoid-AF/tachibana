@@ -412,7 +412,7 @@ jobs:
       - name: Install WiX
         run: |
           dotnet tool install --global wix
-          wix extension add WixToolset.Util.wixext
+          wix extension add WixToolset.Util.wixext/6.0.2
 
       - name: Build MSI
         shell: pwsh
