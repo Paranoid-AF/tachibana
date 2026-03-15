@@ -7,7 +7,7 @@ import { DevicePage } from './pages/device'
 import { LinkDevicePage } from './pages/link-device'
 import { LoginPage } from './pages/login'
 import { SetupPage } from './pages/setup'
-import { SecurityPage } from './pages/security'
+import { SettingsPage } from './pages/settings'
 import { AgentsPage } from './pages/agents'
 
 function ProtectedRoutes() {
@@ -19,7 +19,7 @@ function ProtectedRoutes() {
         <Route path="/signin" component={SignInPage} />
         <Route path="/link" component={LinkDevicePage} />
         <Route path="/device/:udid" component={DevicePage} />
-        <Route path="/security" component={SecurityPage} />
+        <Route path="/settings" component={SettingsPage} />
         <Route path="/agents" component={AgentsPage} />
       </Switch>
     </AuthGate>

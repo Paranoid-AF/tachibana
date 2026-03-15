@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+
 import { z } from 'zod'
 
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
@@ -28,6 +30,14 @@ export interface ToolDefinition {
   outputSchema?: z.ZodObject<any>
   handler: (params: any) => Promise<CallToolResult>
 }
+
+type PendingAction =
+  | { type: 'tap'; udid: string; x: number; y: number }
+  | { type: 'double_tap'; udid: string; x: number; y: number }
+  | { type: 'touch_and_hold'; udid: string; x: number; y: number; duration: number }
+  | { type: 'drag'; udid: string; fromX: number; fromY: number; toX: number; toY: number; duration: number }
+
+const pendingActions = new Map<string, PendingAction>()
 
 // ---------------------------------------------------------------------------
 // WDA helpers
@@ -72,6 +82,57 @@ function textResult(data: Record<string, unknown>): CallToolResult {
   return {
     content: [{ type: 'text', text: JSON.stringify(data, null, 2) }],
     structuredContent: data,
+  }
+}
+
+async function previewAction(
+  udid: string,
+  coordinates: Array<{ x: number; y: number }>,
+  action: PendingAction
+): Promise<CallToolResult> {
+  const { mainPort, sessionId } = await ensureWda(udid)
+
+  const [windowSize, base64] = await Promise.all([
+    wdaFetch(mainPort, 'GET', '/window/size') as Promise<{
+      width: number
+      height: number
+    }>,
+    wdaFetch(
+      mainPort,
+      'GET',
+      `/session/${sessionId}/screenshot`
+    ) as Promise<string>,
+  ])
+
+  const annotatedImages = await annotateScreenshot(base64, coordinates, windowSize)
+
+  const token = randomUUID()
+  pendingActions.set(token, action)
+
+  return {
+    content: [
+      {
+        type: 'text' as const,
+        text: 'Original screenshot (without markers):',
+      },
+      { type: 'image' as const, data: base64, mimeType: 'image/png' },
+      ...annotatedImages.flatMap(({ full, crop }, idx) => [
+        {
+          type: 'text' as const,
+          text: `Coordinate ${idx} (${coordinates[idx].x}, ${coordinates[idx].y}) — full crosshair:`,
+        },
+        { type: 'image' as const, data: full, mimeType: 'image/png' },
+        {
+          type: 'text' as const,
+          text: `Coordinate ${idx} — close-up around intersection (this is what will be acted on):`,
+        },
+        { type: 'image' as const, data: crop, mimeType: 'image/png' },
+      ]),
+      {
+        type: 'text' as const,
+        text: JSON.stringify({ device_control_token: token }),
+      },
+    ],
   }
 }
 
@@ -131,20 +192,8 @@ const GetDeviceControlSizeSchema = z.object({
   udid: z.string().describe('Device UDID'),
 })
 
-const MarkCoordinatesSchema = z.object({
-  udid: z.string().describe('Device UDID'),
-  coordinates: z
-    .array(
-      z.object({
-        x: z.number().describe('X coordinate in device control points'),
-        y: z.number().describe('Y coordinate in device control points'),
-      })
-    )
-    .min(1)
-    .max(10)
-    .describe(
-      'Coordinates to mark (in device control point space, same as tap/drag)'
-    ),
+const ExecuteDeviceControlSchema = z.object({
+  device_control_token: z.string().describe('Token from a prior tap/double_tap/touch_and_hold/drag call'),
 })
 
 const TakeScreenshotSchema = z.object({
@@ -305,33 +354,10 @@ const tap: ToolDefinition = {
   name: 'tap',
   category: 'Screen Interaction',
   description:
-    'Tap at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before tapping).',
+    'Preview a tap at a coordinate on the device screen. Returns annotated screenshots and a device_control_token. Call execute_device_control with the token to perform the actual tap.',
   inputSchema: TapSchema,
-  outputSchema: OkOutputSchema,
   handler: async ({ udid, x, y }) => {
-    const { mainPort, sessionId } = await ensureWda(udid)
-    await wdaFetch(mainPort, 'POST', `/session/${sessionId}/actions`, {
-      actions: [
-        {
-          type: 'pointer',
-          id: 'finger1',
-          parameters: { pointerType: 'touch' },
-          actions: [
-            {
-              type: 'pointerMove',
-              duration: 0,
-              x: Math.round(x),
-              y: Math.round(y),
-              origin: 'viewport',
-            },
-            { type: 'pointerDown', button: 0 },
-            { type: 'pause', duration: 50 },
-            { type: 'pointerUp', button: 0 },
-          ],
-        },
-      ],
-    })
-    return textResult({ ok: true })
+    return previewAction(udid, [{ x, y }], { type: 'tap', udid, x, y })
   },
 }
 
@@ -339,16 +365,10 @@ const doubleTap: ToolDefinition = {
   name: 'double_tap',
   category: 'Screen Interaction',
   description:
-    'Double-tap at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before double-tapping).',
+    'Preview a double-tap at a coordinate on the device screen. Returns annotated screenshots and a device_control_token. Call execute_device_control with the token to perform the actual double-tap.',
   inputSchema: DoubleTapSchema,
-  outputSchema: OkOutputSchema,
   handler: async ({ udid, x, y }) => {
-    const { mainPort, sessionId } = await ensureWda(udid)
-    await wdaFetch(mainPort, 'POST', `/session/${sessionId}/wda/doubleTap`, {
-      x: Math.round(x),
-      y: Math.round(y),
-    })
-    return textResult({ ok: true })
+    return previewAction(udid, [{ x, y }], { type: 'double_tap', udid, x, y })
   },
 }
 
@@ -356,17 +376,10 @@ const touchAndHold: ToolDefinition = {
   name: 'touch_and_hold',
   category: 'Screen Interaction',
   description:
-    'Long-press at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before pressing).',
+    'Preview a long-press at a coordinate on the device screen. Returns annotated screenshots and a device_control_token. Call execute_device_control with the token to perform the actual long-press.',
   inputSchema: TouchAndHoldSchema,
-  outputSchema: OkOutputSchema,
   handler: async ({ udid, x, y, duration }) => {
-    const { mainPort, sessionId } = await ensureWda(udid)
-    await wdaFetch(mainPort, 'POST', `/session/${sessionId}/wda/touchAndHold`, {
-      x: Math.round(x),
-      y: Math.round(y),
-      duration,
-    })
-    return textResult({ ok: true })
+    return previewAction(udid, [{ x, y }], { type: 'touch_and_hold', udid, x, y, duration })
   },
 }
 
@@ -374,39 +387,14 @@ const drag: ToolDefinition = {
   name: 'drag',
   category: 'Screen Interaction',
   description:
-    'Drag (swipe) from one coordinate to another on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify start and end points before dragging).',
+    'Preview a drag (swipe) from one coordinate to another on the device screen. Returns annotated screenshots and a device_control_token. Call execute_device_control with the token to perform the actual drag.',
   inputSchema: DragSchema,
-  outputSchema: OkOutputSchema,
   handler: async ({ udid, fromX, fromY, toX, toY, duration }) => {
-    const { mainPort, sessionId } = await ensureWda(udid)
-    await wdaFetch(mainPort, 'POST', `/session/${sessionId}/actions`, {
-      actions: [
-        {
-          type: 'pointer',
-          id: 'finger1',
-          parameters: { pointerType: 'touch' },
-          actions: [
-            {
-              type: 'pointerMove',
-              duration: 0,
-              x: Math.round(fromX),
-              y: Math.round(fromY),
-              origin: 'viewport',
-            },
-            { type: 'pointerDown', button: 0 },
-            {
-              type: 'pointerMove',
-              duration: Math.round(duration * 1000),
-              x: Math.round(toX),
-              y: Math.round(toY),
-              origin: 'viewport',
-            },
-            { type: 'pointerUp', button: 0 },
-          ],
-        },
-      ],
-    })
-    return textResult({ ok: true })
+    return previewAction(
+      udid,
+      [{ x: fromX, y: fromY }, { x: toX, y: toY }],
+      { type: 'drag', udid, fromX, fromY, toX, toY, duration }
+    )
   },
 }
 
@@ -414,7 +402,7 @@ const typeText: ToolDefinition = {
   name: 'type_text',
   category: 'Screen Interaction',
   description:
-    'Type text on the device (requires a focused text field). If you need to tap a text field first, follow the coordinate verification workflow: get_device_control_size → mark_coordinates → tap, then type_text.',
+    'Type text on the device (requires a focused text field). If you need to tap a text field first, follow the coordinate verification workflow: get_device_control_size → tap → execute_device_control, then type_text.',
   inputSchema: TypeTextSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid, text }) => {
@@ -638,54 +626,94 @@ const getDeviceControlSize: ToolDefinition = {
   },
 }
 
-const markCoordinates: ToolDefinition = {
-  name: 'mark_coordinates',
+const executeDeviceControl: ToolDefinition = {
+  name: 'execute_device_control',
   category: 'Screen Interaction',
   description:
-    'Visually verify coordinates before performing device control actions. Returns one annotated screenshot per coordinate. Each image has a full-screen crosshair: a horizontal line spanning the full width and a vertical line spanning the full height. The point where these two lines intersect is the EXACT coordinate that will be acted on. A small numbered badge sits at the intersection. Lines use per-pixel color negation for visibility. To verify: look ONLY at the intersection point and confirm it lands on the intended UI element.',
-  inputSchema: MarkCoordinatesSchema,
-  handler: async ({ udid, coordinates }) => {
-    const { mainPort, sessionId } = await ensureWda(udid)
-
-    const [windowSize, base64] = await Promise.all([
-      wdaFetch(mainPort, 'GET', '/window/size') as Promise<{
-        width: number
-        height: number
-      }>,
-      wdaFetch(
-        mainPort,
-        'GET',
-        `/session/${sessionId}/screenshot`
-      ) as Promise<string>,
-    ])
-
-    const annotatedImages = await annotateScreenshot(
-      base64,
-      coordinates,
-      windowSize
-    )
-
-    return {
-      content: [
-        {
-          type: 'text' as const,
-          text: 'Original screenshot (without markers):',
-        },
-        { type: 'image' as const, data: base64, mimeType: 'image/png' },
-        ...annotatedImages.flatMap(({ full, crop }, idx) => [
-          {
-            type: 'text' as const,
-            text: `Coordinate ${idx} (${coordinates[idx].x}, ${coordinates[idx].y}) — full crosshair:`,
-          },
-          { type: 'image' as const, data: full, mimeType: 'image/png' },
-          {
-            type: 'text' as const,
-            text: `Coordinate ${idx} — close-up around intersection (this is what will be tapped):`,
-          },
-          { type: 'image' as const, data: crop, mimeType: 'image/png' },
-        ]),
-      ],
+    'Execute a previously previewed device control action. Requires a device_control_token returned by a prior tap/double_tap/touch_and_hold/drag call. Each token can only be used once.',
+  inputSchema: ExecuteDeviceControlSchema,
+  outputSchema: OkOutputSchema,
+  handler: async ({ device_control_token }) => {
+    const action = pendingActions.get(device_control_token)
+    if (!action) {
+      throw new Error('Invalid or already-used device_control_token')
     }
+    pendingActions.delete(device_control_token)
+
+    const { mainPort, sessionId } = await ensureWda(action.udid)
+
+    switch (action.type) {
+      case 'tap':
+        await wdaFetch(mainPort, 'POST', `/session/${sessionId}/actions`, {
+          actions: [
+            {
+              type: 'pointer',
+              id: 'finger1',
+              parameters: { pointerType: 'touch' },
+              actions: [
+                {
+                  type: 'pointerMove',
+                  duration: 0,
+                  x: Math.round(action.x),
+                  y: Math.round(action.y),
+                  origin: 'viewport',
+                },
+                { type: 'pointerDown', button: 0 },
+                { type: 'pause', duration: 50 },
+                { type: 'pointerUp', button: 0 },
+              ],
+            },
+          ],
+        })
+        break
+
+      case 'double_tap':
+        await wdaFetch(mainPort, 'POST', `/session/${sessionId}/wda/doubleTap`, {
+          x: Math.round(action.x),
+          y: Math.round(action.y),
+        })
+        break
+
+      case 'touch_and_hold':
+        await wdaFetch(mainPort, 'POST', `/session/${sessionId}/wda/touchAndHold`, {
+          x: Math.round(action.x),
+          y: Math.round(action.y),
+          duration: action.duration,
+        })
+        break
+
+      case 'drag':
+        await wdaFetch(mainPort, 'POST', `/session/${sessionId}/actions`, {
+          actions: [
+            {
+              type: 'pointer',
+              id: 'finger1',
+              parameters: { pointerType: 'touch' },
+              actions: [
+                {
+                  type: 'pointerMove',
+                  duration: 0,
+                  x: Math.round(action.fromX),
+                  y: Math.round(action.fromY),
+                  origin: 'viewport',
+                },
+                { type: 'pointerDown', button: 0 },
+                {
+                  type: 'pointerMove',
+                  duration: Math.round(action.duration * 1000),
+                  x: Math.round(action.toX),
+                  y: Math.round(action.toY),
+                  origin: 'viewport',
+                },
+                { type: 'pointerUp', button: 0 },
+              ],
+            },
+          ],
+        })
+        break
+    }
+
+    return textResult({ ok: true })
   },
 }
 
@@ -698,11 +726,11 @@ export const allTools: ToolDefinition[] = [
   getDevicePrefsT,
   setDevicePrefsT,
   getDeviceControlSize,
-  markCoordinates,
   tap,
   doubleTap,
   touchAndHold,
   drag,
+  executeDeviceControl,
   typeText,
   getScreenSize,
   takeScreenshot,

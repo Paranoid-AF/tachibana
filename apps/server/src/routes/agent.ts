@@ -102,12 +102,13 @@ function createMcpServer(authId: number | null): McpServer {
     },
     {
       instructions: [
-        'Coordinate verification workflow: before tapping, double-tapping, long-pressing, or dragging on the device screen, you MUST:',
+        'Two-step device control workflow: coordinate-based tools (tap, double_tap, touch_and_hold, drag) only PREVIEW the action. You MUST:',
         '1. Call get_device_control_size to learn the valid coordinate range.',
-        '2. Call mark_coordinates with your intended coordinates to visually verify they hit the correct target.',
-        '   Each returned image has a full-screen crosshair: a horizontal line spanning the full width and a vertical line spanning the full height. The point where these two lines INTERSECT is the EXACT coordinate. A numbered badge sits at the intersection. Look ONLY at the intersection point to confirm it lands on the intended UI element.',
-        '3. Only after confirming the crosshair markers are positioned correctly, perform the action (tap, double_tap, touch_and_hold, drag).',
-        'Skipping this workflow risks tapping the wrong element. Never guess coordinates without verifying them first.',
+        '2. Call the action tool (tap, double_tap, touch_and_hold, drag) with your intended coordinates.',
+        '   This returns annotated screenshots with crosshairs and a device_control_token. Each image has a full-screen crosshair whose intersection is the EXACT coordinate. Verify the intersection lands on the intended UI element.',
+        '3. If the crosshair is correct, call execute_device_control with the device_control_token to perform the action.',
+        '   If the crosshair is wrong, call the action tool again with adjusted coordinates instead.',
+        'Each token is single-use. Skipping verification risks acting on the wrong element.',
       ].join('\n'),
     }
   )

@@ -412,13 +412,26 @@ export function getDeviceLogs(
   udid: string,
   page: number,
   pageSize: number
-): { logs: (typeof schema.deviceLogs.$inferSelect)[]; total: number } {
+): { logs: (typeof schema.deviceLogs.$inferSelect & { authName: string | null })[]; total: number } {
   const d = getDb()
   const offset = (page - 1) * pageSize
 
   const logs = d
-    .select()
+    .select({
+      id: schema.deviceLogs.id,
+      udid: schema.deviceLogs.udid,
+      authId: schema.deviceLogs.authId,
+      source: schema.deviceLogs.source,
+      action: schema.deviceLogs.action,
+      params: schema.deviceLogs.params,
+      status: schema.deviceLogs.status,
+      error: schema.deviceLogs.error,
+      createdAt: schema.deviceLogs.createdAt,
+      completedAt: schema.deviceLogs.completedAt,
+      authName: schema.auth.name,
+    })
     .from(schema.deviceLogs)
+    .leftJoin(schema.auth, eq(schema.deviceLogs.authId, schema.auth.id))
     .where(eq(schema.deviceLogs.udid, udid))
     .orderBy(desc(schema.deviceLogs.createdAt))
     .limit(pageSize)
