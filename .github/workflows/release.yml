@@ -150,12 +150,17 @@ jobs:
         run: |
           mkdir -p apps/server/dist
           ext="${{ matrix.ext }}"
+          icon_flag=""
+          if [[ "${{ matrix.label }}" == windows-* ]]; then
+            icon_flag="--windows-icon=.packaging/icon.ico"
+          fi
           bun build --compile \
             --target ${{ matrix.bun-target }} \
             apps/server/src/index.ts \
             --outfile "apps/server/dist/tachibana${ext}" \
             --external vite \
-            --define 'process.env.NODE_ENV="production"'
+            --define 'process.env.NODE_ENV="production"' \
+            $icon_flag
 
       - name: Download sharp native binaries
         shell: bash
