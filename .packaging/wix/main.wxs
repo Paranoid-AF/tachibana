@@ -16,7 +16,8 @@
         <Directory Id="BinFolder" Name="bin" />
         <Directory Id="DrizzleFolder" Name="drizzle" />
         <Directory Id="WebFolder" Name="web" />
-        <Directory Id="NodeModulesFolder" Name="node_modules" />
+        <Directory Id="SharpFolder" Name="sharp" />
+        <Directory Id="IosConnectFolder" Name="ios-connect" />
       </Directory>
     </StandardDirectory>
 
@@ -62,8 +63,12 @@
       <Files Include="$(var.StagingDir)\web\**" />
     </ComponentGroup>
 
-    <ComponentGroup Id="NodeModulesFiles" Directory="NodeModulesFolder">
-      <Files Include="$(var.StagingDir)\node_modules\**" />
+    <ComponentGroup Id="SharpFiles" Directory="SharpFolder">
+      <Files Include="$(var.StagingDir)\sharp\**" />
+    </ComponentGroup>
+
+    <ComponentGroup Id="IosConnectFiles" Directory="IosConnectFolder">
+      <Files Include="$(var.StagingDir)\ios-connect\**" />
     </ComponentGroup>
 
     <Feature Id="Main" Title="Tachibana" Level="1">
@@ -71,7 +76,8 @@
       <ComponentGroupRef Id="BinFiles" />
       <ComponentGroupRef Id="DrizzleFiles" />
       <ComponentGroupRef Id="WebFiles" />
-      <ComponentGroupRef Id="NodeModulesFiles" />
+      <ComponentGroupRef Id="SharpFiles" />
+      <ComponentGroupRef Id="IosConnectFiles" />
     </Feature>
   </Package>
 </Wix>
