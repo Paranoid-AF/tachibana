@@ -70,11 +70,18 @@ function formatRelativeDate(ms: number | null): string {
   return formatDistanceToNow(ms, { addSuffix: true })
 }
 
-function renderTemplates(authToken: string) {
+async function fetchToolsDocs(): Promise<string> {
+  const resp = await fetch('/api/agent/tools-docs')
+  const data = (await resp.json()) as { markdown: string }
+  return data.markdown
+}
+
+function renderTemplates(authToken: string, toolsDocs: string) {
   const vars = {
     server_origin: window.location.origin,
     auth_token: authToken,
     skill_name: AGENT_SKILL_NAME,
+    tools_docs: toolsDocs,
   }
   return {
     skillMd: Mustache.render(skillTemplate, vars),
@@ -103,6 +110,11 @@ export function AgentsPage() {
   const { data: tokens = [] } = useQuery<TokenRow[]>({
     queryKey: ['api-tokens'],
     queryFn: fetchApiTokens,
+  })
+
+  const { data: toolsDocs = '' } = useQuery<string>({
+    queryKey: ['tools-docs'],
+    queryFn: fetchToolsDocs,
   })
 
   // Create dialog state
@@ -167,7 +179,9 @@ export function AgentsPage() {
     setCopiedItem(item)
   }
 
-  const rendered = revealedAgent ? renderTemplates(revealedAgent.key) : null
+  const rendered = revealedAgent
+    ? renderTemplates(revealedAgent.key, toolsDocs)
+    : null
 
   return (
     <AppLayout>

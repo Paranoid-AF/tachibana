@@ -23,6 +23,7 @@ export interface ToolDefinition {
   name: string
   title?: string
   description: string
+  category?: string
   inputSchema: z.ZodObject<any>
   outputSchema?: z.ZodObject<any>
   handler: (params: any) => Promise<CallToolResult>
@@ -268,6 +269,7 @@ const ListPhotosOutputSchema = z.object({
 const listDevices: ToolDefinition = {
   name: 'list_devices',
   description: 'List all connected iOS devices with their status',
+  category: 'Device Management',
   inputSchema: ListDevicesSchema,
   outputSchema: ListDevicesOutputSchema,
   handler: async () => {
@@ -279,6 +281,7 @@ const listDevices: ToolDefinition = {
 const getDevicePrefsT: ToolDefinition = {
   name: 'get_device_prefs',
   description: 'Get preferences for a device (e.g. alwaysAwake setting)',
+  category: 'Device Management',
   inputSchema: GetDevicePrefsSchema,
   outputSchema: DevicePrefsOutputSchema,
   handler: async ({ udid }) => {
@@ -289,6 +292,7 @@ const getDevicePrefsT: ToolDefinition = {
 const setDevicePrefsT: ToolDefinition = {
   name: 'set_device_prefs',
   description: 'Update preferences for a device',
+  category: 'Device Management',
   inputSchema: SetDevicePrefsSchema,
   outputSchema: DevicePrefsOutputSchema,
   handler: async ({ udid, alwaysAwake }) => {
@@ -299,6 +303,7 @@ const setDevicePrefsT: ToolDefinition = {
 
 const tap: ToolDefinition = {
   name: 'tap',
+  category: 'Screen Interaction',
   description:
     'Tap at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before tapping).',
   inputSchema: TapSchema,
@@ -332,6 +337,7 @@ const tap: ToolDefinition = {
 
 const doubleTap: ToolDefinition = {
   name: 'double_tap',
+  category: 'Screen Interaction',
   description:
     'Double-tap at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before double-tapping).',
   inputSchema: DoubleTapSchema,
@@ -348,6 +354,7 @@ const doubleTap: ToolDefinition = {
 
 const touchAndHold: ToolDefinition = {
   name: 'touch_and_hold',
+  category: 'Screen Interaction',
   description:
     'Long-press at a coordinate on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify the target before pressing).',
   inputSchema: TouchAndHoldSchema,
@@ -365,6 +372,7 @@ const touchAndHold: ToolDefinition = {
 
 const drag: ToolDefinition = {
   name: 'drag',
+  category: 'Screen Interaction',
   description:
     'Drag (swipe) from one coordinate to another on the device screen. Coordinates are in device control points (call get_device_control_size first, then mark_coordinates to visually verify start and end points before dragging).',
   inputSchema: DragSchema,
@@ -404,6 +412,7 @@ const drag: ToolDefinition = {
 
 const typeText: ToolDefinition = {
   name: 'type_text',
+  category: 'Screen Interaction',
   description:
     'Type text on the device (requires a focused text field). If you need to tap a text field first, follow the coordinate verification workflow: get_device_control_size → mark_coordinates → tap, then type_text.',
   inputSchema: TypeTextSchema,
@@ -420,6 +429,7 @@ const typeText: ToolDefinition = {
 const getScreenSize: ToolDefinition = {
   name: 'get_screen_size',
   description: 'Get the device screen dimensions in points',
+  category: 'Screen Interaction',
   inputSchema: GetScreenSizeSchema,
   outputSchema: ScreenSizeOutputSchema,
   handler: async ({ udid }) => {
@@ -432,6 +442,7 @@ const getScreenSize: ToolDefinition = {
 const takeScreenshot: ToolDefinition = {
   name: 'take_screenshot',
   description: 'Take a screenshot of the device screen (returns base64 PNG)',
+  category: 'Screen Interaction',
   inputSchema: TakeScreenshotSchema,
   handler: async ({ udid }) => {
     const { mainPort, sessionId } = await ensureWda(udid)
@@ -451,6 +462,7 @@ const takeScreenshot: ToolDefinition = {
 const goHome: ToolDefinition = {
   name: 'go_home',
   description: 'Press the home button / go to home screen',
+  category: 'Device Control',
   inputSchema: GoHomeSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid }) => {
@@ -463,6 +475,7 @@ const goHome: ToolDefinition = {
 const lockDevice: ToolDefinition = {
   name: 'lock_device',
   description: 'Lock the device screen',
+  category: 'Device Control',
   inputSchema: LockDeviceSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid }) => {
@@ -475,6 +488,7 @@ const lockDevice: ToolDefinition = {
 const unlockDevice: ToolDefinition = {
   name: 'unlock_device',
   description: 'Unlock the device screen',
+  category: 'Device Control',
   inputSchema: UnlockDeviceSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid }) => {
@@ -487,6 +501,7 @@ const unlockDevice: ToolDefinition = {
 const isLocked: ToolDefinition = {
   name: 'is_locked',
   description: 'Check if the device screen is locked',
+  category: 'Device Control',
   inputSchema: IsLockedSchema,
   outputSchema: IsLockedOutputSchema,
   handler: async ({ udid }) => {
@@ -499,6 +514,7 @@ const isLocked: ToolDefinition = {
 const launchApp: ToolDefinition = {
   name: 'launch_app',
   description: 'Launch an app by bundle identifier',
+  category: 'App Management',
   inputSchema: LaunchAppSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid, bundleId }) => {
@@ -513,6 +529,7 @@ const launchApp: ToolDefinition = {
 const terminateApp: ToolDefinition = {
   name: 'terminate_app',
   description: 'Terminate a running app by bundle identifier',
+  category: 'App Management',
   inputSchema: TerminateAppSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid, bundleId }) => {
@@ -533,6 +550,7 @@ const listApps: ToolDefinition = {
   name: 'list_apps',
   description:
     'List installed apps on the device (User apps + curated System apps)',
+  category: 'App Management',
   inputSchema: ListAppsSchema,
   outputSchema: ListAppsOutputSchema,
   handler: async ({ udid }) => {
@@ -549,6 +567,7 @@ const listApps: ToolDefinition = {
 const listPhotos: ToolDefinition = {
   name: 'list_photos',
   description: 'List photos on the device camera roll with pagination',
+  category: 'Photos',
   inputSchema: ListPhotosSchema,
   outputSchema: ListPhotosOutputSchema,
   handler: async ({ udid, limit, cursor }) => {
@@ -588,6 +607,7 @@ const listPhotos: ToolDefinition = {
 const downloadPhoto: ToolDefinition = {
   name: 'download_photo',
   description: 'Download a photo from the device and return it as base64',
+  category: 'Photos',
   inputSchema: DownloadPhotoSchema,
   handler: async ({ udid, path: remotePath }) => {
     const { localPath, ext } = await downloadPhotoToCache(udid, remotePath)
@@ -606,6 +626,7 @@ const downloadPhoto: ToolDefinition = {
 
 const getDeviceControlSize: ToolDefinition = {
   name: 'get_device_control_size',
+  category: 'Screen Interaction',
   description:
     'Get the device control coordinate space. All coordinate-based tools use this range.',
   inputSchema: GetDeviceControlSizeSchema,
@@ -619,6 +640,7 @@ const getDeviceControlSize: ToolDefinition = {
 
 const markCoordinates: ToolDefinition = {
   name: 'mark_coordinates',
+  category: 'Screen Interaction',
   description:
     'Visually verify coordinates before performing device control actions. Returns one annotated screenshot per coordinate. Each image has a full-screen crosshair: a horizontal line spanning the full width and a vertical line spanning the full height. The point where these two lines intersect is the EXACT coordinate that will be acted on. A small numbered badge sits at the intersection. Lines use per-pixel color negation for visibility. To verify: look ONLY at the intersection point and confirm it lands on the intended UI element.',
   inputSchema: MarkCoordinatesSchema,

@@ -25,6 +25,7 @@ class DeviceManager {
   private devices = new Map<string, DeviceEntry>()
   private pollTimer: ReturnType<typeof setInterval> | null = null
   private running = false
+  private _pollRunning = false
   /** Cache: UDIDs we've confirmed as linked (paired + registered). */
   private linkedCache = new Set<string>()
 
@@ -58,6 +59,7 @@ class DeviceManager {
     await Promise.allSettled(stopTasks)
     this.devices.clear()
     this.linkedCache.clear()
+    this._pollRunning = false
   }
 
   getDevice(udid: string): DeviceEntry | undefined {
@@ -84,58 +86,64 @@ class DeviceManager {
   // ── Private ──────────────────────────────────────────────────────────
 
   private async poll(): Promise<void> {
-    const connectedResult = await device.listConnected()
-    const connected: ConnectedDevice[] = connectedResult.success
-      ? connectedResult.data
-      : []
+    if (this._pollRunning) return
+    this._pollRunning = true
+    try {
+      const connectedResult = await device.listConnected()
+      const connected: ConnectedDevice[] = connectedResult.success
+        ? connectedResult.data
+        : []
 
-    const currentUdids = new Set(connected.map(d => d.udid))
+      const currentUdids = new Set(connected.map(d => d.udid))
 
-    // Detect disconnected devices
-    for (const [udid, entry] of this.devices) {
-      if (!currentUdids.has(udid) && entry.connected) {
-        console.log(`[DeviceManager] Device disconnected: ${udid.slice(-8)}`)
-        await this.cleanupDevice(udid)
-        this.devices.delete(udid)
-      }
-    }
-
-    // Process connected devices
-    for (const d of connected) {
-      const existing = this.devices.get(d.udid)
-
-      if (existing && existing.connected) {
-        // Already tracked and connected — sync WDA state from wdaManager
-        this.syncWdaState(d.udid, existing)
-        continue
+      // Detect disconnected devices
+      for (const [udid, entry] of this.devices) {
+        if (!currentUdids.has(udid) && entry.connected) {
+          console.log(`[DeviceManager] Device disconnected: ${udid.slice(-8)}`)
+          await this.cleanupDevice(udid)
+          this.devices.delete(udid)
+        }
       }
 
-      // New device or previously disconnected
-      const linked = await this.checkLinked(d.udid)
-      const entry: DeviceEntry = {
-        udid: d.udid,
-        connected: true,
-        linked,
-        tunnelReady: false,
-        wdaState: 'idle',
-      }
-      this.devices.set(d.udid, entry)
+      // Process connected devices
+      for (const d of connected) {
+        const existing = this.devices.get(d.udid)
 
-      if (linked) {
-        console.log(
-          `[DeviceManager] Linked device detected: ${d.udid.slice(-8)} — starting setup`
-        )
-        this.setupDevice(d.udid, entry).catch(err =>
-          console.error(
-            `[DeviceManager] Setup failed for ${d.udid.slice(-8)}:`,
-            err
+        if (existing && existing.connected) {
+          // Already tracked and connected — sync WDA state from wdaManager
+          this.syncWdaState(d.udid, existing)
+          continue
+        }
+
+        // New device or previously disconnected
+        const linked = await this.checkLinked(d.udid)
+        const entry: DeviceEntry = {
+          udid: d.udid,
+          connected: true,
+          linked,
+          tunnelReady: false,
+          wdaState: 'idle',
+        }
+        this.devices.set(d.udid, entry)
+
+        if (linked) {
+          console.log(
+            `[DeviceManager] Linked device detected: ${d.udid.slice(-8)} — starting setup`
           )
-        )
-      } else {
-        console.log(
-          `[DeviceManager] Unlinked device detected: ${d.udid.slice(-8)} — skipping`
-        )
+          this.setupDevice(d.udid, entry).catch(err =>
+            console.error(
+              `[DeviceManager] Setup failed for ${d.udid.slice(-8)}:`,
+              err
+            )
+          )
+        } else {
+          console.log(
+            `[DeviceManager] Unlinked device detected: ${d.udid.slice(-8)} — skipping`
+          )
+        }
       }
+    } finally {
+      this._pollRunning = false
     }
   }
 

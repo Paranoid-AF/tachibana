@@ -9,12 +9,18 @@ import { verifyApiToken } from '../libs/admin-auth.ts'
 import { logDeviceAction } from '../libs/audit-log.ts'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { allTools, toolMap } from '../libs/agent-tools.ts'
+import { generateToolsMarkdown } from '../libs/agent-tools-docs.ts'
+
+// Cache generated markdown at startup (tools are static)
+const toolsDocsMarkdown = generateToolsMarkdown()
 
 // ---------------------------------------------------------------------------
 // Skill route (Elysia)
 // ---------------------------------------------------------------------------
 
 export const agentRoutes = new Elysia({ prefix: '/agent' })
+  // Public endpoint — tool list is not sensitive
+  .get('/tools-docs', () => ({ markdown: toolsDocsMarkdown }))
   .use(apiTokenGuard)
   .post(
     '/skill',

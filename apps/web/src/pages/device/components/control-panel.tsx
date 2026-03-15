@@ -214,6 +214,14 @@ export function ControlPanel({ udid }: ControlPanelProps) {
     [udid]
   )
 
+  const handleLogsPageInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = parseInt(e.target.value, 10)
+      if (val >= 1 && val <= logsTotalPages) setLogsPage(val)
+    },
+    [logsTotalPages]
+  )
+
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
@@ -521,51 +529,61 @@ export function ControlPanel({ udid }: ControlPanelProps) {
             </Button>
           )}
         </div>
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="px-2">
-            {logs.length === 0 && (
-              <div className="text-xs text-muted-foreground py-4 text-center">
-                No logs yet
-              </div>
-            )}
-            {logs.map((log: DeviceLog) => (
-              <div
-                key={log.id}
-                className="flex items-center gap-2 px-2 py-1.5 text-xs border-b border-border/50 last:border-b-0"
-                title={
-                  log.status === 'failed' && log.error
-                    ? `Error: ${log.error}`
-                    : undefined
-                }
-              >
-                <span className="text-muted-foreground shrink-0 w-24 text-right tabular-nums">
-                  {formatDistanceToNow(log.createdAt, { addSuffix: true })}
-                </span>
-                <span
-                  className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${SOURCE_COLORS[log.source] ?? 'bg-muted text-muted-foreground'}`}
+        {!(appsOpen || photosOpen) && (
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="px-2">
+              {logs.length === 0 && (
+                <div className="text-xs text-muted-foreground py-4 text-center">
+                  No logs yet
+                </div>
+              )}
+              {logs.map((log: DeviceLog) => (
+                <div
+                  key={log.id}
+                  className="flex items-center gap-2 px-2 py-1.5 text-xs border-b border-border/50 last:border-b-0"
+                  title={
+                    log.status === 'failed' && log.error
+                      ? `Error: ${log.error}`
+                      : undefined
+                  }
                 >
-                  {log.source}
-                </span>
-                <span className="font-mono truncate flex-1">{log.action}</span>
-                <span
-                  className={`shrink-0 h-2 w-2 rounded-full ${
-                    log.status === 'success'
-                      ? 'bg-green-500'
-                      : log.status === 'processing'
-                        ? 'bg-yellow-500 animate-pulse'
-                        : 'bg-red-500'
-                  }`}
-                  title={log.status}
-                />
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
-        {logsTotal > 0 && (
+                  <span className="text-muted-foreground shrink-0 w-24 text-right tabular-nums">
+                    {formatDistanceToNow(log.createdAt, { addSuffix: true })}
+                  </span>
+                  <span
+                    className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-medium ${SOURCE_COLORS[log.source] ?? 'bg-muted text-muted-foreground'}`}
+                  >
+                    {log.source}
+                  </span>
+                  <span className="font-mono truncate flex-1">{log.action}</span>
+                  <span
+                    className={`shrink-0 h-2 w-2 rounded-full ${
+                      log.status === 'success'
+                        ? 'bg-green-500'
+                        : log.status === 'processing'
+                          ? 'bg-yellow-500 animate-pulse'
+                          : 'bg-red-500'
+                    }`}
+                    title={log.status}
+                  />
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
+        {!(appsOpen || photosOpen) && logsTotal > 0 && (
           <div className="flex items-center justify-between px-4 py-1.5 border-t text-xs text-muted-foreground">
-            <span>
-              Page {logsPage} of {logsTotalPages}
-            </span>
+            <div className="flex items-center gap-1">
+              <Input
+                type="number"
+                min={1}
+                max={logsTotalPages}
+                value={logsPage}
+                onChange={handleLogsPageInput}
+                className="h-6 w-10 text-center text-xs px-1 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              />
+              <span>/ {logsTotalPages}</span>
+            </div>
             <div className="flex items-center gap-1">
               <Button
                 variant="ghost"

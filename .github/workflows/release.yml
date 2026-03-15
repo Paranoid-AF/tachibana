@@ -239,6 +239,11 @@ jobs:
             [ -f "$ipa" ] && cp "$ipa" "${staging}/assets/"
           fi
 
+          # WinSW service wrapper config (Windows only)
+          if [[ "$label" == windows-* ]]; then
+            cp ".packaging/winsw/tachibana-service.xml" "${staging}/"
+          fi
+
           # Fix permissions on non-Windows
           if [ "${{ matrix.ext }}" = "" ]; then
             chmod +x "${staging}/tachibana" "${staging}/bin/ios" 2>/dev/null || true
@@ -399,6 +404,12 @@ jobs:
         with:
           name: staging-windows-x64
           path: staging/
+
+      - name: Download WinSW
+        shell: pwsh
+        run: |
+          $url = "https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW-x64.exe"
+          Invoke-WebRequest -Uri $url -OutFile "staging/tachibana-service.exe"
 
       - name: Install WiX
         run: dotnet tool install --global wix

@@ -1,0 +1,18 @@
+<service>
+  <id>TachibanaServer</id>
+  <name>Tachibana Server</name>
+  <description>Tachibana iOS Device Management Server</description>
+  <executable>%BASE%\tachibana.exe</executable>
+  <workingdirectory>%BASE%</workingdirectory>
+  <env name="NODE_ENV" value="production" />
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>3</keepFiles>
+  </log>
+  <logpath>%BASE%\logs</logpath>
+  <onfailure action="restart" delay="5 sec" />
+  <onfailure action="restart" delay="10 sec" />
+  <onfailure action="restart" delay="30 sec" />
+  <resetfailure>1 hour</resetfailure>
+  <stoptimeout>15 sec</stoptimeout>
+</service>

@@ -23,6 +23,10 @@
     <ComponentGroup Id="ServerComponent" Directory="INSTALLFOLDER">
       <Component Id="ServerExe" Guid="*">
         <File Id="TachibanaServerExe" Source="$(var.StagingDir)\tachibana.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="ServiceWrapper" Guid="*">
+        <File Id="TachibanaServiceWrapperExe" Source="$(var.StagingDir)\tachibana-service.exe" KeyPath="yes" />
+        <File Id="TachibanaServiceWrapperXml" Source="$(var.StagingDir)\tachibana-service.xml" />
         <ServiceInstall
           Id="TachibanaServiceInstall"
           Name="TachibanaServer"

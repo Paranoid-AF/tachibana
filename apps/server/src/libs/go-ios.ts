@@ -182,6 +182,8 @@ async function spawnTunnelAndPoll(ios: string): Promise<TunnelInfo> {
  * The server process must already be elevated (via ensureElevated).
  * Spawns the tunnel process directly since we inherit root privileges.
  */
+let tunnelInFlight: Promise<TunnelInfo> | null = null
+
 export async function ensureTunnel(): Promise<TunnelInfo> {
   // Already running?
   const existing = await findAgent()
@@ -193,5 +195,13 @@ export async function ensureTunnel(): Promise<TunnelInfo> {
     return existing
   }
 
-  return spawnTunnelAndPoll(await getIosBinary())
+  // Coalesce concurrent spawn attempts
+  if (tunnelInFlight) return tunnelInFlight
+
+  tunnelInFlight = spawnTunnelAndPoll(await getIosBinary())
+  try {
+    return await tunnelInFlight
+  } finally {
+    tunnelInFlight = null
+  }
 }
