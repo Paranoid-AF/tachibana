@@ -18,6 +18,7 @@
         <Directory Id="WebFolder" Name="web" />
         <Directory Id="SharpFolder" Name="sharp" />
         <Directory Id="IosConnectFolder" Name="ios-connect" />
+        <Directory Id="AssetsFolder" Name="assets" />
       </Directory>
     </StandardDirectory>
 
@@ -71,6 +72,10 @@
       <Files Include="$(var.StagingDir)\ios-connect\**" />
     </ComponentGroup>
 
+    <ComponentGroup Id="AssetsFiles" Directory="AssetsFolder">
+      <Files Include="$(var.StagingDir)\assets\**" />
+    </ComponentGroup>
+
     <Feature Id="Main" Title="Tachibana" Level="1">
       <ComponentGroupRef Id="ServerComponent" />
       <ComponentGroupRef Id="BinFiles" />
@@ -78,6 +83,7 @@
       <ComponentGroupRef Id="WebFiles" />
       <ComponentGroupRef Id="SharpFiles" />
       <ComponentGroupRef Id="IosConnectFiles" />
+      <ComponentGroupRef Id="AssetsFiles" />
     </Feature>
   </Package>
 </Wix>

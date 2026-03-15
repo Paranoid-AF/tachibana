@@ -196,7 +196,6 @@ jobs:
         run: bun run apps/server/scripts/install-go-ios.ts
 
       - name: Download WDA IPA
-        if: startsWith(matrix.label, 'darwin')
         uses: actions/download-artifact@v8
         with:
           name: wda-ipa
@@ -237,12 +236,10 @@ jobs:
           cp "${ic_dist}/index.js" "${ic_staging}/"
           cp "${ic_dist}/"*.node "${ic_staging}/"
 
-          # WDA IPA (macOS only)
-          if [[ "$label" == darwin-* ]]; then
-            mkdir -p "${staging}/assets"
-            ipa="packages/ios-wda/ipa-build/WebDriverAgentRunner.ipa"
-            [ -f "$ipa" ] && cp "$ipa" "${staging}/assets/"
-          fi
+          # WDA IPA
+          mkdir -p "${staging}/assets"
+          ipa="packages/ios-wda/ipa-build/WebDriverAgentRunner.ipa"
+          [ -f "$ipa" ] && cp "$ipa" "${staging}/assets/"
 
           # Fix permissions on non-Windows
           if [ "${{ matrix.ext }}" = "" ]; then
