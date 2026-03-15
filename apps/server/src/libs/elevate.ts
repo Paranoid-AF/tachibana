@@ -34,11 +34,10 @@ export async function ensureElevated(): Promise<void> {
 
 function isElevated(): boolean {
   if (process.platform === 'win32') {
-    // When running as LocalSystem (e.g. Windows service), we are always elevated.
-    // `net session` does not work reliably under the SYSTEM account.
-    if (/^NT AUTHORITY\\SYSTEM$/i.test(Bun.env.USERNAME ?? '')) return true
+    // `fltMC` (Filter Manager) reliably returns 0 when running elevated,
+    // unlike `net session` which fails under LocalSystem / service accounts.
     try {
-      const result = Bun.spawnSync(['net', 'session'], {
+      const result = Bun.spawnSync(['fltMC'], {
         stdout: 'ignore',
         stderr: 'ignore',
       })
