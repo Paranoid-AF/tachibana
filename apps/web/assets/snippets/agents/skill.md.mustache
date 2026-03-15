@@ -28,21 +28,23 @@ Most tools return a JSON object directly. For example:
 { "ok": true }
 ```
 
-Image tools (`take_screenshot`, `download_photo`, `mark_coordinates`) return MCP content format:
+Image tools (`take_screenshot`, `download_photo`) return MCP content format:
 ```json
 { "content": [{ "type": "image", "data": "<base64>", "mimeType": "image/png" }] }
 ```
 
+Screen interaction tools (`tap`, `double_tap`, `touch_and_hold`, `drag`) return annotated screenshots with crosshair markers **and** a `device_control_token`. They do **not** perform the action — call `execute_device_control` with the token to commit it.
+
 Error responses: `{ "error": "<message>" }`
 
-## Coordinate Verification (REQUIRED)
+## 2-Step Device Control (REQUIRED)
 
-Before tapping, double-tapping, long-pressing, or dragging on the device screen, you **MUST** follow this workflow:
+Before interacting with the device screen, you **MUST** follow this workflow:
 
 1. Call `get_device_control_size` to learn the valid coordinate range.
-2. Call `mark_coordinates` with your intended coordinates to visually verify they hit the correct target.
-3. Only after confirming the crosshair markers are positioned correctly, perform the action (`tap`, `double_tap`, `touch_and_hold`, `drag`).
+2. Call the action tool (`tap`, `double_tap`, `touch_and_hold`, `drag`) with your intended coordinates. This returns annotated screenshots showing crosshair markers on the target **and** a `device_control_token`. The action is **not** performed yet.
+3. Verify the crosshair markers are positioned correctly, then call `execute_device_control` with the `device_control_token` to perform the actual action.
 
-Never guess coordinates without verifying them first — skipping this workflow risks tapping the wrong element.
+Never guess coordinates without verifying them first — skipping this workflow risks tapping the wrong element. Each token can only be used once.
 
 {{{tools_docs}}}
