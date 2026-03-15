@@ -37,9 +37,13 @@
           ErrorControl="normal"
           Account="LocalSystem" />
         <ServiceControl
-          Id="TachibanaServiceControl"
+          Id="TachibanaServiceStart"
           Name="TachibanaServer"
           Start="install"
+          Wait="no" />
+        <ServiceControl
+          Id="TachibanaServiceCleanup"
+          Name="TachibanaServer"
           Stop="both"
           Remove="uninstall"
           Wait="yes" />

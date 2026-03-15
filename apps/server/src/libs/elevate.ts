@@ -34,6 +34,9 @@ export async function ensureElevated(): Promise<void> {
 
 function isElevated(): boolean {
   if (process.platform === 'win32') {
+    // When running as LocalSystem (e.g. Windows service), we are always elevated.
+    // `net session` does not work reliably under the SYSTEM account.
+    if (/^NT AUTHORITY\\SYSTEM$/i.test(Bun.env.USERNAME ?? '')) return true
     try {
       const result = Bun.spawnSync(['net', 'session'], {
         stdout: 'ignore',
