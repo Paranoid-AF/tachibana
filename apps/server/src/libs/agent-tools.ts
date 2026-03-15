@@ -15,7 +15,7 @@ import {
   ensureCompatibleImage,
 } from './idevice-utils.ts'
 import { MEDIA_MIME_TYPES } from '../consts/idevice.ts'
-import { annotateScreenshot } from './image-annotate.ts'
+import { annotateScreenshot, resizeToControlSpace } from './image-utilities.ts'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -214,6 +214,16 @@ const ExecuteDeviceControlSchema = z.object({
   device_control_token: z
     .string()
     .describe('Token from a prior tap/double_tap/touch_and_hold/drag call'),
+  settle_ms: z
+    .number()
+    .int()
+    .min(0)
+    .max(10000)
+    .optional()
+    .describe(
+      'Milliseconds to wait after the action before taking a verification screenshot. ' +
+        'Use 500–1500 for UI transitions (navigation, modals). Default: 0 (no screenshot).'
+    ),
 })
 
 const TakeScreenshotSchema = z.object({
@@ -431,7 +441,7 @@ const typeText: ToolDefinition = {
   name: 'type_text',
   category: 'Screen Interaction',
   description:
-    'Type text on the device (requires a focused text field). If you need to tap a text field first, follow the coordinate verification workflow: get_device_control_size → tap → execute_device_control, then type_text.',
+    'Type text on the device (requires a focused text field). If you need to tap a text field first, follow the coordinate verification workflow: get_device_control_size → tap → execute_device_control, then type_text. Returns a screenshot after typing so you can verify the result.',
   inputSchema: TypeTextSchema,
   outputSchema: OkOutputSchema,
   handler: async ({ udid, text }) => {
@@ -439,7 +449,25 @@ const typeText: ToolDefinition = {
     await wdaFetch(mainPort, 'POST', `/session/${sessionId}/wda/keys`, {
       value: text.split(''),
     })
-    return textResult({ ok: true })
+    const [b64, windowSize] = await Promise.all([
+      wdaFetch(mainPort, 'GET', `/session/${sessionId}/screenshot`) as Promise<string>,
+      wdaFetch(mainPort, 'GET', '/window/size') as Promise<{
+        width: number
+        height: number
+      }>,
+    ])
+    const resizedBuf = await resizeToControlSpace(b64, windowSize)
+    return {
+      content: [
+        { type: 'text' as const, text: JSON.stringify({ ok: true }) },
+        {
+          type: 'image' as const,
+          data: resizedBuf.toString('base64'),
+          mimeType: 'image/png',
+        },
+      ],
+      structuredContent: { ok: true },
+    }
   },
 }
 
@@ -463,14 +491,21 @@ const takeScreenshot: ToolDefinition = {
   inputSchema: TakeScreenshotSchema,
   handler: async ({ udid }) => {
     const { mainPort, sessionId } = await ensureWda(udid)
-    const base64 = (await wdaFetch(
-      mainPort,
-      'GET',
-      `/session/${sessionId}/screenshot`
-    )) as string
+    const [base64, windowSize] = await Promise.all([
+      wdaFetch(mainPort, 'GET', `/session/${sessionId}/screenshot`) as Promise<string>,
+      wdaFetch(mainPort, 'GET', '/window/size') as Promise<{
+        width: number
+        height: number
+      }>,
+    ])
+    const resizedBuf = await resizeToControlSpace(base64, windowSize)
     return {
       content: [
-        { type: 'image' as const, data: base64, mimeType: 'image/png' },
+        {
+          type: 'image' as const,
+          data: resizedBuf.toString('base64'),
+          mimeType: 'image/png',
+        },
       ],
     }
   },
@@ -662,7 +697,7 @@ const executeDeviceControl: ToolDefinition = {
     'Execute a previously previewed device control action. Requires a device_control_token returned by a prior tap/double_tap/touch_and_hold/drag call. Each token can only be used once.',
   inputSchema: ExecuteDeviceControlSchema,
   outputSchema: OkOutputSchema,
-  handler: async ({ device_control_token }) => {
+  handler: async ({ device_control_token, settle_ms }) => {
     const action = pendingActions.get(device_control_token)
     if (!action) {
       throw new Error('Invalid or already-used device_control_token')
@@ -750,6 +785,30 @@ const executeDeviceControl: ToolDefinition = {
           ],
         })
         break
+    }
+
+    if (settle_ms && settle_ms > 0) {
+      await Bun.sleep(settle_ms)
+      const { mainPort: p, sessionId: s } = await ensureWda(action.udid)
+      const [b64, windowSize] = await Promise.all([
+        wdaFetch(p, 'GET', `/session/${s}/screenshot`) as Promise<string>,
+        wdaFetch(p, 'GET', '/window/size') as Promise<{
+          width: number
+          height: number
+        }>,
+      ])
+      const resizedBuf = await resizeToControlSpace(b64, windowSize)
+      return {
+        content: [
+          { type: 'text' as const, text: JSON.stringify({ ok: true }) },
+          {
+            type: 'image' as const,
+            data: resizedBuf.toString('base64'),
+            mimeType: 'image/png',
+          },
+        ],
+        structuredContent: { ok: true },
+      }
     }
 
     return textResult({ ok: true })

@@ -1,47 +1,62 @@
 import sharp from 'sharp'
 
 export interface AnnotatedCoordinate {
-  full: string // base64 PNG — full screenshot with crosshair
+  full: string // base64 PNG — full screenshot with crosshair (at control space resolution)
   crop: string // base64 PNG — cropped close-up around intersection
 }
 
-// Crop radius in WDA points around the intersection
+// Crop radius in WDA points (= pixels after resize to control space)
 const CROP_RADIUS_PT = 80
+
+/**
+ * Resize a screenshot to match the WDA control coordinate space so that
+ * pixel coordinates equal control coordinates (scale = 1).
+ */
+export async function resizeToControlSpace(
+  screenshotBase64: string,
+  wdaSize: { width: number; height: number }
+): Promise<Buffer> {
+  const imgBuf = Buffer.from(screenshotBase64, 'base64')
+  return sharp(imgBuf)
+    .resize(wdaSize.width, wdaSize.height, { fit: 'fill' })
+    .png()
+    .toBuffer()
+}
 
 export async function annotateScreenshot(
   screenshotBase64: string,
   coordinates: Array<{ x: number; y: number }>,
   wdaSize: { width: number; height: number }
 ): Promise<AnnotatedCoordinate[]> {
-  const imgBuf = Buffer.from(screenshotBase64, 'base64')
-  const metadata = await sharp(imgBuf).metadata()
-  const imgW = metadata.width!
-  const imgH = metadata.height!
+  // Resize to control space so pixel coords = WDA point coords (scale = 1)
+  const resizedBuf = await resizeToControlSpace(screenshotBase64, wdaSize)
+  const imgW = wdaSize.width
+  const imgH = wdaSize.height
 
   // Extract raw pixels (RGBA)
-  const { data: rawPixels } = await sharp(imgBuf)
+  const { data: rawPixels } = await sharp(resizedBuf)
     .ensureAlpha()
     .raw()
     .toBuffer({ resolveWithObject: true })
 
   const channels = 4 // ensureAlpha guarantees RGBA
-  const scale = imgW / wdaSize.width
-  const cropRadiusPx = Math.round(CROP_RADIUS_PT * scale)
+  const cropRadiusPx = CROP_RADIUS_PT // scale = 1, so points = pixels
 
   const results: AnnotatedCoordinate[] = []
 
   for (let i = 0; i < coordinates.length; i++) {
     const { x, y } = coordinates[i]
 
-    const pixelX = Math.max(0, Math.min(Math.round(x * scale), imgW - 1))
-    const pixelY = Math.max(0, Math.min(Math.round(y * scale), imgH - 1))
+    // scale = 1 (image was resized to control space), so pixel coords = WDA points
+    const pixelX = Math.max(0, Math.min(Math.round(x), imgW - 1))
+    const pixelY = Math.max(0, Math.min(Math.round(y), imgH - 1))
 
     const lineWidth = Math.max(2, Math.round(imgW / 400))
     const halfLW = Math.floor(lineWidth / 2)
 
     // Compute label rect bounds first so we can skip that area
     const fontSize = Math.max(16, Math.round(imgW / 30))
-    const label = String(i)
+    const label = `#${i} (${x},${y})`
     const rectW = Math.round(fontSize * (label.length * 0.7 + 1))
     const rectH = Math.round(fontSize * 1.5)
     const rectX = pixelX - Math.round(rectW / 2)
