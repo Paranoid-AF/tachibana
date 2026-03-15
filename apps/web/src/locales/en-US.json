@@ -100,7 +100,7 @@
     }
   },
   "controlPanel": {
-    "control": "CONTROL",
+    "control": "Control",
     "screenControls": "Screen controls",
     "click": "Click",
     "clickTap": "Tap",
@@ -124,7 +124,7 @@
     "noPhotos": "No photos found",
     "download": "Download",
     "loadMore": "Load More",
-    "logs": "LOGS",
+    "logs": "Logs",
     "autoRefresh": "Auto Refresh",
     "closePanel": "Close panel",
     "noLogs": "No logs yet",

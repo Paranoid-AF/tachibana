@@ -318,11 +318,11 @@ export function ControlPanel({ udid }: ControlPanelProps) {
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b">
-        <span className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-muted-foreground">
+        <span className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           {t('controlPanel.control')}
           <span className="relative group">
             <CircleHelp className="h-3.5 w-3.5 cursor-help text-muted-foreground/60" />
-            <div className="absolute left-0 top-full mt-1.5 z-50 hidden group-hover:block w-52 rounded-md border bg-popover p-3 text-xs font-normal tracking-normal text-popover-foreground shadow-md">
+            <div className="absolute left-0 top-full mt-1.5 z-50 hidden group-hover:block w-52 rounded-md border bg-popover p-3 text-xs font-normal tracking-normal text-popover-foreground shadow-md normal-case">
               <p className="font-medium mb-1.5">
                 {t('controlPanel.screenControls')}
               </p>
@@ -611,9 +611,9 @@ export function ControlPanel({ udid }: ControlPanelProps) {
       {(appsOpen || photosOpen) && (
         <div>
           <div className="flex items-center justify-between px-4 py-2 border-t">
-            <span className="flex items-center gap-4 text-xs font-semibold tracking-wider text-muted-foreground">
+            <span className="flex items-center gap-4 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               {t('controlPanel.logs')}
-              <label className="flex items-center font-normal tracking-normal cursor-pointer select-none">
+              <label className="flex items-center font-normal tracking-normal cursor-pointer select-none normal-case">
                 <Switch
                   checked={logsAutoRefresh}
                   onCheckedChange={setLogsAutoRefresh}
@@ -640,9 +640,9 @@ export function ControlPanel({ udid }: ControlPanelProps) {
       {!(appsOpen || photosOpen) && (
         <div className="flex-1 flex flex-col">
           <div className="flex items-center justify-between px-4 py-2 border-t">
-            <span className="flex items-center gap-4 text-xs font-semibold tracking-wider text-muted-foreground">
+            <span className="flex items-center gap-4 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               {t('controlPanel.logs')}
-              <label className="flex items-center font-normal tracking-normal cursor-pointer select-none">
+              <label className="flex items-center font-normal tracking-normal cursor-pointer select-none normal-case">
                 <Switch
                   checked={logsAutoRefresh}
                   onCheckedChange={setLogsAutoRefresh}
