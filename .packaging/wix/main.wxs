@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
   <Package
     Name="Tachibana"
     Manufacturer="Paranoid-AF"
@@ -75,6 +76,18 @@
     <ComponentGroup Id="AssetsFiles" Directory="AssetsFolder">
       <Files Include="$(var.StagingDir)\assets\**" />
     </ComponentGroup>
+
+    <!-- Terminate service processes before installing files to prevent file-lock conflicts on upgrade -->
+    <util:CloseApplication Id="CloseServiceWrapper"
+      Target="tachibana-service.exe"
+      CloseMessage="yes"
+      RebootPrompt="no"
+      TerminateProcess="yes" />
+    <util:CloseApplication Id="CloseTachibana"
+      Target="tachibana.exe"
+      CloseMessage="yes"
+      RebootPrompt="no"
+      TerminateProcess="yes" />
 
     <Feature Id="Main" Title="Tachibana" Level="1">
       <ComponentGroupRef Id="ServerComponent" />
