@@ -1,15 +1,15 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import path from 'node:path'
 
-import { Elysia, t } from 'elysia'
+import { Elysia } from 'elysia'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 
-import { apiTokenGuard } from '../libs/auth-middleware.ts'
 import { verifyApiToken } from '../libs/admin-auth.ts'
 import { logDeviceAction } from '../libs/audit-log.ts'
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
-import { allTools, toolMap } from '../libs/agent-tools.ts'
+import { allTools } from '../libs/agent-tools.ts'
 import { generateToolsMarkdown } from '../libs/agent-tools-docs.ts'
+import { serverDir, isCompiled } from '../libs/runtime.ts'
 
 // Cache generated markdown at startup (tools are static)
 const toolsDocsMarkdown = generateToolsMarkdown()
@@ -18,77 +18,33 @@ const toolsDocsMarkdown = generateToolsMarkdown()
 // Skill route (Elysia)
 // ---------------------------------------------------------------------------
 
+const cliExecutableName = 'tachibana-cli.js'
+
+/** Resolve the CLI binary from staging dir (production) or apps/cli/dist/ (dev). */
+function resolveCliBinaryPath(): string {
+  if (isCompiled) {
+    // Production: CLI binary sits next to the server binary in the staging dir
+    return path.join(serverDir, cliExecutableName)
+  }
+  // Dev: apps/server → apps/cli/dist/
+  return path.join(serverDir, '..', 'cli', 'dist', cliExecutableName)
+}
+
 export const agentRoutes = new Elysia({ prefix: '/agent' })
   // Public endpoint — tool list is not sensitive
   .get('/tools-docs', () => ({ markdown: toolsDocsMarkdown }))
-  .use(apiTokenGuard)
-  .post(
-    '/skill',
-    async ctx => {
-      const { body, set } = ctx
-      const apiAuthId = (ctx as any).apiAuthId as number | null
-      const { tool, parameters } = body
-      const def = toolMap.get(tool)
-      if (!def) {
-        set.status = 400
-        return { error: `Unknown tool: ${tool}` }
-      }
-      try {
-        const parsed = def.inputSchema.parse(parameters ?? {})
-        if (parsed.udid) {
-          const result = await logDeviceAction({
-            udid: parsed.udid as string,
-            authId: apiAuthId,
-            source: 'agent',
-            action: tool,
-            params: parsed as Record<string, unknown>,
-            work: () => def.handler(parsed),
-          })
-          return unwrapSkillResult(result)
-        }
-        const result = await def.handler(parsed)
-        return unwrapSkillResult(result)
-      } catch (err: any) {
-        set.status = 500
-        return { error: err.message ?? String(err) }
-      }
-    },
-    {
-      body: t.Object({
-        tool: t.String(),
-        parameters: t.Optional(t.Record(t.String(), t.Unknown())),
-      }),
+  // Public endpoint — serve the CLI binary for inclusion in SKILL ZIP
+  .get('/mcp-client', async ({ set }) => {
+    const binaryPath = resolveCliBinaryPath()
+    const file = Bun.file(binaryPath)
+    if (!(await file.exists())) {
+      set.status = 404
+      return { error: 'CLI binary not found' }
     }
-  )
-
-// ---------------------------------------------------------------------------
-// Skill result unwrapper — convert MCP content format to plain JSON
-// ---------------------------------------------------------------------------
-
-function unwrapSkillResult(result: CallToolResult): unknown {
-  if (result.isError) {
-    return {
-      error:
-        result.content[0]?.type === 'text'
-          ? result.content[0].text
-          : 'Unknown error',
-    }
-  }
-  // Prefer structuredContent when available (native JSON object)
-  if (result.structuredContent) {
-    return result.structuredContent
-  }
-  // Fallback: single text content → parse as JSON object
-  if (result.content.length === 1 && result.content[0].type === 'text') {
-    try {
-      return JSON.parse(result.content[0].text)
-    } catch {
-      return { text: result.content[0].text }
-    }
-  }
-  // Image or mixed content → return as-is
-  return result
-}
+    set.headers['Content-Disposition'] = `attachment; filename="${cliExecutableName}"`
+    set.headers['Content-Type'] = 'text/javascript'
+    return file
+  })
 
 // ---------------------------------------------------------------------------
 // MCP helper — creates a fresh McpServer with all tools registered

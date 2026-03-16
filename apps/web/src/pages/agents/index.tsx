@@ -93,12 +93,31 @@ async function fetchToolsDocs(): Promise<string> {
   return data.markdown
 }
 
-function renderTemplates(authToken: string, toolsDocs: string) {
+async function fetchCliBinary(): Promise<{ name: string; data: ArrayBuffer } | null> {
+  try {
+    const resp = await fetch('/api/agent/mcp-client')
+    if (!resp.ok) return null
+    const disposition = resp.headers.get('Content-Disposition') ?? ''
+    const match = disposition.match(/filename="([^"]+)"/)
+    const name = match?.[1] ?? 'tachibana-cli'
+    const data = await resp.arrayBuffer()
+    return { name, data }
+  } catch {
+    return null
+  }
+}
+
+function renderTemplates(
+  authToken: string,
+  toolsDocs: string,
+  cliExecutableName: string
+) {
   const vars = {
     server_origin: window.location.origin,
     auth_token: authToken,
     skill_name: AGENT_SKILL_NAME,
     tools_docs: toolsDocs,
+    cli_executable_name: cliExecutableName,
   }
   return {
     skillMd: Mustache.render(skillTemplate, vars),
@@ -106,10 +125,20 @@ function renderTemplates(authToken: string, toolsDocs: string) {
   }
 }
 
-async function downloadSkillZip(skillMdContent: string) {
+async function downloadSkillZip(authToken: string, toolsDocs: string) {
   const safeName = `${AGENT_SKILL_NAME}-${version}`
   const zip = new JSZip()
-  zip.file(`${safeName}/SKILL.md`, skillMdContent)
+
+  const cli = await fetchCliBinary()
+  const cliExecutableName = cli?.name ?? 'tachibana-cli'
+
+  const { skillMd } = renderTemplates(authToken, toolsDocs, cliExecutableName)
+  zip.file(`${safeName}/SKILL.md`, skillMd)
+
+  if (cli) {
+    zip.file(`${safeName}/${cli.name}`, cli.data, { binary: true })
+  }
+
   const blob = await zip.generateAsync({ type: 'blob' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -198,8 +227,9 @@ export function AgentsPage() {
     setCopiedItem(item)
   }
 
+  // mcpJson doesn't use cli_executable_name; SKILL.md is rendered inside downloadSkillZip
   const rendered = revealedAgent
-    ? renderTemplates(revealedAgent.key, toolsDocs)
+    ? renderTemplates(revealedAgent.key, toolsDocs, 'tachibana-cli')
     : null
 
   return (
@@ -435,8 +465,7 @@ export function AgentsPage() {
                     className="w-full"
                     onClick={() =>
                       revealedAgent &&
-                      rendered &&
-                      downloadSkillZip(rendered.skillMd)
+                      downloadSkillZip(revealedAgent.key, toolsDocs)
                     }
                   >
                     <Download className="w-4 h-4 mr-2" />

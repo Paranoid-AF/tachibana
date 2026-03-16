@@ -89,7 +89,7 @@ const main = async () => {
   server.on('request', async (req, res) => {
     const pathname = req.url || '/'
     // Intercept MCP requests at HTTP level (before Elysia)
-    if (pathname.startsWith('/api/agent/mcp')) {
+    if (pathname === '/api/agent/mcp' || pathname.startsWith('/api/agent/mcp/') || pathname.startsWith('/api/agent/mcp?')) {
       await handleMcpRequest(req, res)
       return
     }

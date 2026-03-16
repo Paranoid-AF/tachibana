@@ -5,37 +5,56 @@ description: Atomic operations over iOS devices — screen interaction, app mana
 
 # {{{skill_name}}}
 
-## Connection
+## Setup
 
-- **Endpoint:** `{{{server_origin}}}/api/agent/skill`
-- **Method:** `POST`
-- **Content-Type:** `application/json`
-- **Authorization:** `Bearer {{{auth_token}}}`
+This skill directory includes `{{{cli_executable_name}}}` — a CLI that communicates with the Tachibana server using the MCP protocol. Requires Node.js. Use it to call tools instead of making HTTP requests directly.
 
-## Request Format
+Set your connection details:
+```bash
+export TACHIBANA_ORIGIN="{{{server_origin}}}"
+export TACHIBANA_TOKEN="{{{auth_token}}}"
+```
 
-```json
-{
-  "tool": "<tool_name>",
-  "parameters": { ... }
-}
+Or pass them inline with every call:
+```bash
+node {{{cli_executable_name}}} --origin {{{server_origin}}} --token {{{auth_token}}} call <tool_name> '<json_params>'
+```
+
+## Calling Tools
+
+```bash
+node {{{cli_executable_name}}} call <tool_name> '<json_params>'
+```
+
+Examples:
+```bash
+# List connected devices
+node {{{cli_executable_name}}} call list_devices '{}'
+
+# Take a screenshot
+node {{{cli_executable_name}}} call take_screenshot '{"udid": "<device_udid>"}'
+
+# List available tools
+node {{{cli_executable_name}}} list
 ```
 
 ## Response Format
 
-Most tools return a JSON object directly. For example:
+Tools output JSON to stdout. Most tools return a JSON object:
 ```json
 { "ok": true }
 ```
 
-Image tools (`take_screenshot`, `download_photo`) return MCP content format:
+Image tools (`take_screenshot`, `download_photo`) save the image to a temp file and return a file path:
 ```json
-{ "content": [{ "type": "image", "data": "<base64>", "mimeType": "image/png" }] }
+{ "content": [{ "type": "image_file", "path": "/tmp/tachibana-<id>.png" }] }
 ```
+
+Read the image directly from the returned path.
 
 Screen interaction tools (`tap`, `double_tap`, `touch_and_hold`, `drag`) return annotated screenshots with crosshair markers **and** a `device_control_token`. They do **not** perform the action — call `execute_device_control` with the token to commit it.
 
-Error responses: `{ "error": "<message>" }`
+Error responses: `{ "isError": true, "content": [{ "type": "text", "text": "<message>" }] }`
 
 ## 2-Step Device Control (REQUIRED)
 
