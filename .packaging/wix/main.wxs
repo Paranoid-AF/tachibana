@@ -82,12 +82,12 @@
       Target="tachibana-service.exe"
       CloseMessage="yes"
       RebootPrompt="no"
-      TerminateProcess="yes" />
+      TerminateProcess="0" />
     <util:CloseApplication Id="CloseTachibana"
       Target="tachibana.exe"
       CloseMessage="yes"
       RebootPrompt="no"
-      TerminateProcess="yes" />
+      TerminateProcess="0" />
 
     <Feature Id="Main" Title="Tachibana" Level="1">
       <ComponentGroupRef Id="ServerComponent" />
