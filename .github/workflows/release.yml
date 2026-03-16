@@ -145,6 +145,9 @@ jobs:
       - name: Build web frontend
         run: cd apps/web && bunx vite build
 
+      - name: Build CLI
+        run: cd apps/cli && bun run build
+
       - name: Build server binary
         shell: bash
         run: |
@@ -212,6 +215,9 @@ jobs:
 
           # Server binary
           cp "apps/server/dist/tachibana${ext}" "${staging}/"
+
+          # CLI
+          cp "apps/cli/dist/tachibana-cli.js" "${staging}/"
 
           # go-ios binary + DDI
           cp -r apps/server/bin/* "${staging}/bin/"
