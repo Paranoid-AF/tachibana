@@ -41,7 +41,8 @@ export const agentRoutes = new Elysia({ prefix: '/agent' })
       set.status = 404
       return { error: 'CLI binary not found' }
     }
-    set.headers['Content-Disposition'] = `attachment; filename="${cliExecutableName}"`
+    set.headers['Content-Disposition'] =
+      `attachment; filename="${cliExecutableName}"`
     set.headers['Content-Type'] = 'text/javascript'
     return file
   })

@@ -43,7 +43,11 @@ const program = new Command()
   .name('tachibana-cli')
   .description('MCP client for Tachibana iOS device control')
   .version('1.0.0')
-  .option('--origin <url>', 'Tachibana server URL', process.env.TACHIBANA_ORIGIN)
+  .option(
+    '--origin <url>',
+    'Tachibana server URL',
+    process.env.TACHIBANA_ORIGIN
+  )
   .option('--token <token>', 'Auth token', process.env.TACHIBANA_TOKEN)
 
 program
@@ -52,7 +56,9 @@ program
   .action(async () => {
     const { origin, token } = program.opts<{ origin: string; token: string }>()
     if (!origin || !token) {
-      program.error('--origin and --token are required (or set TACHIBANA_ORIGIN / TACHIBANA_TOKEN)')
+      program.error(
+        '--origin and --token are required (or set TACHIBANA_ORIGIN / TACHIBANA_TOKEN)'
+      )
     }
     const client = await connect(origin, token)
     try {
@@ -72,7 +78,9 @@ program
   .action(async (toolName: string, paramsJson: string | undefined) => {
     const { origin, token } = program.opts<{ origin: string; token: string }>()
     if (!origin || !token) {
-      program.error('--origin and --token are required (or set TACHIBANA_ORIGIN / TACHIBANA_TOKEN)')
+      program.error(
+        '--origin and --token are required (or set TACHIBANA_ORIGIN / TACHIBANA_TOKEN)'
+      )
     }
 
     let params: Record<string, unknown> = {}
@@ -86,7 +94,10 @@ program
 
     const client = await connect(origin, token)
     try {
-      const result = await client.callTool({ name: toolName, arguments: params })
+      const result = await client.callTool({
+        name: toolName,
+        arguments: params,
+      })
       console.log(JSON.stringify(processResult(result)))
     } finally {
       await client.close()

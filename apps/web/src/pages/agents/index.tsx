@@ -93,7 +93,10 @@ async function fetchToolsDocs(): Promise<string> {
   return data.markdown
 }
 
-async function fetchCliBinary(): Promise<{ name: string; data: ArrayBuffer } | null> {
+async function fetchCliBinary(): Promise<{
+  name: string
+  data: ArrayBuffer
+} | null> {
   try {
     const resp = await fetch('/api/agent/mcp-client')
     if (!resp.ok) return null

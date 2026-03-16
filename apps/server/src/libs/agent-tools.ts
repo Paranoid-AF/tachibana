@@ -450,7 +450,11 @@ const typeText: ToolDefinition = {
       value: text.split(''),
     })
     const [b64, windowSize] = await Promise.all([
-      wdaFetch(mainPort, 'GET', `/session/${sessionId}/screenshot`) as Promise<string>,
+      wdaFetch(
+        mainPort,
+        'GET',
+        `/session/${sessionId}/screenshot`
+      ) as Promise<string>,
       wdaFetch(mainPort, 'GET', '/window/size') as Promise<{
         width: number
         height: number
@@ -492,7 +496,11 @@ const takeScreenshot: ToolDefinition = {
   handler: async ({ udid }) => {
     const { mainPort, sessionId } = await ensureWda(udid)
     const [base64, windowSize] = await Promise.all([
-      wdaFetch(mainPort, 'GET', `/session/${sessionId}/screenshot`) as Promise<string>,
+      wdaFetch(
+        mainPort,
+        'GET',
+        `/session/${sessionId}/screenshot`
+      ) as Promise<string>,
       wdaFetch(mainPort, 'GET', '/window/size') as Promise<{
         width: number
         height: number
