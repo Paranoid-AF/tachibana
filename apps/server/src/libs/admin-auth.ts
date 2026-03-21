@@ -62,7 +62,7 @@ export async function verifyAdminPassword(plaintext: string): Promise<boolean> {
 // API tokens
 // ---------------------------------------------------------------------------
 
-const TOKEN_PREFIX = 'sk-or-v1-'
+const TOKEN_PREFIX = 'sk-tb-v1-'
 
 export async function createApiToken(
   name: string,
