@@ -1,8 +1,7 @@
 import type { StoredSession } from '@tbana/ios-connect'
 
 import { getSecret, setSecret, deleteSecret } from '../../libs/secrets.ts'
-
-const SECRET_NAME = 'apple-session'
+import { SESSION_SECRET_NAME as SECRET_NAME } from '../../consts/auth.ts'
 
 export async function getSessionData(): Promise<StoredSession | undefined> {
   const raw = await getSecret(SECRET_NAME)

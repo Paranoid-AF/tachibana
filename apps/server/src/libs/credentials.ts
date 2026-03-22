@@ -1,6 +1,5 @@
 import { getSecret, setSecret, deleteSecret } from './secrets.ts'
-
-const SECRET_NAME = 'apple-credentials'
+import { CREDENTIALS_SECRET_NAME as SECRET_NAME } from '../consts/auth.ts'
 
 export async function saveCredentials(
   email: string,

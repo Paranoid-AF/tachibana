@@ -10,8 +10,7 @@ import {
 } from '../../db/index.ts'
 
 import { getSecret, setSecret } from '../../libs/secrets.ts'
-
-const JWT_SECRET_NAME = 'jwt-secret'
+import { JWT_SECRET_NAME, TOKEN_PREFIX } from '../../consts/auth.ts'
 
 // ---------------------------------------------------------------------------
 // JWT secret — stored in OS keychain
@@ -61,8 +60,6 @@ export async function verifyAdminPassword(plaintext: string): Promise<boolean> {
 // ---------------------------------------------------------------------------
 // API tokens
 // ---------------------------------------------------------------------------
-
-const TOKEN_PREFIX = 'sk-tb-v1-'
 
 export async function createApiToken(
   name: string,

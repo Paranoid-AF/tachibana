@@ -12,6 +12,7 @@ import {
   setDevicePrefs,
 } from '../services/device/store.ts'
 import { resolveWdaAction, logDeviceAction } from '../services/audit-log.ts'
+import { LOG_SOURCE } from '../consts/log.ts'
 import { getAdminAuthId, getDeviceLogs } from '../db/index.ts'
 import { wdaManager } from '../services/wda-manager.ts'
 import {
@@ -132,7 +133,7 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
       return logDeviceAction({
         udid,
         authId: getAdminAuthId(),
-        source: 'web',
+        source: LOG_SOURCE.WEB,
         action: 'link_device',
         params: { name },
         work: async () => {
@@ -179,7 +180,7 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
       return logDeviceAction({
         udid: params.udid,
         authId: getAdminAuthId(),
-        source: 'web',
+        source: LOG_SOURCE.WEB,
         action: 'set_device_prefs',
         params: body as Record<string, unknown>,
         work: async () => {
@@ -230,7 +231,7 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
           return await logDeviceAction({
             udid,
             authId: getAdminAuthId(),
-            source: 'web',
+            source: LOG_SOURCE.WEB,
             action,
             params:
               payload != null

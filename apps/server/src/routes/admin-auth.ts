@@ -7,8 +7,7 @@ import {
   regenerateJwtSecret,
 } from '../services/auth/admin.ts'
 import { jwtPlugin } from '../services/auth/middleware.ts'
-
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // 7 days in seconds
+import { COOKIE_MAX_AGE } from '../consts/auth.ts'
 
 function setSessionCookie(cookie: any, token: string) {
   cookie.session.set({

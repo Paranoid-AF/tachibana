@@ -2,8 +2,7 @@ import { join } from 'path'
 import { mkdir, unlink } from 'fs/promises'
 
 import { getConfigDir } from './config.ts'
-
-const SERVICE = 'tachibana'
+import { KEYCHAIN_SERVICE as SERVICE } from '../consts/server.ts'
 
 // Bun.secrets is available at runtime but may lack TypeScript definitions
 const secrets = (Bun as any).secrets as

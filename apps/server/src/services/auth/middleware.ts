@@ -4,6 +4,7 @@ import { jwt } from '@elysiajs/jwt'
 import { getOrCreateJwtSecret } from './admin.ts'
 import { verifyApiToken } from './admin.ts'
 import { isPasswordSet } from '../../db/index.ts'
+import { JWT_EXPIRY } from '../../consts/auth.ts'
 
 // ---------------------------------------------------------------------------
 // JWT plugin — must be .use()'d before guards that need jwt in context
@@ -13,7 +14,7 @@ export const jwtPlugin = new Elysia({ name: 'jwt-plugin' }).use(
   jwt({
     name: 'jwt',
     secret: await getOrCreateJwtSecret(),
-    exp: '7d',
+    exp: JWT_EXPIRY,
   })
 )
 

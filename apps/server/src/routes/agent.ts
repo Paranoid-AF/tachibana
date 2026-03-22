@@ -7,6 +7,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 
 import { verifyApiToken } from '../services/auth/admin.ts'
 import { logDeviceAction } from '../services/audit-log.ts'
+import { LOG_SOURCE } from '../consts/log.ts'
 import { allTools } from '../services/agent-tools/index.ts'
 import { generateToolsMarkdown } from '../services/agent-tools/docs.ts'
 import { serverDir, isCompiled } from '../libs/runtime.ts'
@@ -83,7 +84,7 @@ function createMcpServer(authId: number | null): McpServer {
           return logDeviceAction({
             udid: params.udid as string,
             authId,
-            source: 'mcp',
+            source: LOG_SOURCE.MCP,
             action: tool.name,
             params: params as Record<string, unknown>,
             work: () => tool.handler(params),

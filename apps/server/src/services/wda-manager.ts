@@ -10,11 +10,14 @@ import { withSessionRetry } from './session/guard.ts'
 import { getConfig, setConfig } from '../libs/config.ts'
 import { ensureTunnel, ensureDdiMounted, getIosBinary } from '../libs/go-ios.ts'
 import { getDevicePrefs } from './device/store.ts'
+import {
+  WDA_HTTP_PORT,
+  WDA_MJPEG_PORT,
+  WDA_BUNDLE_EXECUTABLE,
+} from '../consts/wda.ts'
 
 const { WdaClient, WdaSession } = wdaClient
 
-const WDA_HTTP_PORT = 8100
-const WDA_MJPEG_PORT = 9100
 const MAX_RESTART_ATTEMPTS = 5
 const RESTART_BACKOFF_BASE_MS = 5_000 // 5s, 10s, 20s, 40s, 80s exponential
 
@@ -401,7 +404,7 @@ class WdaManager {
         return null
       }
       for (const app of result.data) {
-        if (app.bundleExecutable === 'WebDriverAgentRunner-Runner') {
+        if (app.bundleExecutable === WDA_BUNDLE_EXECUTABLE) {
           log(`Found WDA on device: ${app.bundleId}`)
           return { bundleId: app.bundleId }
         }

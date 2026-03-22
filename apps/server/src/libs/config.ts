@@ -3,8 +3,11 @@ import { join, dirname } from 'path'
 import { mkdir } from 'fs/promises'
 import { z } from 'zod'
 
-const DEFAULT_DEV_PORT = 5173
-const DEFAULT_PROD_PORT = 17962
+import {
+  DEFAULT_DEV_PORT,
+  DEFAULT_PROD_PORT,
+  DEFAULT_HOST,
+} from '../consts/server.ts'
 
 const ConfigSchema = z.object({
   server: z.object({
@@ -37,7 +40,7 @@ export type PersistedConfig = z.infer<typeof PersistedConfigSchema>
 const DEFAULTS: Config = {
   server: {
     port: DEFAULT_PROD_PORT,
-    host: 'localhost',
+    host: DEFAULT_HOST,
   },
   wda: {
     bundleId: '',

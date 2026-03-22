@@ -1,4 +1,5 @@
 import { insertDeviceLog, completeDeviceLog } from '../db/index.ts'
+import { LOG_STATUS, LOG_SOURCE } from '../consts/log.ts'
 
 // ---------------------------------------------------------------------------
 // Core logging wrapper
@@ -7,7 +8,7 @@ import { insertDeviceLog, completeDeviceLog } from '../db/index.ts'
 interface LogDeviceActionOpts<T> {
   udid: string
   authId: number | null
-  source: 'web' | 'agent' | 'mcp'
+  source: (typeof LOG_SOURCE)[keyof typeof LOG_SOURCE]
   action: string
   params?: Record<string, unknown>
   work: () => Promise<T>
@@ -41,12 +42,12 @@ export async function logDeviceAction<T>(
 
   try {
     const result = await opts.work()
-    completeDeviceLog(logId, 'success')
+    completeDeviceLog(logId, LOG_STATUS.SUCCESS)
     return result
   } catch (err) {
     completeDeviceLog(
       logId,
-      'failed',
+      LOG_STATUS.FAILED,
       err instanceof Error ? err.message : String(err)
     )
     throw err
