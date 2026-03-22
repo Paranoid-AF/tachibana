@@ -1,6 +1,6 @@
 import type { StoredSession } from '@tbana/ios-connect'
 
-import { getSecret, setSecret, deleteSecret } from './secrets.ts'
+import { getSecret, setSecret, deleteSecret } from '../../libs/secrets.ts'
 
 const SECRET_NAME = 'apple-session'
 

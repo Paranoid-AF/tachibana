@@ -6,7 +6,7 @@ import { Elysia } from 'elysia'
 
 import { getConfig, getConfigDir } from './libs/config.ts'
 import * as routes from './routes/index.ts'
-import { adminAuthGuard } from './libs/auth-middleware.ts'
+import { adminAuthGuard } from './services/auth/middleware.ts'
 import {
   buildHttpRequest,
   handleElysiaResponse,
@@ -14,7 +14,7 @@ import {
 } from './libs/http.ts'
 import { handleMcpRequest } from './routes/agent.ts'
 import { ensureElevated } from './libs/elevate.ts'
-import { deviceManager } from './libs/device-manager.ts'
+import { deviceManager } from './services/device/manager.ts'
 import { openDatabase, closeDatabase } from './db/index.ts'
 import { isCompiled, serverDir } from './libs/runtime.ts'
 import type { ViteDevServer } from 'vite'

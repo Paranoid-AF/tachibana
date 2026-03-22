@@ -7,9 +7,9 @@ import {
   insertToken,
   getAllTokenHashes,
   updateTokenLastUsed,
-} from '../db/index.ts'
+} from '../../db/index.ts'
 
-import { getSecret, setSecret } from './secrets.ts'
+import { getSecret, setSecret } from '../../libs/secrets.ts'
 
 const JWT_SECRET_NAME = 'jwt-secret'
 

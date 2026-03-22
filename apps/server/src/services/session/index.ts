@@ -6,12 +6,8 @@ import {
 } from '@tbana/ios-connect'
 import type { NativeSession } from '@tbana/ios-connect'
 
-import { getConfigDir } from './config.ts'
-import {
-  getSessionData,
-  saveSessionData,
-  clearSessionData,
-} from './session-store.ts'
+import { getConfigDir } from '../../libs/config.ts'
+import { getSessionData, saveSessionData, clearSessionData } from './store.ts'
 
 let _initPromise: Promise<void> | null = null
 

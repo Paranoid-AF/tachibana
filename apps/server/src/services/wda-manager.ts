@@ -6,10 +6,10 @@ import {
   generateBundleId,
 } from '@tbana/ios-connect'
 import { resolveWdaIpa } from '@tbana/ios-wda'
-import { withSessionRetry } from './session-guard.ts'
-import { getConfig, setConfig } from './config.ts'
-import { ensureTunnel, ensureDdiMounted, getIosBinary } from './go-ios.ts'
-import { getDevicePrefs } from './device-store.ts'
+import { withSessionRetry } from './session/guard.ts'
+import { getConfig, setConfig } from '../libs/config.ts'
+import { ensureTunnel, ensureDdiMounted, getIosBinary } from '../libs/go-ios.ts'
+import { getDevicePrefs } from './device/store.ts'
 
 const { WdaClient, WdaSession } = wdaClient
 

@@ -44,15 +44,4 @@ export const VISIBLE_SYSTEM_APPS: ReadonlySet<string> = new Set([
   'com.apple.garageband', // GarageBand
 ])
 
-// Extension -> MIME type mapping for device media files
-export const MEDIA_MIME_TYPES: Readonly<Record<string, string>> = {
-  '.heic': 'image/heic',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.gif': 'image/gif',
-  '.mov': 'video/quicktime',
-  '.mp4': 'video/mp4',
-}
-
 export const PHOTO_CACHE_DIR_NAME = 'tachibana-photos'

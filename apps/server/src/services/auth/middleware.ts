@@ -1,9 +1,9 @@
 import { Elysia } from 'elysia'
 import { jwt } from '@elysiajs/jwt'
 
-import { getOrCreateJwtSecret } from './admin-auth.ts'
-import { verifyApiToken } from './admin-auth.ts'
-import { isPasswordSet } from '../db/index.ts'
+import { getOrCreateJwtSecret } from './admin.ts'
+import { verifyApiToken } from './admin.ts'
+import { isPasswordSet } from '../../db/index.ts'
 
 // ---------------------------------------------------------------------------
 // JWT plugin — must be .use()'d before guards that need jwt in context

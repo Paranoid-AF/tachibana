@@ -3,24 +3,24 @@ import { Elysia, t } from 'elysia'
 import { device, photos } from '@tbana/ios-connect'
 import type { ConnectedDevice, Device } from '@tbana/ios-connect'
 
-import { getSession } from '../libs/session.ts'
-import { withSessionRetry } from '../libs/session-guard.ts'
+import { getSession } from '../services/session/index.ts'
+import { withSessionRetry } from '../services/session/guard.ts'
 import {
   getDeviceMeta,
   saveDeviceMeta,
   getDevicePrefs,
   setDevicePrefs,
-} from '../libs/device-store.ts'
-import { resolveWdaAction, logDeviceAction } from '../libs/audit-log.ts'
+} from '../services/device/store.ts'
+import { resolveWdaAction, logDeviceAction } from '../services/audit-log.ts'
 import { getAdminAuthId, getDeviceLogs } from '../db/index.ts'
-import { wdaManager } from '../libs/wda-manager.ts'
+import { wdaManager } from '../services/wda-manager.ts'
 import {
   ensureWdaPorts,
   getFilteredApps,
   downloadPhotoToCache,
   ensureCompatibleImage,
-} from '../libs/idevice-utils.ts'
-import { MEDIA_MIME_TYPES } from '../consts/idevice.ts'
+} from '../libs/utils/idevice.ts'
+import mime from 'mime'
 
 export interface MergedDeviceInfo extends Omit<
   Partial<ConnectedDevice> & Device,
@@ -390,7 +390,7 @@ export const deviceRoutes = new Elysia({ prefix: '/devices' })
       ? await ensureCompatibleImage(localPath, ext)
       : { filePath: localPath, mimeExt: ext }
 
-    const contentType = MEDIA_MIME_TYPES[mimeExt] ?? 'application/octet-stream'
+    const contentType = mime.getType(mimeExt) ?? 'application/octet-stream'
 
     return new Response(Bun.file(filePath), {
       headers: {

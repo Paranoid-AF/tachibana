@@ -1,7 +1,7 @@
 import type { NativeSession } from '@tbana/ios-connect'
 
-import { getSession, saveSession, clearSession } from './session.ts'
-import { getCredentials, clearCredentials } from './credentials.ts'
+import { getSession, saveSession, clearSession } from './index.ts'
+import { getCredentials, clearCredentials } from '../../libs/credentials.ts'
 
 let reloginInProgress: Promise<NativeSession> | null = null
 

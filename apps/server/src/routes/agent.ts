@@ -5,10 +5,10 @@ import { Elysia } from 'elysia'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 
-import { verifyApiToken } from '../libs/admin-auth.ts'
-import { logDeviceAction } from '../libs/audit-log.ts'
-import { allTools } from '../libs/agent-tools.ts'
-import { generateToolsMarkdown } from '../libs/agent-tools-docs.ts'
+import { verifyApiToken } from '../services/auth/admin.ts'
+import { logDeviceAction } from '../services/audit-log.ts'
+import { allTools } from '../services/agent-tools/index.ts'
+import { generateToolsMarkdown } from '../services/agent-tools/docs.ts'
 import { serverDir, isCompiled } from '../libs/runtime.ts'
 
 // Cache generated markdown at startup (tools are static)

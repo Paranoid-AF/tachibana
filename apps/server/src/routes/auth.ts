@@ -1,6 +1,10 @@
 import { Elysia, t } from 'elysia'
 
-import { getSession, saveSession, clearSession } from '../libs/session.ts'
+import {
+  getSession,
+  saveSession,
+  clearSession,
+} from '../services/session/index.ts'
 import { saveCredentials, clearCredentials } from '../libs/credentials.ts'
 import type { SessionInfo } from '@tbana/ios-connect'
 

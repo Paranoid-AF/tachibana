@@ -1,10 +1,10 @@
 import { device } from '@tbana/ios-connect'
 import type { ConnectedDevice } from '@tbana/ios-connect'
 
-import { getSession } from './session.ts'
-import { withSessionRetry } from './session-guard.ts'
-import { wdaManager } from './wda-manager.ts'
-import { ensureTunnel } from './go-ios.ts'
+import { getSession } from '../session/index.ts'
+import { withSessionRetry } from '../session/guard.ts'
+import { wdaManager } from '../wda-manager.ts'
+import { ensureTunnel } from '../../libs/go-ios.ts'
 
 const POLL_INTERVAL_MS = 5_000
 

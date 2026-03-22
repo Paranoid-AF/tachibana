@@ -5,8 +5,8 @@ import {
   setAdminPassword,
   verifyAdminPassword,
   regenerateJwtSecret,
-} from '../libs/admin-auth.ts'
-import { jwtPlugin } from '../libs/auth-middleware.ts'
+} from '../services/auth/admin.ts'
+import { jwtPlugin } from '../services/auth/middleware.ts'
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 7 // 7 days in seconds
 

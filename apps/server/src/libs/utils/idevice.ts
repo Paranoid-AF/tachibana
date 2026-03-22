@@ -5,10 +5,13 @@ import convert from 'heic-convert'
 
 import { apps, photos } from '@tbana/ios-connect'
 
-import { deviceManager } from './device-manager.ts'
-import { wdaManager } from './wda-manager.ts'
-import { getConfig } from './config.ts'
-import { VISIBLE_SYSTEM_APPS, PHOTO_CACHE_DIR_NAME } from '../consts/idevice.ts'
+import { deviceManager } from '../../services/device/manager.ts'
+import { wdaManager } from '../../services/wda-manager.ts'
+import { getConfig } from '../config.ts'
+import {
+  VISIBLE_SYSTEM_APPS,
+  PHOTO_CACHE_DIR_NAME,
+} from '../../consts/idevice.ts'
 
 /**
  * Ensure WDA is running for a device and return its ports.

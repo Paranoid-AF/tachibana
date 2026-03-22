@@ -1,8 +1,8 @@
 import { Elysia, t } from 'elysia'
 
 import { listTokens, renameToken, deleteToken } from '../db/index.ts'
-import { createApiToken } from '../libs/admin-auth.ts'
-import { adminAuthGuard } from '../libs/auth-middleware.ts'
+import { createApiToken } from '../services/auth/admin.ts'
+import { adminAuthGuard } from '../services/auth/middleware.ts'
 
 export const apiTokenRoutes = new Elysia({ prefix: '/tokens' })
   .use(adminAuthGuard)

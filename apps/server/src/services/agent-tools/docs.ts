@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { allTools } from './agent-tools.ts'
+import { allTools } from './index.ts'
 
 // ---------------------------------------------------------------------------
 // Zod introspection helpers

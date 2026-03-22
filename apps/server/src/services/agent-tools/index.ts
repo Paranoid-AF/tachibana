@@ -5,17 +5,20 @@ import { z } from 'zod'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { photos } from '@tbana/ios-connect'
 
-import { deviceManager } from './device-manager.ts'
-import { wdaManager } from './wda-manager.ts'
-import { getDevicePrefs, setDevicePrefs } from './device-store.ts'
+import { deviceManager } from '../device/manager.ts'
+import { wdaManager } from '../wda-manager.ts'
+import { getDevicePrefs, setDevicePrefs } from '../device/store.ts'
 import {
   ensureWdaPorts,
   getFilteredApps,
   downloadPhotoToCache,
   ensureCompatibleImage,
-} from './idevice-utils.ts'
-import { MEDIA_MIME_TYPES } from '../consts/idevice.ts'
-import { annotateScreenshot, resizeToControlSpace } from './image-utilities.ts'
+} from '../../libs/utils/idevice.ts'
+import mime from 'mime'
+import {
+  annotateScreenshot,
+  resizeToControlSpace,
+} from '../../libs/utils/image.ts'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -676,7 +679,7 @@ const downloadPhoto: ToolDefinition = {
     const base64 = Buffer.from(await Bun.file(filePath).arrayBuffer()).toString(
       'base64'
     )
-    const mimeType = MEDIA_MIME_TYPES[mimeExt] ?? 'application/octet-stream'
+    const mimeType = mime.getType(mimeExt) ?? 'application/octet-stream'
 
     return {
       content: [{ type: 'image' as const, data: base64, mimeType }],
