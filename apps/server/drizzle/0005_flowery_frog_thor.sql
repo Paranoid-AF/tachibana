@@ -1,1 +1,0 @@
-ALTER TABLE `sessions` ADD `updated_at` integer;
