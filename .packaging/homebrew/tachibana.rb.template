@@ -15,13 +15,8 @@ class Tachibana < Formula
   end
 
   def install
-    bin.install "tachibana"
-    prefix.install "bin"
-    prefix.install "drizzle"
-    prefix.install "web"
-    if File.directory?("assets")
-      prefix.install "assets"
-    end
+    libexec.install Dir["*"]
+    bin.install_symlink libexec/"tachibana"
   end
 
   test do
