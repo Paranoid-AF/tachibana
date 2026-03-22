@@ -34,7 +34,10 @@ The MSI installer registers Tachibana as a Windows service automatically.
 ```bash
 brew tap Paranoid-AF/tap
 brew install tachibana
-brew services start tachibana
+
+# For macOS users, it is required to start it manually.
+# This is due to macOS is designed to have no keychain access for root user, so starting it as a sudo service will not work.
+sudo tachibana
 ```
 
 ### macOS (manual)
@@ -61,6 +64,10 @@ sudo systemctl start tachibana
 ```
 
 </details>
+
+## Setup and use Web UI
+
+**[Visit Web UI in your browser, by clicking here.](http://localhost:17962/)**
 
 ## Troubleshooting
 
@@ -154,6 +161,29 @@ You can either:
 
 - Wait for a moment, and click the "Retry" button multiple times.
 - Avoid unplugging the device while using it.
+
+## Configuration
+
+Tachibana reads its configuration from a JSON file located at:
+
+- **macOS / Linux:** `~/.local/state/tachibana/config.json`
+- **Windows:** `%APPDATA%\tachibana\config.json`
+
+Only non-default values need to be specified. Example:
+
+```json
+{
+  "server": {
+    "port": 8080
+  }
+}
+```
+
+| Property       | Description                           | Default                                 |
+| -------------- | ------------------------------------- | --------------------------------------- |
+| `server.port`  | Port the server listens on            | `17962`                                 |
+| `server.host`  | Host / IP address the server binds to | `localhost`                             |
+| `wda.bundleId` | Custom bundle ID for WebDriverAgent   | `""`, randomly generated on first start |
 
 ## Third-Party Software
 
