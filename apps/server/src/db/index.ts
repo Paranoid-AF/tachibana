@@ -40,8 +40,8 @@ export function openDatabase(): void {
   mkdirSync(configDir, { recursive: true })
 
   sqlite = new Database(dbPath, { create: true, strict: true })
-  sqlite.exec('PRAGMA journal_mode = WAL')
-  sqlite.exec('PRAGMA foreign_keys = ON')
+  sqlite.run('PRAGMA journal_mode = WAL')
+  sqlite.run('PRAGMA foreign_keys = ON')
 
   db = drizzle(sqlite, { schema })
 
