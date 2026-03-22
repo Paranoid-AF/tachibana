@@ -8,14 +8,12 @@ An iOS / iPadOS control utility, as a Web UI, an MCP server, and an AgentSkill f
 
 ## Demo
 
-<!-- TODO: Replace these placeholders with actual YouTube video links once recorded. -->
-
-| Topic                | Video                                                                                                  |
-| -------------------- | ------------------------------------------------------------------------------------------------------ |
-| Installation & Setup | [![Setup](https://img.shields.io/badge/YouTube-Setup-red?logo=youtube)](https://youtube.com)           |
-| Using the Web UI     | [![Web UI](https://img.shields.io/badge/YouTube-Web_UI-red?logo=youtube)](https://youtube.com)         |
-| Using as MCP Server  | [![MCP Server](https://img.shields.io/badge/YouTube-MCP_Server-red?logo=youtube)](https://youtube.com) |
-| Using as AgentSkill  | [![AgentSkill](https://img.shields.io/badge/YouTube-AgentSkill-red?logo=youtube)](https://youtube.com) |
+| Topic                | Video                                                                                                                                        |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Installation & Setup | <a href="https://www.youtube.com/watch?v=LqXPuYBD4O8"><img src="./.github/readme-assets/video-setup.png" alt="Setup" width="130" /></a>      |
+| Using the Web UI     | <a href="https://www.youtube.com/watch?v=qS0Hbfgzrnk"><img src="./.github/readme-assets/video-webui.png" alt="Web UI" width="130" /></a>     |
+| Using as MCP Server  | <a href="https://www.youtube.com/watch?v=Fryg0pR3qvM"><img src="./.github/readme-assets/video-mcp.png" alt="MCP Server" width="130" /></a>   |
+| Using as AgentSkill  | <a href="https://www.youtube.com/watch?v=mgbKN5qaIq4"><img src="./.github/readme-assets/video-skill.png" alt="AgentSkill" width="130" /></a> |
 
 ## Installation
 
