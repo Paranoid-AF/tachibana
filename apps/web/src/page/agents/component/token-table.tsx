@@ -1,7 +1,7 @@
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { type TokenRow } from '@/lib/admin-auth-api'
+import { type TokenRow } from '@/api/admin-auth-api'
 import { Button } from '@/component/ui/button'
 import {
   DropdownMenu,

@@ -3,7 +3,7 @@ import { useLocation } from 'wouter'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
-import { adminChangePassword } from '@/lib/admin-auth-api'
+import { adminChangePassword } from '@/api/admin-auth-api'
 import { translateError } from '@/lib/i18n'
 import { Button } from '@/component/ui/button'
 import { Input } from '@/component/ui/input'

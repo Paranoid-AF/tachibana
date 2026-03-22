@@ -14,7 +14,7 @@ import {
 } from '@/component/ui/carousel'
 import { DeviceNotice } from './device-notice'
 import { ScreenOverlay } from './screen-overlay'
-import { getWindowSize, type WindowSize } from '@/lib/wda-api'
+import { getWindowSize, type WindowSize } from '@/api/wda-api'
 
 import guideTrustImg from '../../../../assets/images/device/guide-trust.png'
 import guideModeImg from '../../../../assets/images/device/guide-mode.png'

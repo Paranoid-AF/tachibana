@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { fetchDevices } from '@/lib/device-api'
+import { fetchDevices } from '@/api/device-api'
 import type { DeviceListResponseItem } from '@/types'
 
 export function useDevices(options?: { enabled?: boolean }) {

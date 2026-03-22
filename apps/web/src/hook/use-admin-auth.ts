@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   fetchAdminAuthStatus,
   type AdminAuthStatus,
-} from '@/lib/admin-auth-api'
+} from '@/api/admin-auth-api'
 
 export function useAdminAuth() {
   return useQuery<AdminAuthStatus>({

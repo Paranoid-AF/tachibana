@@ -16,7 +16,7 @@ import {
   DialogDescription,
 } from '@/component/ui/dialog'
 import { Input } from '@/component/ui/input'
-import { startSignIn, submitTwoFa } from './libs/auth-api'
+import { startSignIn, submitTwoFa } from '@/api/auth-api'
 
 export function SignInPage() {
   const { t } = useTranslation()

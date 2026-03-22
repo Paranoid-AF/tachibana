@@ -10,9 +10,9 @@ import { useLinkDevice } from '@/hook/use-link-device'
 import { TrustModal, LinkErrorDialog } from '@/component/biz/link-dialogs'
 import { AppLayout } from '@/component/biz/app-layout'
 import { Button } from '@/component/ui/button'
-import { DeviceNotice } from './components/device-notice'
-import { DeviceScreen } from './components/device-screen'
-import { ControlPanel } from './components/control-panel'
+import { DeviceNotice } from './component/device-notice'
+import { DeviceScreen } from './component/device-screen'
+import { ControlPanel } from './component/control-panel'
 
 export function DevicePage() {
   const { t } = useTranslation()

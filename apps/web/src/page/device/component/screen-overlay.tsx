@@ -5,7 +5,7 @@ import {
   doubleTap,
   touchAndHold,
   type WindowSize,
-} from '@/lib/wda-api'
+} from '@/api/wda-api'
 
 interface ScreenOverlayProps {
   udid: string

@@ -2,9 +2,9 @@ import JSZip from 'jszip'
 import Mustache from 'mustache'
 import { milliseconds } from 'date-fns'
 
-import { version } from '../../../../../../package.json'
-import skillTemplate from '../../../../assets/snippets/agents/skill.md.mustache?raw'
-import mcpTemplate from '../../../../assets/snippets/agents/mcp.json.mustache?raw'
+import { version } from '../../../../package.json'
+import skillTemplate from '../../assets/snippets/agents/skill.md.mustache?raw'
+import mcpTemplate from '../../assets/snippets/agents/mcp.json.mustache?raw'
 
 export const AGENT_SKILL_NAME = 'idevice'
 

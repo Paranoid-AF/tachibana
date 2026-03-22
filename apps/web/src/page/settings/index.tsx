@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next'
 
 import { AppLayout } from '@/component/biz/app-layout'
 import { Button } from '@/component/ui/button'
-import { ChangePasswordDialog } from './components/change-password-dialog'
-import { LanguageSection } from './components/language-section'
+import { ChangePasswordDialog } from './component/change-password-dialog'
+import { LanguageSection } from './component/language-section'
 
 export function SettingsPage() {
   const { t } = useTranslation()

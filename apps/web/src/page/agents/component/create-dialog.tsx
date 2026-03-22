@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
-import { createApiToken } from '@/lib/admin-auth-api'
+import { createApiToken } from '@/api/admin-auth-api'
 import { Button } from '@/component/ui/button'
 import { Input } from '@/component/ui/input'
 import {
@@ -13,7 +13,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/component/ui/dialog'
-import { EXPIRATION_OPTIONS } from '../libs/agents-api'
+import { EXPIRATION_OPTIONS } from '@/api/agents-api'
 
 interface CreateDialogProps {
   open: boolean

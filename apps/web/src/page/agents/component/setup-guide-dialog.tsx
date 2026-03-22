@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/component/ui/dialog'
-import { renderTemplates, downloadSkillZip } from '../libs/agents-api'
+import { renderTemplates, downloadSkillZip } from '@/api/agents-api'
 
 import agentSkillsLogo from '../../../../assets/images/agents/agentskills-logo.png'
 import mcpLogo from '../../../../assets/images/agents/mcp-logo.svg'

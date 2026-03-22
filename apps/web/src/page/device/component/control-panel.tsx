@@ -28,8 +28,8 @@ import { ScrollArea } from '@/component/ui/scroll-area'
 import { Separator } from '@/component/ui/separator'
 import { Spinner } from '@/component/ui/spinner'
 import { Switch } from '@/component/ui/switch'
-import { fetchDeviceLogs } from '@/lib/logs-api'
-import type { DeviceLog } from '@/lib/logs-api'
+import { fetchDeviceLogs } from '@/api/logs-api'
+import type { DeviceLog } from '@/api/logs-api'
 import {
   homescreen,
   keys,
@@ -38,7 +38,7 @@ import {
   terminateApp,
   unlock,
   isLocked,
-} from '@/lib/wda-api'
+} from '@/api/wda-api'
 
 interface AppInfo {
   bundleId: string

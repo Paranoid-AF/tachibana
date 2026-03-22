@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { adminSetup } from '@/lib/admin-auth-api'
+import { adminSetup } from '@/api/admin-auth-api'
 import { translateError } from '@/lib/i18n'
 import { useAdminAuth } from '@/hook/use-admin-auth'
 import { Button } from '@/component/ui/button'

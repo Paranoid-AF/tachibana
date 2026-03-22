@@ -7,16 +7,16 @@ import {
   fetchApiTokens,
   deleteApiToken,
   type TokenRow,
-} from '@/lib/admin-auth-api'
+} from '@/api/admin-auth-api'
 import { AppLayout } from '@/component/biz/app-layout'
 import { Button } from '@/component/ui/button'
 
-import { fetchToolsDocs } from './libs/agents-api'
-import { useFormatDate } from './hooks/use-format-date'
-import { TokenTable } from './components/token-table'
-import { CreateDialog } from './components/create-dialog'
-import { RenameDialog } from './components/rename-dialog'
-import { SetupGuideDialog } from './components/setup-guide-dialog'
+import { fetchToolsDocs } from '@/api/agents-api'
+import { useFormatDate } from './hook/use-format-date'
+import { TokenTable } from './component/token-table'
+import { CreateDialog } from './component/create-dialog'
+import { RenameDialog } from './component/rename-dialog'
+import { SetupGuideDialog } from './component/setup-guide-dialog'
 
 export function AgentsPage() {
   const { t } = useTranslation()

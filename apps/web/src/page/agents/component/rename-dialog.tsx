@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 
-import { renameApiToken, type TokenRow } from '@/lib/admin-auth-api'
+import { renameApiToken, type TokenRow } from '@/api/admin-auth-api'
 import { Button } from '@/component/ui/button'
 import { Input } from '@/component/ui/input'
 import {
