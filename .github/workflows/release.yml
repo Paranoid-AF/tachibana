@@ -515,10 +515,10 @@ jobs:
           sed -e "s/{{VERSION}}/${VERSION}/g" \
               -e "s/{{SHA256_DARWIN_ARM64}}/${SHA_ARM64}/" \
               -e "s/{{SHA256_DARWIN_X64}}/${SHA_X64}/" \
-              ../.packaging/homebrew/tachibana.rb.template > Formula/tachibana.rb
+              ../.packaging/homebrew/tachibana.rb.template > tachibana.rb
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/tachibana.rb
+          git add tachibana.rb
           git commit -m "tachibana ${VERSION}"
           git push
