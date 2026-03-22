@@ -6,7 +6,7 @@ An iOS / iPadOS control utility, as a Web UI, an MCP server, and an AgentSkill f
   <img src="./.github/readme-assets/webui-main.png" alt="Web UI main view" width="600" />
 </p>
 
-## Demo
+## Demo Videos
 
 | Topic                | Video                                                                                                                                        |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -18,6 +18,8 @@ An iOS / iPadOS control utility, as a Web UI, an MCP server, and an AgentSkill f
 ## Installation
 
 Head to the [latest release](https://github.com/Paranoid-AF/tachibana/releases/latest) page for downloads.
+
+**NOTE:** If you decide not to use installer or package manager, you need **"sudo"** or **"Run as Administrator"** to run the main binary `./tachibana` or `.\tachibana.exe`. This is to ensure the tunnel gets established properly.
 
 ### Windows
 
