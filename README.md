@@ -40,6 +40,13 @@ brew install tachibana
 sudo tachibana
 ```
 
+To uninstall, you may need to remove the keg manually since `sudo tachibana` creates root-owned files:
+
+```bash
+brew uninstall tachibana
+sudo rm -rf /opt/homebrew/Cellar/tachibana/
+```
+
 ### macOS (manual)
 
 | Architecture        | Download                                                                                                                         |
