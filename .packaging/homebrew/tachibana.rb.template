@@ -15,18 +15,13 @@ class Tachibana < Formula
   end
 
   def install
-    bin.install "tachibana"
-    prefix.install "bin"
-    prefix.install "drizzle"
-    prefix.install "web"
-    if File.directory?("assets")
-      prefix.install "assets"
-    end
+    libexec.install Dir["*"]
+    bin.install_symlink libexec/"tachibana"
   end
 
   service do
-    run [opt_bin/"tachibana"]
-    working_dir opt_prefix
+    run [opt_libexec/"tachibana"]
+    working_dir opt_libexec
     keep_alive true
     require_root true
     environment_variables NODE_ENV: "production"
