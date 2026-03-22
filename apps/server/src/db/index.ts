@@ -5,11 +5,11 @@ import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { eq, desc, count } from 'drizzle-orm'
 
-import { getConfigDir } from '../libs/config.ts'
-import { isCompiled, serverDir } from '../libs/runtime.ts'
-import { DB_FILENAME } from '../consts/server.ts'
-import { AUTH_TYPE } from '../consts/auth.ts'
-import { LOG_STATUS } from '../consts/log.ts'
+import { getConfigDir } from '../lib/config.ts'
+import { isCompiled, serverDir } from '../lib/runtime.ts'
+import { DB_FILENAME } from '../const/server.ts'
+import { AUTH_TYPE } from '../const/auth.ts'
+import { LOG_STATUS } from '../const/log.ts'
 import * as schema from './schema.ts'
 
 export interface DeviceMeta {

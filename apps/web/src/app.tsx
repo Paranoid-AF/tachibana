@@ -1,14 +1,14 @@
 import { Switch, Route } from 'wouter'
 
-import { AuthGate } from './components/biz/auth-gate'
-import { HomePage } from './pages/home'
-import { SignInPage } from './pages/sign-in'
-import { DevicePage } from './pages/device'
-import { LinkDevicePage } from './pages/link-device'
-import { LoginPage } from './pages/login'
-import { SetupPage } from './pages/setup'
-import { SettingsPage } from './pages/settings'
-import { AgentsPage } from './pages/agents'
+import { AuthGate } from './component/biz/auth-gate'
+import { HomePage } from './page/home'
+import { SignInPage } from './page/sign-in'
+import { DevicePage } from './page/device'
+import { LinkDevicePage } from './page/link-device'
+import { LoginPage } from './page/login'
+import { SetupPage } from './page/setup'
+import { SettingsPage } from './page/settings'
+import { AgentsPage } from './page/agents'
 
 function ProtectedRoutes() {
   return (

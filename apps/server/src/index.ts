@@ -1,22 +1,22 @@
-import './libs/sharp-native.ts'
+import './lib/sharp-native.ts'
 import path from 'node:path'
 import http from 'node:http'
 
 import { Elysia } from 'elysia'
 
-import { getConfig, getConfigDir } from './libs/config.ts'
-import * as routes from './routes/index.ts'
-import { adminAuthGuard } from './services/auth/middleware.ts'
+import { getConfig, getConfigDir } from './lib/config.ts'
+import * as routes from './route/index.ts'
+import { adminAuthGuard } from './service/auth/middleware.ts'
 import {
   buildHttpRequest,
   handleElysiaResponse,
   serveStaticFile,
-} from './libs/http.ts'
-import { handleMcpRequest } from './routes/agent.ts'
-import { ensureElevated } from './libs/elevate.ts'
-import { deviceManager } from './services/device/manager.ts'
+} from './lib/http.ts'
+import { handleMcpRequest } from './route/agent.ts'
+import { ensureElevated } from './lib/elevate.ts'
+import { deviceManager } from './service/device/manager.ts'
 import { openDatabase, closeDatabase } from './db/index.ts'
-import { isCompiled, serverDir } from './libs/runtime.ts'
+import { isCompiled, serverDir } from './lib/runtime.ts'
 import type { ViteDevServer } from 'vite'
 
 const isDev = Bun.env.NODE_ENV === 'development'
@@ -136,4 +136,4 @@ try {
   process.exit(1)
 }
 
-export type { DeviceListResponseItem } from './routes/devices.ts'
+export type { DeviceListResponseItem } from './route/devices.ts'

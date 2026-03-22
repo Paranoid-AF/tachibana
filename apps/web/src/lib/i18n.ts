@@ -3,8 +3,8 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
-import enUS from '../locales/en-US.json'
-import zhCN from '../locales/zh-CN.json'
+import enUS from '../locale/en-US.json'
+import zhCN from '../locale/zh-CN.json'
 
 i18n.on('languageChanged', lng => {
   document.documentElement.lang = lng
