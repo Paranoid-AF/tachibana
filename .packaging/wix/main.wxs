@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
   <Package
     Name="Tachibana"
     Manufacturer="Paranoid-AF"
@@ -7,6 +8,7 @@
     UpgradeCode="A1B2C3D4-E5F6-7890-ABCD-EF1234567890">
 
     <MajorUpgrade
+      AllowSameVersionUpgrades="yes"
       DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
 
     <MediaTemplate EmbedCab="yes" />
@@ -16,13 +18,22 @@
         <Directory Id="BinFolder" Name="bin" />
         <Directory Id="DrizzleFolder" Name="drizzle" />
         <Directory Id="WebFolder" Name="web" />
-        <Directory Id="NodeModulesFolder" Name="node_modules" />
+        <Directory Id="SharpFolder" Name="sharp" />
+        <Directory Id="IosConnectFolder" Name="ios-connect" />
+        <Directory Id="AssetsFolder" Name="assets" />
       </Directory>
     </StandardDirectory>
 
     <ComponentGroup Id="ServerComponent" Directory="INSTALLFOLDER">
       <Component Id="ServerExe" Guid="*">
         <File Id="TachibanaServerExe" Source="$(var.StagingDir)\tachibana.exe" KeyPath="yes" />
+      </Component>
+      <Component Id="CliJs" Guid="*">
+        <File Id="TachibanaCliJs" Source="$(var.StagingDir)\tachibana-cli.js" KeyPath="yes" />
+      </Component>
+      <Component Id="ServiceWrapper" Guid="*">
+        <File Id="TachibanaServiceWrapperExe" Source="$(var.StagingDir)\tachibana-service.exe" KeyPath="yes" />
+        <File Id="TachibanaServiceWrapperXml" Source="$(var.StagingDir)\tachibana-service.xml" />
         <ServiceInstall
           Id="TachibanaServiceInstall"
           Name="TachibanaServer"
@@ -33,9 +44,13 @@
           ErrorControl="normal"
           Account="LocalSystem" />
         <ServiceControl
-          Id="TachibanaServiceControl"
+          Id="TachibanaServiceStart"
           Name="TachibanaServer"
           Start="install"
+          Wait="no" />
+        <ServiceControl
+          Id="TachibanaServiceCleanup"
+          Name="TachibanaServer"
           Stop="both"
           Remove="uninstall"
           Wait="yes" />
@@ -54,16 +69,38 @@
       <Files Include="$(var.StagingDir)\web\**" />
     </ComponentGroup>
 
-    <ComponentGroup Id="NodeModulesFiles" Directory="NodeModulesFolder">
-      <Files Include="$(var.StagingDir)\node_modules\**" />
+    <ComponentGroup Id="SharpFiles" Directory="SharpFolder">
+      <Files Include="$(var.StagingDir)\sharp\**" />
     </ComponentGroup>
+
+    <ComponentGroup Id="IosConnectFiles" Directory="IosConnectFolder">
+      <Files Include="$(var.StagingDir)\ios-connect\**" />
+    </ComponentGroup>
+
+    <ComponentGroup Id="AssetsFiles" Directory="AssetsFolder">
+      <Files Include="$(var.StagingDir)\assets\**" />
+    </ComponentGroup>
+
+    <!-- Terminate service processes before installing files to prevent file-lock conflicts on upgrade -->
+    <util:CloseApplication Id="CloseServiceWrapper"
+      Target="tachibana-service.exe"
+      CloseMessage="yes"
+      RebootPrompt="no"
+      TerminateProcess="0" />
+    <util:CloseApplication Id="CloseTachibana"
+      Target="tachibana.exe"
+      CloseMessage="yes"
+      RebootPrompt="no"
+      TerminateProcess="0" />
 
     <Feature Id="Main" Title="Tachibana" Level="1">
       <ComponentGroupRef Id="ServerComponent" />
       <ComponentGroupRef Id="BinFiles" />
       <ComponentGroupRef Id="DrizzleFiles" />
       <ComponentGroupRef Id="WebFiles" />
-      <ComponentGroupRef Id="NodeModulesFiles" />
+      <ComponentGroupRef Id="SharpFiles" />
+      <ComponentGroupRef Id="IosConnectFiles" />
+      <ComponentGroupRef Id="AssetsFiles" />
     </Feature>
   </Package>
 </Wix>

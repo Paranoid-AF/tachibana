@@ -7,6 +7,7 @@ bunx := "bunx"
 root_dir := replace(justfile_directory(), "\\", "/")
 apps_dir := root_dir / "apps"
 packages_dir := root_dir / "packages"
+windows_icon := if os() == "windows" { "--windows-icon=" + root_dir / ".packaging/icon.ico" } else { "" }
 
 
 # Default target - show available commands
@@ -38,10 +39,16 @@ build-web:
     cd {{apps_dir}}/web && {{bunx}} vite build
     @echo "✓ Web built"
 
-# Build server binary (depends on web build)
-build: build-web typecheck
+# Build CLI binary
+build-cli:
+    @echo "→ Building CLI..."
+    cd {{apps_dir}}/cli && {{bun}} run build
+    @echo "✓ CLI built"
+
+# Build server binary (depends on web + CLI build)
+build: build-web build-cli typecheck
     @echo "→ Building server..."
-    cd {{apps_dir}}/server && {{bun}} build src/index.ts --compile --external vite --outfile dist/tachibana
+    cd {{apps_dir}}/server && {{bun}} build src/index.ts --compile --external vite {{windows_icon}} --outfile dist/tachibana
     @echo "✓ Server built"
 
 #############################################
@@ -54,6 +61,7 @@ typecheck:
     cd {{packages_dir}}/ios-connect && {{bunx}} tsc --noEmit
     cd {{packages_dir}}/ios-wda && {{bunx}} tsc --noEmit
     @echo "  Type-checking apps..."
+    cd {{apps_dir}}/cli && {{bunx}} tsc --noEmit
     cd {{apps_dir}}/server && {{bunx}} tsc --noEmit
     cd {{apps_dir}}/web && {{bunx}} tsc --noEmit
     @echo "✓ All type checks passed!"
@@ -90,6 +98,9 @@ build-dist: build
 
     # Server binary
     cp "{{apps_dir}}/server/dist/tachibana" "${staging}/"
+
+    # CLI binary
+    cp "{{apps_dir}}/cli/dist/tachibana-cli.js" "${staging}/" 2>/dev/null || true
 
     # go-ios binary + DDI
     [ -d "{{apps_dir}}/server/bin" ] && cp -r "{{apps_dir}}/server/bin/"* "${staging}/bin/"
@@ -134,6 +145,7 @@ build-dist: build
     fi
 
     chmod +x "${staging}/tachibana" 2>/dev/null || true
+
     chmod +x "${staging}/bin/ios" 2>/dev/null || true
 
     echo "✓ Staging directory ready at: ${staging}"

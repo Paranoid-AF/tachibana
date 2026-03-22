@@ -1,1 +1,0 @@
-ALTER TABLE `devices` ADD `pref_always_awake` integer DEFAULT 1 NOT NULL;

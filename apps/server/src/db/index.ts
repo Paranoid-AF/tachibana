@@ -5,8 +5,11 @@ import { drizzle, type BunSQLiteDatabase } from 'drizzle-orm/bun-sqlite'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { eq, desc, count } from 'drizzle-orm'
 
-import { getConfigDir } from '../libs/config.ts'
-import { isCompiled, serverDir } from '../libs/runtime.ts'
+import { getConfigDir } from '../lib/config.ts'
+import { isCompiled, serverDir } from '../lib/runtime.ts'
+import { DB_FILENAME } from '../const/server.ts'
+import { AUTH_TYPE } from '../const/auth.ts'
+import { LOG_STATUS } from '../const/log.ts'
 import * as schema from './schema.ts'
 
 export interface DeviceMeta {
@@ -35,13 +38,13 @@ function resolveMigrationsDir(): string {
 
 export function openDatabase(): void {
   const configDir = getConfigDir()
-  const dbPath = join(configDir, 'storage.db')
+  const dbPath = join(configDir, DB_FILENAME)
 
   mkdirSync(configDir, { recursive: true })
 
   sqlite = new Database(dbPath, { create: true, strict: true })
-  sqlite.exec('PRAGMA journal_mode = WAL')
-  sqlite.exec('PRAGMA foreign_keys = ON')
+  sqlite.run('PRAGMA journal_mode = WAL')
+  sqlite.run('PRAGMA foreign_keys = ON')
 
   db = drizzle(sqlite, { schema })
 
@@ -82,7 +85,7 @@ function acquireLock(): void {
   } catch (err: any) {
     if (err?.code === 'SQLITE_BUSY') {
       try {
-        const readSqlite = new Database(join(getConfigDir(), 'storage.db'), {
+        const readSqlite = new Database(join(getConfigDir(), DB_FILENAME), {
           readonly: true,
         })
         const readDb = drizzle(readSqlite, { schema })
@@ -210,7 +213,7 @@ export function getPasswordEntry(): {
       keyHashSalt: schema.auth.keyHashSalt,
     })
     .from(schema.auth)
-    .where(eq(schema.auth.type, 'password'))
+    .where(eq(schema.auth.type, AUTH_TYPE.PASSWORD))
     .get()
   return row ?? null
 }
@@ -220,7 +223,7 @@ export function upsertPassword(hash: string, salt: string): void {
   const existing = d
     .select({ id: schema.auth.id })
     .from(schema.auth)
-    .where(eq(schema.auth.type, 'password'))
+    .where(eq(schema.auth.type, AUTH_TYPE.PASSWORD))
     .get()
 
   const now = Date.now()
@@ -232,7 +235,7 @@ export function upsertPassword(hash: string, salt: string): void {
   } else {
     d.insert(schema.auth)
       .values({
-        type: 'password',
+        type: AUTH_TYPE.PASSWORD,
         keyHash: hash,
         keyHashSalt: salt,
         createdAt: now,
@@ -246,7 +249,7 @@ export function updatePasswordLastUsed(): void {
   const d = getDb()
   d.update(schema.auth)
     .set({ lastUsedAt: Date.now() })
-    .where(eq(schema.auth.type, 'password'))
+    .where(eq(schema.auth.type, AUTH_TYPE.PASSWORD))
     .run()
 }
 
@@ -275,7 +278,7 @@ export function insertToken(
   const result = d
     .insert(schema.auth)
     .values({
-      type: 'token',
+      type: AUTH_TYPE.TOKEN,
       name,
       keyHash,
       keyHashSalt: salt,
@@ -301,7 +304,7 @@ export function listTokens(): TokenRow[] {
       createdAt: schema.auth.createdAt,
     })
     .from(schema.auth)
-    .where(eq(schema.auth.type, 'token'))
+    .where(eq(schema.auth.type, AUTH_TYPE.TOKEN))
     .all()
 }
 
@@ -339,7 +342,7 @@ export function getAllTokenHashes(): {
       expiresAt: schema.auth.expiresAt,
     })
     .from(schema.auth)
-    .where(eq(schema.auth.type, 'token'))
+    .where(eq(schema.auth.type, AUTH_TYPE.TOKEN))
     .all()
 }
 
@@ -384,7 +387,7 @@ export function insertDeviceLog(data: {
       source: data.source,
       action: data.action,
       params: data.params ?? null,
-      status: 'processing',
+      status: LOG_STATUS.PROCESSING,
       createdAt: Date.now(),
     })
     .returning({ id: schema.deviceLogs.id })
@@ -412,13 +415,29 @@ export function getDeviceLogs(
   udid: string,
   page: number,
   pageSize: number
-): { logs: (typeof schema.deviceLogs.$inferSelect)[]; total: number } {
+): {
+  logs: (typeof schema.deviceLogs.$inferSelect & { authName: string | null })[]
+  total: number
+} {
   const d = getDb()
   const offset = (page - 1) * pageSize
 
   const logs = d
-    .select()
+    .select({
+      id: schema.deviceLogs.id,
+      udid: schema.deviceLogs.udid,
+      authId: schema.deviceLogs.authId,
+      source: schema.deviceLogs.source,
+      action: schema.deviceLogs.action,
+      params: schema.deviceLogs.params,
+      status: schema.deviceLogs.status,
+      error: schema.deviceLogs.error,
+      createdAt: schema.deviceLogs.createdAt,
+      completedAt: schema.deviceLogs.completedAt,
+      authName: schema.auth.name,
+    })
     .from(schema.deviceLogs)
+    .leftJoin(schema.auth, eq(schema.deviceLogs.authId, schema.auth.id))
     .where(eq(schema.deviceLogs.udid, udid))
     .orderBy(desc(schema.deviceLogs.createdAt))
     .limit(pageSize)
@@ -439,7 +458,7 @@ export function getAdminAuthId(): number | null {
   const row = d
     .select({ id: schema.auth.id })
     .from(schema.auth)
-    .where(eq(schema.auth.type, 'password'))
+    .where(eq(schema.auth.type, AUTH_TYPE.PASSWORD))
     .get()
   return row?.id ?? null
 }

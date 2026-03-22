@@ -1,0 +1,223 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "password": "Password",
+    "signIn": "Sign in",
+    "link": "Link",
+    "ok": "OK"
+  },
+  "login": {
+    "title": "Welcome back",
+    "description": "Enter your admin password to continue.",
+    "loggingIn": "Logging in...",
+    "submit": "Login"
+  },
+  "setup": {
+    "title": "Set up admin password",
+    "description": "Choose a password to protect your Tachibana instance.",
+    "confirmPassword": "Confirm password",
+    "passwordMinLength": "Password must be at least 8 characters.",
+    "passwordsMismatch": "Passwords do not match.",
+    "settingUp": "Setting up...",
+    "submit": "Continue"
+  },
+  "settings": {
+    "password": {
+      "title": "Admin Password",
+      "description": "Reset your admin password. This will log you out of other sessions. MCP & Skills Clients are kept intact.",
+      "change": "Change",
+      "dialogTitle": "Change admin password",
+      "dialogDescription": "All existing sessions will be logged out.",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmNewPassword": "Confirm new password",
+      "newPasswordMinLength": "New password must be at least 8 characters.",
+      "passwordsMismatch": "Passwords do not match.",
+      "changing": "Changing...",
+      "changePassword": "Change password"
+    },
+    "language": {
+      "title": "Language",
+      "description": "Choose the display language for the Web UI."
+    }
+  },
+  "linkDevice": {
+    "title": "Link an iPhone or iPad",
+    "usbInstruction": "First, connect an iPhone or iPad via USB cable.",
+    "chooseDevice": "Then, choose a device to link",
+    "noDevices": "No devices connected via USB.",
+    "connected": "Connected",
+    "linked": "Linked",
+    "linking": "Linking...",
+    "done": "Done"
+  },
+  "signIn": {
+    "title": "Sign in Apple Account",
+    "description": "Required to manipulate devices.",
+    "email": "Email",
+    "signingIn": "Signing in...",
+    "submit": "Sign in",
+    "accountNote": "Any account would work, it is not affiliated with iCloud.",
+    "createAccount": "Create a new one »",
+    "privacyNote": "Credentials are only shared with Apple and stored on your host device. You can sign out at any time to clear them.",
+    "twoFa": {
+      "title": "Two-factor authentication",
+      "descriptionWithType": "Enter the verification code sent via {{type}}.",
+      "description": "Enter your 6-digit verification code.",
+      "verifying": "Verifying...",
+      "verify": "Verify"
+    }
+  },
+  "device": {
+    "notFound": {
+      "title": "Device not found",
+      "description": "This device is not registered. Make sure it's connected and linked."
+    },
+    "disconnected": {
+      "title": "Device disconnected",
+      "description": "Connect {{deviceName}} via USB to continue."
+    },
+    "notLinked": {
+      "title": "Device not linked",
+      "description": "{{deviceName}} needs to be linked before use."
+    }
+  },
+  "deviceScreen": {
+    "unavailable": "Screen unavailable",
+    "preparing": "Preparing device...",
+    "defaultError": "Could not start screen. Make sure the device is connected.",
+    "firstTimeHint": "If it's first time using this device, you need to follow steps below to set it up.",
+    "retry": "Retry",
+    "step": "Step {{step}}: {{title}}",
+    "trustCertificate": {
+      "title": "Trust developer certificate",
+      "description": "In <strong>Settings → General → VPN & Device Management</strong>, trust <strong>{{email}}</strong>.",
+      "defaultEmail": "your Apple account"
+    },
+    "developerMode": {
+      "title": "Enable Developer Mode",
+      "description": "In <strong>Settings → Privacy & Security → Developer Mode</strong>, turn on Developer Mode and restart when prompted."
+    }
+  },
+  "controlPanel": {
+    "control": "Control",
+    "screenControls": "Screen controls",
+    "click": "Click",
+    "clickTap": "Tap",
+    "doubleClick": "Double click",
+    "doubleClickTap": "Double tap",
+    "clickDrag": "Click + drag",
+    "clickDragSwipe": "Swipe",
+    "rightClick": "Right click",
+    "rightClickHold": "Touch & hold",
+    "apps": "Apps",
+    "photos": "Photos",
+    "home": "Home",
+    "typeHint": "Type here to send keys to device...",
+    "unlock": "Unlock",
+    "lock": "Lock",
+    "alwaysAwake": "Always Awake",
+    "loadingApps": "Loading apps...",
+    "launchApp": "Launch App",
+    "killAndLaunch": "Kill and Launch App",
+    "loadingPhotos": "Loading photos...",
+    "noPhotos": "No photos found",
+    "download": "Download",
+    "loadMore": "Load More",
+    "logs": "Logs",
+    "autoRefresh": "Auto Refresh",
+    "closePanel": "Close panel",
+    "noLogs": "No logs yet",
+    "previousPage": "Previous page",
+    "nextPage": "Next page"
+  },
+  "agents": {
+    "title": "MCP & Skills",
+    "register": "Register",
+    "description": "Enable access for your favorite LLM agents.",
+    "noAgents": "No agent yet. Register one to get started.",
+    "agentName": "Agent Name",
+    "expires": "Expires",
+    "lastUsed": "Last Used",
+    "never": "Never",
+    "rename": "Rename",
+    "delete": "Delete",
+    "renameDialog": {
+      "title": "Rename agent",
+      "description": "Enter a new name for this agent.",
+      "placeholder": "Token name",
+      "saving": "Saving...",
+      "save": "Save"
+    },
+    "createDialog": {
+      "title": "Register your agent",
+      "description": "Next, you will be taken to setup your agent.",
+      "placeholder": "Agent name",
+      "expiration": "Expiration",
+      "expirationNever": "Never",
+      "expiration7days": "7 days",
+      "expiration30days": "30 days",
+      "expiration90days": "90 days",
+      "registering": "Registering...",
+      "register": "Register"
+    },
+    "setupDialog": {
+      "title": "Setup your agent",
+      "description": "This window includes your secret key — it will only be shown once. Keep it open until finishing the setup.",
+      "agentSkill": "AgentSkill",
+      "agentSkillDescription": "Works with OpenClaw and more latest agents, providing atomic operations over devices.",
+      "downloadZip": "Download ZIP",
+      "agentSkillHint": "Search the web if you don't know what to do with your agent.",
+      "mcp": "MCP",
+      "mcpDescription": "Add this JSON snippet to your MCP client configuration.",
+      "copied": "Copied to clipboard",
+      "saveToken": "Or save the token for later..."
+    }
+  },
+  "layout": {
+    "appName": "Tachibana",
+    "version": "Web UI · v{{version}}",
+    "mcpSkills": "MCP & Skills",
+    "worksWithAgents": "Works with agents",
+    "worksWith": "Works with {{name}}",
+    "settings": "Settings"
+  },
+  "account": {
+    "appleAccount": "Apple Account",
+    "signOut": "Sign out",
+    "signedInAs": "Signed in as"
+  },
+  "deviceList": {
+    "devices": "Devices",
+    "noDevices": "No devices found.",
+    "linked": "Linked",
+    "notLinked": "Not linked",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "linking": "Linking",
+    "link": "Link"
+  },
+  "authRequired": {
+    "title": "Apple Account required",
+    "description": "You need to sign in with an Apple Account to link a device to the developer portal."
+  },
+  "linkError": {
+    "title": "Failed to link device"
+  },
+  "trustModal": {
+    "title": "Trust this computer",
+    "description": "Unlock <strong>{{deviceName}}</strong> and tap <strong>Trust</strong> when prompted on the device.",
+    "waiting": "Waiting for trust confirmation..."
+  },
+  "errors": {
+    "setupFailed": "Setup failed",
+    "loginFailed": "Login failed",
+    "logoutFailed": "Logout failed",
+    "passwordChangeFailed": "Password change failed",
+    "fetchTokensFailed": "Failed to fetch tokens",
+    "createTokenFailed": "Failed to create token",
+    "renameTokenFailed": "Failed to rename token",
+    "deleteTokenFailed": "Failed to delete token",
+    "invalidPassword": "Invalid password"
+  }
+}
